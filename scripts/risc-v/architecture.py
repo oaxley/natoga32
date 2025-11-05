@@ -112,4 +112,137 @@ OPCODES = {
         'funct3': 0b101,
         'tail': 0b0100_000
     },
+    'ori': {
+        'type': OP_Format.TYPE_I,
+        'opcode': 0b001_0011,
+        'funct3': 0b110
+    },
+    'andi': {
+        'type': OP_Format.TYPE_I,
+        'opcode': 0b001_0011,
+        'funct3': 0b111
+    },
+    'aupc': {
+        'type': OP_Format.TYPE_U,
+        'opcode': 0b001_0111
+    },
+    'sb': {
+        'type': OP_Format.TYPE_S,
+        'opcode': 0b010_0011,
+        'funct3': 0b000
+    },
+    'sh': {
+        'type': OP_Format.TYPE_S,
+        'opcode': 0b010_0011,
+        'funct3': 0b001
+    },
+    'sw': {
+        'type': OP_Format.TYPE_S,
+        'opcode': 0b010_0011,
+        'funct3': 0b010
+    },
+    'add': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b000,
+        'tail': 0b0000_000
+    },
+    'sub': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b000,
+        'tail': 0b0100_000
+    },
+    'sll': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b001,
+        'tail': 0b0000_000
+    },
+    'slt': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b010,
+        'tail': 0b0000_000
+    },
+    'sltu': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b011,
+        'tail': 0b0000_000
+    },
+    'xor': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b100,
+        'tail': 0b0000_000
+    },
+    'srl': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b101,
+        'tail': 0b0000_000
+    },
+    'sra': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b101,
+        'tail': 0b0100_000
+    },
+    'or': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b110,
+        'tail': 0b0000_000
+    },
+    'and': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b111,
+        'tail': 0b0000_000
+    },
+    'lui': {
+        'type': OP_Format.TYPE_U,
+        'opcode': 0b011_0111
+    },
+    'beq': {
+        'type': OP_Format.TYPE_B,
+        'opcode': 0b110_0011,
+        'funct3': 0b000
+    },
+    'bne': {
+        'type': OP_Format.TYPE_B,
+        'opcode': 0b110_0011,
+        'funct3': 0b001
+    },
+    'blt': {
+        'type': OP_Format.TYPE_B,
+        'opcode': 0b110_0011,
+        'funct3': 0b100
+    },
+    'bge': {
+        'type': OP_Format.TYPE_B,
+        'opcode': 0b110_0011,
+        'funct3': 0b101
+    },
+    'bltu': {
+        'type': OP_Format.TYPE_B,
+        'opcode': 0b110_0011,
+        'funct3': 0b110
+    },
+    'bgeu': {
+        'type': OP_Format.TYPE_B,
+        'opcode': 0b110_0011,
+        'funct3': 0b111
+    },
+    'jalr': {
+        'type': OP_Format.TYPE_I,
+        'opcode': 0b110_0111,
+        'funct3': 0b000
+    },
+    'jal': {
+        'type': OP_Format.TYPE_J,
+        'opcode': 0b110_1111,
+    },
+
 }
