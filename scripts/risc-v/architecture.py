@@ -122,7 +122,7 @@ OPCODES = {
         'opcode': 0b001_0011,
         'funct3': 0b111
     },
-    'aupc': {
+    'auipc': {
         'type': OP_Format.TYPE_U,
         'opcode': 0b001_0111
     },
