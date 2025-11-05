@@ -77,7 +77,7 @@ class Tokenizer:
             # binary number (0b) / '....b'
             if (string[:2] == '0b') and (string[2:].isdigit()):
                 return (True, int(string[2:], 2))
-            if (string[-1] == 'h') and (string[:-1].isdigit()):
+            if (string[-1] == 'b') and (string[:-1].isdigit()):
                 return (True, int(string[:-1], 2))
 
         except ValueError:
