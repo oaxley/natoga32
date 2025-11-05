@@ -323,4 +323,115 @@ OPCODES = {
         'funct3': 0b111
     },
 
+    'clz': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b001_0011,
+        'funct3': 0b001,
+        'tail': 0b0110_0000_0000
+    },
+    'ctz': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b001_0011,
+        'funct3': 0b001,
+        'tail': 0b0110_0000_0001
+    },
+    'cpop': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b001_0011,
+        'funct3': 0b001,
+        'tail': 0b0110_0000_0010
+    },
+
+    'rol': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b001,
+        'tail': 0b0110_000
+    },
+    'ror': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b101,
+        'tail': 0b0110_000
+    },
+    'rori': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b001_0011,
+        'funct3': 0b101,
+        'tail': 0b0110_000
+    },
+
+    'rev8': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b001_0011,
+        'funct3': 0b101,
+        'tail': 0b0110_1001_1000
+    },
+
+    'bclr': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b001,
+        'tail': 0b0100_100
+    },
+    'bclri': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b001_0011,
+        'funct3': 0b001,
+        'tail': 0b0100_100
+    },
+    'bext': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b101,
+        'tail': 0b0100_100
+    },
+    'bexti': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b001_0011,
+        'funct3': 0b101,
+        'tail': 0b0100_100
+    },
+    'binv': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b001,
+        'tail': 0b0110_100
+    },
+    'binvi': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b001_0011,
+        'funct3': 0b001,
+        'tail': 0b0110_100
+    },
+    'bset': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b001,
+        'tail': 0b0010_100
+    },
+    'bseti': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b001_0011,
+        'funct3': 0b001,
+        'tail': 0b0010_100
+    },
+
+    'pack': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b100,
+        'tail': 0b0000_100
+    },
+    'packh': {
+        'type': OP_Format.TYPE_R,
+        'opcode': 0b011_0011,
+        'funct3': 0b111,
+        'tail': 0b0000_100
+    },
+
+    'ecall': {
+        'type': OP_Format.TYPE_I,
+        'opcode': 0b0000_0001_0000_0000_0000_0000_0111_0011
+    },
 }
