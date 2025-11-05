@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # @author   Sebastien LEGRAND
 #
 # @brief    Risc-V tiny compiler (for testing purpose only)
@@ -49,6 +49,12 @@ while(True):
     if not c:
         break
 
+    # remove comments
+    if c in ['#', ";"]:
+        while(c != '\n'):
+            c = tokenizer.next()
+
+    # remove empty line and white space in front
     if c in [' ', '\n', '\t'] and len(string) == 0:
         continue
 
@@ -66,6 +72,3 @@ while(True):
 
     else:
         string = string + c
-
-
-
