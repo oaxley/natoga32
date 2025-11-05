@@ -10,6 +10,7 @@ from typing import TextIO, Tuple, Set, Any
 from enum import IntEnum, auto
 
 from architecture import REGISTERS, OPCODES
+from directives import DIRECTIVES
 
 #----- globals
 
@@ -19,6 +20,7 @@ class TOKEN_ID(IntEnum):
     REGISTER = auto()
     IMMEDIATE = auto()
     LABEL = auto()
+    DIRECTIVE = auto()
     UNKNOWN = (1 << 8) - 1
 
 #----- class
@@ -49,13 +51,15 @@ class Tokenizer:
             return (TOKEN_ID.LABEL, string[:-1], None)
         elif string in self.labels:
             return (TOKEN_ID.LABEL, string, None)
+        elif string in DIRECTIVES:
+            return (TOKEN_ID.DIRECTIVE, string, DIRECTIVES[string])
 
         # check for numbers
         (is_valid, value) = self.parseNumber(string)
         if is_valid:
             return (TOKEN_ID.IMMEDIATE, value, None)
 
-        return (TOKEN_ID.UNKNOWN, string, None)
+        return (TOKEN_ID.LABEL, string, None)
 
     def parseNumber(self, string) -> Tuple[bool, int|str]:
         try:
