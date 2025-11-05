@@ -13,7 +13,7 @@ from enum import IntEnum, auto
 #----- globals
 
 # registers map with aliases
-REGISTERS = {}
+REGISTERS: Dict[str, int] = {}
 REGISTERS = { f'x{i}': i for i in range(0, 32) }
 REGISTERS['zero'] = 0
 REGISTERS['ra'] = 1
@@ -48,7 +48,7 @@ class OP_Format(IntEnum):
     TYPE_J = auto()
 
 # opcodes map
-OPCODES = {
+OPCODES: Dict[str, Dict[str, int]] = {
     'lb': {
         'type': OP_Format.TYPE_I,
         'opcode': 0b000_0011,
