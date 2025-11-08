@@ -55,3 +55,6 @@ Lexer.register(".ifdef", TokenType.DIRECTIVE)
 Lexer.register(".ifndef", TokenType.DIRECTIVE)
 Lexer.register(".else", TokenType.DIRECTIVE)
 Lexer.register(".endif", TokenType.DIRECTIVE)
+
+# dollar
+Lexer.register("$", TokenType.DOLLAR)
