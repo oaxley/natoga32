@@ -132,7 +132,7 @@ class Lexer:
         """Identify a string and returns the proper Token Type"""
         # check if we have a directive
         if self.is_exist(string):
-            return (TokenType.DIRECTIVE, string)
+            return (Lexer.__keywords[string], string)
 
         # a label end up with ':'
         if string[-1] == ':':
