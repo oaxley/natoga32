@@ -112,15 +112,15 @@ class Lexer:
                     return (True, int(string))
 
             # hexadecimal number: 0x or postfixed with h
-            if (string[:2] == '0x') and (string[2:].isdigit()):
+            if (string[:2] == '0x'):
                 return (True, int(string[2:], 16))
-            if (string[-1] == 'h') and (string[:-1].isdigit()):
+            if (string[-1] == 'h'):
                 return (True, int(string[:-1], 16))
 
             # binary number: 0b or postfixed with b
-            if (string[:2] == '0b') and (string[2:].isdigit()):
+            if (string[:2] == '0b'):
                 return (True, int(string[2:], 2))
-            if (string[-1] == 'b') and (string[:-1].isdigit()):
+            if (string[-1] == 'b'):
                 return (True, int(string[:-1], 2))
 
         except ValueError:
@@ -196,10 +196,12 @@ class Lexer:
 
             # check for delimiters
             if c in [' ', '\n', ',', '(', ')']:
+
                 # try to identify the string
-                i = self._identify(string)
-                self._emit_token(i[0], i[1])
-                string = ""
+                if len(string) > 0:
+                    i = self._identify(string)
+                    self._emit_token(i[0], i[1])
+                    string = ""
 
                 # edge cases
                 if c in ['(', ')']:
