@@ -219,5 +219,5 @@ class Lexer:
 
 
 #----- begin
-# load all the directives (only once the class has been defined)
-import packages.directives
+# load all the keywords (only once the class has been defined)
+import packages.keywords
