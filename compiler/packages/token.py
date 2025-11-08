@@ -22,7 +22,7 @@ from dataclasses import dataclass
 #----- globals
 
 # token types
-class TokenTypes(IntEnum):
+class TokenType(IntEnum):
     EOF = auto()                        # end of file
     EOL = auto()                        # end of line '\n'
     NUMBER = auto()                     # any numbers
@@ -47,7 +47,7 @@ class Token:
         row   : the line where the token appears
         col   : the position in the line where the token appears
     """
-    type: TokenTypes = TokenTypes.UNKNOWN
+    type: TokenType = TokenType.UNKNOWN
     value: str = ""
     row: int = 0
     col: int = 0
