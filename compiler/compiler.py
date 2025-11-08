@@ -19,6 +19,7 @@ from typing import Any, Dict, List
 from argparse import ArgumentParser
 
 from packages.config import Config
+from packages.lexer import Lexer
 
 
 # ----- globals
@@ -36,3 +37,5 @@ args = argparse.parse_args()
 # initialize the configuration
 config = Config(args)
 
+# create a new lexer
+lexer = Lexer(config)
