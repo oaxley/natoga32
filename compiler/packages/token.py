@@ -33,6 +33,7 @@ class TokenType(IntEnum):
     SYMBOL = auto()                     # assembly symbol like ',' or '(' or ')'
     IDENT = auto()                      # identifier
     DIRECTIVE = auto()                  # assembler directive
+    MACRO = auto()                      # assembler macro
     UNKNOWN = auto()                    # unknown word
 
 
