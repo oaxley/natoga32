@@ -16,6 +16,8 @@
 from __future__ import annotations
 from typing import Any, Dict, List
 
+import sys
+
 from argparse import ArgumentParser
 
 from packages.config import Config
@@ -35,7 +37,16 @@ argparse.add_argument("-o", "--output", help="output file")
 args = argparse.parse_args()
 
 # initialize the configuration
-config = Config(args)
+try:
+    config = Config(args)
+except FileNotFoundError as e:
+    print(e)
+    sys.exit(1)
 
 # create a new lexer
-lexer = Lexer(config)
+lexer = Lexer()
+lexer.set_config(config)
+lexer.parse()
+
+for value in lexer.tokens():
+    print(value)
