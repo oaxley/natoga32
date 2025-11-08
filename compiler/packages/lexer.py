@@ -30,7 +30,7 @@ class Lexer:
 
     # private members
     __instance: ClassVar[Optional[Lexer]] = None
-    __directives: ClassVar[Dict[str, TokenType]] = { }
+    __keywords: ClassVar[Dict[str, TokenType]] = { }
     __config: ClassVar[Optional[Config]] = None
 
     # counters
@@ -50,16 +50,16 @@ class Lexer:
     @property
     def directives(self) -> List[str]:
         """Return a list of available directives"""
-        return list(Lexer.__directives.keys())
+        return list(Lexer.__keywords.keys())
 
     def is_exist(self, name: str) -> bool:
         """Check if a directive exists"""
-        return (name in Lexer.__directives)
+        return (name in Lexer.__keywords)
 
     @staticmethod
     def register(name: str, type: TokenType):
         """Register a new directives"""
-        Lexer.__directives[name] = type
+        Lexer.__keywords[name] = type
 
     def set_config(self, config: Config) -> None:
         """Setup the configuration"""
