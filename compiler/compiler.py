@@ -44,8 +44,7 @@ except FileNotFoundError as e:
     sys.exit(1)
 
 # create a new lexer
-lexer = Lexer()
-lexer.set_config(config)
+lexer = Lexer(config)
 lexer.parse()
 
 for value in lexer.tokens():

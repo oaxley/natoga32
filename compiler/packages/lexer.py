@@ -18,63 +18,30 @@ from typing import Any, Dict, List, ClassVar, Optional, Callable, Tuple
 from packages.config import Config
 from packages.token import Token, TokenType
 from packages.reader import FileReader
+from packages.symbols import Symbols
 
 
 #----- classes
 class Lexer:
-    """Process the assembly file and create tokens
+    """Process the assembly file and create tokens"""
 
-    Notes:
-        This class acts as a singleton to allow for auto-registration
-    """
+    def __init__(self, config: Config) -> None:
+        """Constructor"""
+        # current row/col
+        self._row: int = 1
+        self._col: int = 1
 
-    # private members
-    __instance: ClassVar[Optional[Lexer]] = None
-    __keywords: ClassVar[Dict[str, TokenType]] = { }
-    __config: ClassVar[Optional[Config]] = None
-
-    # counters
-    row: int = 1
-    col: int = 1
-
-    # queue
-    __tokens: List[Token] = []
-
-    def __new__(cls) -> Lexer:
-        """Create a new instance of the Lexer or return the current one"""
-        if Lexer.__instance is None:
-            Lexer.__instance = object.__new__(cls)
-
-        return Lexer.__instance
-
-    @property
-    def directives(self) -> List[str]:
-        """Return a list of available directives"""
-        return list(Lexer.__keywords.keys())
-
-    def is_exist(self, name: str) -> bool:
-        """Check if a directive exists"""
-        return (name in Lexer.__keywords)
-
-    @staticmethod
-    def register(name: str, type: TokenType):
-        """Register a new directives"""
-        Lexer.__keywords[name] = type
-
-    def set_config(self, config: Config) -> None:
-        """Setup the configuration"""
-        Lexer.__config = config
-
-    def _config(self, name) -> Any:
-        return Lexer.__config.__getattribute__(name)
+        self._config = config
+        self._tokens: List[Token] = []
+        self._symbols = Symbols()
 
     def _skip_comments(self, reader: FileReader) -> None:
         """skip the comments"""
         while(reader.next() != '\n'):
             pass
         self._emit_token(TokenType.EOL, "")
-        Lexer.row += 1
-        Lexer.col = 1
+        self._row += 1
+        self._col = 1
 
     def _get_string(self, reader: FileReader):
         """Retrieve the content of the string and emit the corresponding token"""
@@ -95,8 +62,8 @@ class Lexer:
 
     def _emit_token(self, type: TokenType, string: str) -> None:
         """Add the new token to the queue"""
-        Lexer.__tokens.append(Token(type, string, Lexer.row, Lexer.col))
-        Lexer.col += len(string)
+        self._tokens.append(Token(type, string, self._row, self._col))
+        self._col += len(string)
 
     def _parse_number(self, string: str) -> Tuple[bool, int]:
         """Parse a string and determine if it's a number of not"""
@@ -130,8 +97,8 @@ class Lexer:
     def _identify(self, string: str) -> Tuple[TokenType, str]:
         """Identify a string and returns the proper Token Type"""
         # check if we have a directive
-        if self.is_exist(string):
-            return (Lexer.__keywords[string], string)
+        if self._symbols.is_exist(string):
+            return (self._symbols.get_type(string), string)
 
         # a label end up with ':'
         if string[-1] == ':':
@@ -150,11 +117,11 @@ class Lexer:
         return (TokenType.IDENT, string)
 
     def tokens(self) -> List[Token]:
-        return Lexer.__tokens
+        return self._tokens
 
     def parse(self) -> None:
         """Parse the input file and create a flow of token"""
-        reader = FileReader(self._config("input_file"))
+        reader = FileReader(self._config.input_file)
 
         string = ""
         while(True):
@@ -171,13 +138,13 @@ class Lexer:
             # remove empty lines and white spaces
             if c in [' ', '\t', '\n'] and len(string) == 0:
                 if c == '\n':
-                    if Lexer.col > 1:
+                    if self._col > 1:
                         self._emit_token(TokenType.EOL, "")
 
-                    Lexer.row += 1
-                    Lexer.col = 1
+                    self._row += 1
+                    self._col = 1
                 else:
-                    Lexer.col += 1
+                    self._col += 1
                 continue
 
             # special case for strings
@@ -208,14 +175,9 @@ class Lexer:
 
                 if c == '\n':
                     self._emit_token(TokenType.EOL, "")
-                    Lexer.row += 1
-                    Lexer.col = 1
+                    self._row += 1
+                    self._col = 1
                 else:
-                    Lexer.col += 1
+                    self._col += 1
             else:
                 string = string + c
-
-
-#----- begin
-# load all the keywords (only once the class has been defined)
-import packages.keywords
