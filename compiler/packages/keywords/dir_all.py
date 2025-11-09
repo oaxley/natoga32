@@ -16,45 +16,45 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from packages.token import TokenType
-from packages.lexer import Lexer
+from packages.symbols import Symbols
 
 
 #----- begin
 
 # generics
-Lexer.register(".cpu", TokenType.DIRECTIVE)
-Lexer.register(".org", TokenType.DIRECTIVE)
-Lexer.register(".text", TokenType.DIRECTIVE)
-Lexer.register(".data", TokenType.DIRECTIVE)
-Lexer.register(".bss", TokenType.DIRECTIVE)
-Lexer.register(".include", TokenType.DIRECTIVE)
-Lexer.register(".global", TokenType.DIRECTIVE)
+Symbols.register(".cpu", TokenType.DIRECTIVE)
+Symbols.register(".org", TokenType.DIRECTIVE)
+Symbols.register(".text", TokenType.DIRECTIVE)
+Symbols.register(".data", TokenType.DIRECTIVE)
+Symbols.register(".bss", TokenType.DIRECTIVE)
+Symbols.register(".include", TokenType.DIRECTIVE)
+Symbols.register(".global", TokenType.DIRECTIVE)
 
 # memory allocation
-Lexer.register(".ascii", TokenType.DIRECTIVE)
-Lexer.register(".asciiz", TokenType.DIRECTIVE)
-Lexer.register(".db", TokenType.DIRECTIVE)
-Lexer.register(".dw", TokenType.DIRECTIVE)
-Lexer.register(".dl", TokenType.DIRECTIVE)
-Lexer.register(".alloc.b", TokenType.DIRECTIVE)
-Lexer.register(".alloc.w", TokenType.DIRECTIVE)
-Lexer.register(".alloc.l", TokenType.DIRECTIVE)
-Lexer.register(".align", TokenType.DIRECTIVE)
-Lexer.register(".dup", TokenType.DIRECTIVE)
-Lexer.register(".equ", TokenType.DIRECTIVE)
+Symbols.register(".ascii", TokenType.DIRECTIVE)
+Symbols.register(".asciiz", TokenType.DIRECTIVE)
+Symbols.register(".db", TokenType.DIRECTIVE)
+Symbols.register(".dw", TokenType.DIRECTIVE)
+Symbols.register(".dl", TokenType.DIRECTIVE)
+Symbols.register(".alloc.b", TokenType.DIRECTIVE)
+Symbols.register(".alloc.w", TokenType.DIRECTIVE)
+Symbols.register(".alloc.l", TokenType.DIRECTIVE)
+Symbols.register(".align", TokenType.DIRECTIVE)
+Symbols.register(".dup", TokenType.DIRECTIVE)
+Symbols.register(".equ", TokenType.DIRECTIVE)
 
 # macros
-Lexer.register(".macro", TokenType.DIRECTIVE)
-Lexer.register(".endm", TokenType.DIRECTIVE)
-Lexer.register(".repeat", TokenType.DIRECTIVE)
-Lexer.register(".endr", TokenType.DIRECTIVE)
+Symbols.register(".macro", TokenType.DIRECTIVE)
+Symbols.register(".endm", TokenType.DIRECTIVE)
+Symbols.register(".repeat", TokenType.DIRECTIVE)
+Symbols.register(".endr", TokenType.DIRECTIVE)
 
 # "if" and associates
-Lexer.register(".if", TokenType.DIRECTIVE)
-Lexer.register(".ifdef", TokenType.DIRECTIVE)
-Lexer.register(".ifndef", TokenType.DIRECTIVE)
-Lexer.register(".else", TokenType.DIRECTIVE)
-Lexer.register(".endif", TokenType.DIRECTIVE)
+Symbols.register(".if", TokenType.DIRECTIVE)
+Symbols.register(".ifdef", TokenType.DIRECTIVE)
+Symbols.register(".ifndef", TokenType.DIRECTIVE)
+Symbols.register(".else", TokenType.DIRECTIVE)
+Symbols.register(".endif", TokenType.DIRECTIVE)
 
 # dollar
-Lexer.register("$", TokenType.DOLLAR)
+Symbols.register("$", TokenType.DOLLAR)

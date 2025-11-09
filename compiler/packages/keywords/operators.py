@@ -16,19 +16,19 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from packages.token import TokenType
-from packages.lexer import Lexer
+from packages.symbols import Symbols
 
 
 #----- globals
 
-Lexer.register("<<", TokenType.OPERATOR)        # left shift
-Lexer.register(">>", TokenType.OPERATOR)        # right shift
-Lexer.register("+", TokenType.OPERATOR)         # plus
-Lexer.register("-", TokenType.OPERATOR)         # minus
-Lexer.register("*", TokenType.OPERATOR)         # multiply
-Lexer.register("/", TokenType.OPERATOR)         # divide
-Lexer.register("%", TokenType.OPERATOR)         # remainder
-Lexer.register("&", TokenType.OPERATOR)         # bitwise and
-Lexer.register("|", TokenType.OPERATOR)         # bitwise or
-Lexer.register("^", TokenType.OPERATOR)         # bitwise xor
-Lexer.register("~", TokenType.OPERATOR)         # bitwise not
+Symbols.register("<<", TokenType.OPERATOR)        # left shift
+Symbols.register(">>", TokenType.OPERATOR)        # right shift
+Symbols.register("+", TokenType.OPERATOR)         # plus
+Symbols.register("-", TokenType.OPERATOR)         # minus
+Symbols.register("*", TokenType.OPERATOR)         # multiply
+Symbols.register("/", TokenType.OPERATOR)         # divide
+Symbols.register("%", TokenType.OPERATOR)         # remainder
+Symbols.register("&", TokenType.OPERATOR)         # bitwise and
+Symbols.register("|", TokenType.OPERATOR)         # bitwise or
+Symbols.register("^", TokenType.OPERATOR)         # bitwise xor
+Symbols.register("~", TokenType.OPERATOR)         # bitwise not
