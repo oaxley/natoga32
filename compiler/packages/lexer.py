@@ -93,7 +93,6 @@ class Lexer:
         if c == '"':
             self._emit_token(TokenType.SYMBOL, c)
 
-
     def _emit_token(self, type: TokenType, string: str) -> None:
         """Add the new token to the queue"""
         Lexer.__tokens.append(Token(type, string, Lexer.row, Lexer.col))
@@ -149,7 +148,6 @@ class Lexer:
 
         # default token type
         return (TokenType.IDENT, string)
-
 
     def tokens(self) -> List[Token]:
         return Lexer.__tokens
