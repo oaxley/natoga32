@@ -35,11 +35,13 @@ class Lexer:
         self._tokens: List[Token] = []
         self._symbols = Symbols()
 
-    def _skip_comments(self, reader: FileReader) -> None:
+    def _skip_comments(self, reader: FileReader, line: bool = False) -> None:
         """skip the comments"""
         while(reader.next() != '\n'):
             pass
-        self._emit_token(TokenType.EOL, "")
+
+        if line is True:
+            self._emit_token(TokenType.EOL, "")
         self._row += 1
         self._col = 1
 
@@ -135,7 +137,12 @@ class Lexer:
 
             # remove the comments
             if c in [ '#', ';']:
-                self._skip_comments(reader)
+                if self._col == 1:
+                    # comment appears on its line
+                    self._skip_comments(reader, False)
+                else:
+                    # comment appears after some code
+                    self._skip_comments(reader, True)
                 continue
 
             # remove empty lines and white spaces
