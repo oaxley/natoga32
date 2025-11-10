@@ -97,8 +97,11 @@ class Lexer:
     def _identify(self, string: str) -> Tuple[TokenType, str]:
         """Identify a string and returns the proper Token Type"""
         # check if we have a directive
-        if self._symbols.is_exist(string):
-            return (self._symbols.get_type(string), string)
+        if string[0] == '.':
+            if self._symbols.is_exist(string):
+                return (self._symbols.get_type(string), string)
+            else:
+                return (TokenType.UNKNOWN, string)
 
         # a label end up with ':'
         if string[-1] == ':':
