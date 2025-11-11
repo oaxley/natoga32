@@ -41,6 +41,7 @@ class TokenType(IntEnum):
     MINUS = auto()                      # '-'
     STAR = auto()                       # '*'
     SLASH = auto()                      # '/'
+    MODULO = auto()                     # '%'
     LSHIFT = auto()                     # '<<'
     RSHIFT = auto()                     # '>>'
     AND = auto()                        # '&'
@@ -74,6 +75,7 @@ TOKENS_SPECS = [
     (TokenType.MINUS.name, r'-'),
     (TokenType.STAR.name, r'\*'),
     (TokenType.SLASH.name, r'/'),
+    (TokenType.MODULO.name, r'%'),
     (TokenType.LSHIFT.name, r'<<'),
     (TokenType.RSHIFT.name, r'>>'),
     (TokenType.AND.name, r'&'),
