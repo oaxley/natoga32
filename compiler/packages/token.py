@@ -37,4 +37,4 @@ class Token:
     col: int = 0
 
     def __repr__(self) -> str:
-        return f"<{self.type}> '{self.value}' ({self.row},{self.col})"
+        return f"<{self.type.name}> '{self.value}' ({self.row},{self.col})"
