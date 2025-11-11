@@ -32,6 +32,7 @@ class TokenType(IntEnum):
     LABEL = auto()                      # any identifier terminated with ':'
     MACRO = auto()                      # assembler macro
     STRING = auto()                     # a "string"
+    CHAR = auto()                       # a single char 'A'
 
     # operators & symbols
     LPARENT = auto()                    # '('
@@ -65,6 +66,7 @@ TOKENS_SPECS = [
     (TokenType.IDENT.name, r'[A-Za-z_][A-Za-z0-9_-]*'),
     (TokenType.MACRO.name, r'\%[A-Za-z_]+'),
     (TokenType.STRING.name, r'\"[^\"]*\"'),
+    (TokenType.CHAR.name, r'\'.\''),
 
 
     # operators & symbols
