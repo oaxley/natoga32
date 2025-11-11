@@ -47,5 +47,5 @@ except FileNotFoundError as e:
 lexer = Lexer(config)
 lexer.parse()
 
-for value in lexer.tokens():
+for value in lexer.tokens:
     print(value)

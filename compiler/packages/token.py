@@ -15,26 +15,9 @@
 from __future__ import annotations
 from typing import Any, Dict, List
 
-from enum import IntEnum, auto
 from dataclasses import dataclass
 
-
-#----- globals
-
-# token types
-class TokenType(IntEnum):
-    EOF = auto()                        # end of file
-    EOL = auto()                        # end of line '\n'
-    NUMBER = auto()                     # any numbers
-    LABEL = auto()                      # any identifier terminated with ':'
-    STRING = auto()                     # a list of words, between '"'
-    OPERATOR = auto()                   # any characters used as operators
-    DOLLAR = auto()                     # alias for current PC
-    SYMBOL = auto()                     # assembly symbol like ',' or '(' or ')'
-    IDENT = auto()                      # identifier
-    DIRECTIVE = auto()                  # assembler directive
-    MACRO = auto()                      # assembler macro
-    UNKNOWN = auto()                    # unknown word
+from packages.specs import TokenType
 
 
 #----- class
@@ -52,3 +35,6 @@ class Token:
     value: str = ""
     row: int = 0
     col: int = 0
+
+    def __repr__(self) -> str:
+        return f"<{self.type}> '{self.value}' ({self.row},{self.col})"
