@@ -28,8 +28,7 @@ class Lexer:
     def __init__(self, config: Config) -> None:
         """Constructor"""
         # current row/col
-        self._row: int = 1
-        self._col: int = 1
+        self._row: int = 0
 
         self._config = config
         self._tokens: List[Token] = []
@@ -41,22 +40,28 @@ class Lexer:
                 self.tokenize(line)
 
             # end of file
-            self._tokens.append(Token(TokenType.EOF, "", self._row, self._col))
+            self._tokens.append(Token(TokenType.EOF, "", self._row, 0))
 
     def tokenize(self, line) -> None:
         # remove the newline delimiter
         line = line.rstrip('\n')
 
+        column = 0
         for match in RE_PATTERNS.finditer(line):
             kind = match.lastgroup
             value = match.group()
-            self._col = match.start() + 1
+            column = match.start() + 1
 
             # skip comment and whitespaces
             if kind in [ TokenType.SKIP.name, TokenType.COMMENT.name ]:
                 continue
 
-            print(f'kind = {kind} | value = [{value}]')
+            if kind:
+                self._tokens.append(Token(TokenType.__getitem__(kind), value, self._row, column))
+
+        # add the EOL
+        if column > 1:
+            self._tokens.append(Token(TokenType.EOL, "", self._row, len(line) + 1))
 
     @property
     def tokens(self) -> List[Token]:
