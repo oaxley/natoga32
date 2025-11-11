@@ -22,11 +22,9 @@ from argparse import ArgumentParser
 
 from packages.config import Config
 from packages.lexer import Lexer
+from packages.token import TokenStream
+from packages.parser import Parser
 
-
-# ----- globals
-# ----- functions
-# ----- classes
 
 # ----- begin
 
@@ -47,5 +45,6 @@ except FileNotFoundError as e:
 lexer = Lexer(config)
 lexer.parse()
 
-for value in lexer.tokens:
-    print(value)
+# parser
+parser = Parser(TokenStream(lexer.tokens))
+parser.parse()
