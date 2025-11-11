@@ -47,6 +47,7 @@ class Lexer:
         line = line.rstrip('\n')
 
         column = 0
+        need_eol = False
         for match in RE_PATTERNS.finditer(line):
             kind = match.lastgroup
             value = match.group()
@@ -58,9 +59,10 @@ class Lexer:
 
             if kind:
                 self._tokens.append(Token(TokenType.__getitem__(kind), value, self._row, column))
+                need_eol = True
 
         # add the EOL
-        if column > 1:
+        if need_eol:
             self._tokens.append(Token(TokenType.EOL, "", self._row, len(line) + 1))
 
     @property
