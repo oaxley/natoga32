@@ -20,6 +20,8 @@ import sys
 
 from argparse import ArgumentParser
 
+import packages.ast as ast
+
 from packages.config import Config
 from packages.lexer import Lexer
 from packages.token import TokenStream
@@ -47,4 +49,6 @@ lexer.parse()
 
 # parser
 parser = Parser(TokenStream(lexer.tokens))
-parser.parse()
+program = parser.process()
+
+print(program.statements)
