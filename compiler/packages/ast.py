@@ -23,10 +23,14 @@ class Node:
 # support for compile time expression
 class Expression(Node):
     """An compile time expression"""
+    pass
+
+class Number(Expression):
+    """A number is an expression"""
     def __init__(self, value: Union[int, str]) -> None:
         self.value = value
 
-class BinaryOp(Node):
+class BinaryOp(Expression):
     """A binary operation between 2 expressions"""
     def __init__(self, op: str, left: Expression, right: Expression) -> None:
         self.op = op
