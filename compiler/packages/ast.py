@@ -13,7 +13,7 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 
 #----- classes
 class Node:
@@ -44,9 +44,14 @@ class Statement(Node):
 
 class Directive(Statement):
     """Assembler directive"""
-    def __init__(self, name: str, args: List[str]) -> None:
+    def __init__(self, name: str, args: List[str], alias: Optional[str] = None) -> None:
         self.name = name
         self.args = args
+        self.alias = alias
+
+    def __repr__(self) -> str:
+        prefix = f"{self.alias}: " if self.alias else ""
+        return f"{prefix}{self.name} {' '.join(map(str, self.args))}"
 
 # custom type for Instruction class
 class Instruction(Statement):
@@ -55,12 +60,21 @@ class Instruction(Statement):
         self.opcode = opcode
         self.operands = operands
 
+    def __repr__(self) -> str:
+        return f"{self.opcode} {', '.join(map(str, self.operands))}"
+
 class Label(Statement):
     """Assembly label"""
     def __init__(self, name: str) -> None:
         self.name = name
 
+    def __repr__(self) -> str:
+        return f"{self.name}:"
+
 class Program(Node):
     """A program is composed of statements"""
     def __init__(self, statements: List[Statement]) -> None:
         self.statements = statements
+
+    def __repr__(self) -> str:
+        return "\n".join(map(str, self.statements))
