@@ -51,4 +51,4 @@ lexer.parse()
 parser = Parser(TokenStream(lexer.tokens))
 program = parser.process()
 
-print(program.statements)
+print(program)
