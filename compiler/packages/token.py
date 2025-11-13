@@ -57,7 +57,17 @@ class TokenStream:
     def next(self) -> Optional[Token]:
         """Return the next token in the list"""
         token = self.peek()
-        self.pos += 1
+        if token:
+            self.pos += 1
+
+        return token
+
+    def expect(self, kind: TokenType) -> Token:
+        """Check for the expected type and returns the token"""
+        token = self.next()
+        if not token or token.type != kind:
+            raise SyntaxError(f"Error: expecting {kind}, got {token.type}!") # type: ignore
+
         return token
 
     def end(self) -> bool:
