@@ -47,10 +47,10 @@ class TokenStream:
         self.tokens = tokens
         self.pos = 0
 
-    def peek(self) -> Optional[Token]:
+    def peek(self, inc: int = 0) -> Optional[Token]:
         """Return the next token, without removing it from the list"""
-        if self.pos < len(self.tokens):
-            return self.tokens[self.pos]
+        if (self.pos + inc) < len(self.tokens):
+            return self.tokens[self.pos + inc]
         else:
             return None
 
