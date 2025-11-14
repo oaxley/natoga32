@@ -66,7 +66,7 @@ class TokenStream:
         """Check for the expected type and returns the token"""
         token = self.next()
         if not token or token.type != kind:
-            raise SyntaxError(f"Error: expecting {kind}, got {token.type}!") # type: ignore
+            raise SyntaxError(f"Error: expecting {kind.name}, got {token.type.name} [{token.value}]!") # type: ignore
 
         return token
 
