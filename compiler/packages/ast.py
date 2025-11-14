@@ -25,10 +25,29 @@ class Expression(Node):
     """An compile time expression"""
     pass
 
+class String(Expression):
+    """A string is an expression"""
+    def __init__(self, value: str) -> None:
+        self.value = value
+
+    def __repr__(self) -> str:
+        return f"{self.value}"
+
+class Identifier(Expression):
+    """A simple identifier without meaning"""
+    def __init__(self, value: str) -> None:
+        self.value = value
+
+    def __repr__(self) -> str:
+        return f"{self.value}"
+
 class Number(Expression):
     """A number is an expression"""
     def __init__(self, value: Union[int, str]) -> None:
         self.value = value
+
+    def __repr__(self) -> str:
+        return f"{self.value}"
 
 class BinaryOp(Expression):
     """A binary operation between 2 expressions"""
@@ -36,6 +55,9 @@ class BinaryOp(Expression):
         self.op = op
         self.left = left
         self.right = right
+
+    def __repr__(self) -> str:
+        return f"{self.op} {self.left} {self.right}"
 
 # assembly Statements & al
 class Statement(Node):
