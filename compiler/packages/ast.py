@@ -66,14 +66,22 @@ class Statement(Node):
 
 class Directive(Statement):
     """Assembler directive"""
-    def __init__(self, name: str, args: List[str], alias: Optional[str] = None) -> None:
+    def __init__(self, name: str, left: Optional[Expression], right: Optional[Expression]) -> None:
         self.name = name
-        self.args = args
-        self.alias = alias
+        self.left = left
+        self.right = right
 
     def __repr__(self) -> str:
-        prefix = f"{self.alias}: " if self.alias else ""
-        return f"{prefix}{self.name} {' '.join(map(str, self.args))}"
+        string = ""
+        if self.left:
+            string += f"{self.left} "
+
+        string += f"{self.name}"
+
+        if self.right:
+            string += f" {self.right}"
+
+        return string
 
 # custom type for Instruction class
 class Instruction(Statement):
