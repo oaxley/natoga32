@@ -1,0 +1,59 @@
+start : statements
+
+statements: (directives | instructions | COMMENTS | LABELS)+
+
+// comments
+COMMENTS : ";" ((ALPHANUM)* | (SYMBOLS)+ | (WS)+)+
+LABELS : IDENTIFIER ":"
+
+// instructions
+instructions : IDENTIFIER [WS (IDENTIFIER [","])+ [NUMBERS]]
+
+
+// directives
+directives : DIRECTIVE | DATABLOCK | CMD | equ
+CMD : DIRECTIVE WS COMMAND
+equ : IDENTIFIER WS DIRECTIVE WS (expression|NUMBERS|STRING)
+
+DIRECTIVE : "." (ALPHA)+
+COMMAND : (ALPHA | "-")+ | (HEXNUMBER|NUMBER)
+
+DATABLOCK : IDENTIFIER WS DIRECTIVE (DATAVALUE)+
+DATAVALUE : WS (NUMBERS|DATACHAR) [","]
+DATACHAR : "'" (ALPHANUM | SYMBOLS) "'"
+
+IDENTIFIER : (ALPHA)+ (ALPHA | DIGITS | "_")+
+
+// expression
+expression : term (RELOP term)*
+term : factor (RELOP factor)*
+factor : CONSTANT | "(" expression ")"
+CONSTANT : NUMBERS
+RELOP : "+" | "-" | "*" | "/" | "<<" | ">>" | "&" | "|" | "^" | "~"
+
+// simple composite
+NUMBERS : HEXNUMBER | BINNUMBER | NUMBER
+
+// hexadecimal number
+HEXNUMBER : "0x" (HEXVALUE)+
+HEXVALUE : DIGITS | (("A".."F") | ("a".."f")) | "_"
+
+// binary number
+BINNUMBER : "0b" (BINVALUE)+
+BINVALUE : "0" | "1" | "_"
+
+
+// core types
+STRING : "\"" (ALPHANUM | SYMBOLS | WS)+ "\""
+ALPHANUM : ALPHA | DIGITS
+NUMBER : ["+"|"-"] DIGIT (DIGITS)*
+ALPHA : ("a".."z") | ("A".."Z")
+DIGITS : "0" | DIGIT
+DIGIT : "1".."9"
+WS: " " (" ")*
+
+SYMBOLS : "("|")"|"["|"]"|"-"|"+"|"_"|"*"|"/"|"'"|"\""|","|";"|"="|"%"|"$"|"!"
+
+%ignore "\n"
+%ignore "\t"
+%ignore " "
