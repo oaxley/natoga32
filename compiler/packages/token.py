@@ -37,7 +37,8 @@ class Token:
     col: int = 0
 
     def __repr__(self) -> str:
-        return f"{self.type.name:>12} | ({self.row:3},{self.col:3}) | {self.value:10}"
+        #return f"{self.type.name:>12} | ({self.row:3},{self.col:3}) | {self.value:10}"
+        return f"{self.type.name};{self.row};{self.col};{self.value}"
 
 
 class TokenStream:
@@ -48,28 +49,33 @@ class TokenStream:
         self.pos = 0
 
     def peek(self, inc: int = 0) -> Optional[Token]:
-        """Return the next token, without removing it from the list"""
-        if (self.pos + inc) < len(self.tokens):
-            return self.tokens[self.pos + inc]
-        else:
+        """Return the next token, without consuming it"""
+        idx = self.pos + inc
+        if idx >= len(self.tokens):
             return None
+        if idx < 0:
+            return None
+        return self.tokens[idx]
 
-    def next(self) -> Optional[Token]:
-        """Return the next token in the list"""
+    def advance(self) -> Optional[Token]:
+        """Return and consume the current token. None if EOF"""
         token = self.peek()
-        if token:
-            self.pos += 1
-
+        if token is None:
+            return None
+        self.pos += 1
         return token
 
-    def expect(self, kind: TokenType) -> Token:
-        """Check for the expected type and returns the token"""
-        token = self.next()
-        if not token or token.type != kind:
-            raise SyntaxError(f"Error: expecting {kind.name}, got {token.type.name} [{token.value}]!") # type: ignore
+    def expect(self, kind: TokenType) -> bool:
+        """Return True if the token has type 'kind'"""
+        token = self.peek()
+        return (token is not None and token.type == kind)
 
-        return token
-
-    def end(self) -> bool:
-        """True if we have process all the tokens"""
-        return self.pos >= len(self.tokens)
+    def at_end(self) -> bool:
+        """True if we have process all the tokens or reached EOF"""
+        token = self.peek()
+        if token is None:
+            return True
+        elif token.type == TokenType.EOF:
+            return True
+        else:
+            return False
