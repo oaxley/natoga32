@@ -71,7 +71,7 @@ class Directive(Statement):
         self.label = label          # optional identifier placed before directive
 
     def __repr__(self) -> str:
-        prefix = f"{self.label}" if self.label else ""
+        prefix = f"{self.label} " if self.label else ""
         args_s = ", ".join(map(str, self.args)) if self.args else ""
         return f"{prefix}{self.name} {args_s}".rstrip()
 
