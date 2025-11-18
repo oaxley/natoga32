@@ -34,6 +34,7 @@ from packages.parser import Parser
 argparse = ArgumentParser()
 argparse.add_argument("file", help="assembler file to compile")
 argparse.add_argument("-o", "--output", help="output file")
+argparse.add_argument("-d", "--debug", action="store_true", default=False, help="output file")
 args = argparse.parse_args()
 
 # initialize the configuration
@@ -47,8 +48,14 @@ except FileNotFoundError as e:
 lexer = Lexer(config)
 lexer.parse()
 
+if args.debug:
+    for i in lexer.tokens:
+        print(i)
+    sys.exit(0)
+
 # parser
 parser = Parser(TokenStream(lexer.tokens))
-program = parser.process()
+program = parser.parse_program()
 
+print("==== AST ====")
 print(program)
