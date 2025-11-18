@@ -76,7 +76,7 @@ class Directive(Statement):
         return f"{prefix}{self.name} {args_s}".rstrip()
 
 class Instruction(Statement):
-    def __init__(self, opcode: str, operands: List[Union[Node,str,int]]) -> None:
+    def __init__(self, opcode: str, operands: List[Node]) -> None:
         self.opcode = opcode
         self.operands = operands
 

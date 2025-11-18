@@ -158,7 +158,7 @@ class Parser:
         if not op_tok or op_tok.type != TokenType.IDENT:
             raise SyntaxError(f"Expected instruction opcode (IDENT)")
 
-        args: List[Union[ast.Node,str,int]] = []
+        args: List[ast.Node] = []
         while True:
             token = self.ts.peek()
             if not token or token.type in [TokenType.EOL, TokenType.EOF]:
