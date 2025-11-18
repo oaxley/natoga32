@@ -89,20 +89,7 @@ class Parser:
 
         return ast.Label(name)
 
-    def parse_directive(self) -> ast.Directive:
-        # possible patterns:
-        # DIRECTIVE ...
-        # IDENT DIRECTIVE ...
-        label_name: Optional[str] = None
-        next_token = self.ts.peek(1)
-        if self.ts.expect(TokenType.IDENT) and next_token and next_token.type == TokenType.DIRECTIVE:
-            # form: IDENT DIRECTIVE ...
-            label_name = self.ts.advance().value    # type: ignore
-
-        dir_tok = self.ts.advance()
-        if not dir_tok or dir_tok.type != TokenType.DIRECTIVE:
-            raise SyntaxError(f"Expected DIRECTIVE token!")
-
+    def parse_operands(self) -> List[ast.Node]:
         args: List[ast.Node] = []
         while True:
             token = self.ts.peek()
@@ -145,6 +132,25 @@ class Parser:
                 t = self.ts.advance()
                 args.append(ast.Identifier(t.value)) # type: ignore
 
+        return args
+
+
+    def parse_directive(self) -> ast.Directive:
+        # possible patterns:
+        # DIRECTIVE ...
+        # IDENT DIRECTIVE ...
+        label_name: Optional[str] = None
+        next_token = self.ts.peek(1)
+        if self.ts.expect(TokenType.IDENT) and next_token and next_token.type == TokenType.DIRECTIVE:
+            # form: IDENT DIRECTIVE ...
+            label_name = self.ts.advance().value    # type: ignore
+
+        dir_tok = self.ts.advance()
+        if not dir_tok or dir_tok.type != TokenType.DIRECTIVE:
+            raise SyntaxError(f"Expected DIRECTIVE token!")
+
+        args = self.parse_operands()
+
         # consume the trailing EOL if there
         if self.ts.expect(TokenType.EOL):
             self.ts.advance()
@@ -158,46 +164,7 @@ class Parser:
         if not op_tok or op_tok.type != TokenType.IDENT:
             raise SyntaxError(f"Expected instruction opcode (IDENT)")
 
-        args: List[ast.Node] = []
-        while True:
-            token = self.ts.peek()
-            if not token or token.type in [TokenType.EOL, TokenType.EOF]:
-                break
-
-            # remove COMMA
-            if token.type == TokenType.COMMA:
-                self.ts.advance()
-                continue
-
-            # parse possible token types: number, string, char, ident, comma ...
-            if token.type == TokenType.IDENT:
-                t = self.ts.advance()
-                args.append(ast.Identifier(t.value)) # type: ignore
-
-            elif token.type == TokenType.NUMBER:
-                t = self.ts.advance()
-                args.append(ast.Number(int(t.value, 0))) # type: ignore
-
-            elif token.type == TokenType.STRING:
-                t = self.ts.advance()
-                # strip the quotes around the string
-                s = t.value    # type: ignore
-                if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
-                    s = s[1:-1]
-                args.append(ast.StringLiteral(s))
-
-            elif token.type == TokenType.CHAR:
-                t = self.ts.advance()
-                # strip simple quotes
-                s = t.value    # type: ignore
-                if len(s) >= 2 and s[0] == "'" and s[-1] == "'":
-                    s = s[1:-1]
-                args.append(ast.CharLiteral(s))
-
-            else:
-                # unknown token. Add it to the list as Identifier to consume it
-                t = self.ts.advance()
-                args.append(ast.Identifier(t.value)) # type: ignore
+        args = self.parse_operands()
 
         if self.ts.expect(TokenType.EOL):
             self.ts.advance()
