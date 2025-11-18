@@ -17,94 +17,69 @@ from typing import Any, Dict, List, Union, Optional
 
 #----- classes
 class Node:
-    """A simple node"""
     pass
 
-# support for compile time expression
-class Expression(Node):
-    """An compile time expression"""
-    pass
-
-class String(Expression):
-    """A string is an expression"""
-    def __init__(self, value: str) -> None:
-        self.value = value
-
-    def __repr__(self) -> str:
-        return f"{self.value}"
-
-class Identifier(Expression):
-    """A simple identifier without meaning"""
-    def __init__(self, value: str) -> None:
-        self.value = value
-
-    def __repr__(self) -> str:
-        return f"{self.value}"
-
-class Number(Expression):
-    """A number is an expression"""
-    def __init__(self, value: Union[int, str]) -> None:
-        self.value = value
-
-    def __repr__(self) -> str:
-        return f"{self.value}"
-
-class BinaryOp(Expression):
-    """A binary operation between 2 expressions"""
-    def __init__(self, op: str, left: Expression, right: Expression) -> None:
-        self.op = op
-        self.left = left
-        self.right = right
-
-    def __repr__(self) -> str:
-        return f"{self.op} {self.left} {self.right}"
-
-# assembly Statements & al
 class Statement(Node):
-    """A simple statement"""
     pass
 
-class Directive(Statement):
-    """Assembler directive"""
-    def __init__(self, name: str, left: Optional[Expression], right: Optional[Expression]) -> None:
+class Program(Node):
+    def __init__(self, statements: List[Statement]) -> None:
+        self.statements = statements
+
+    def __repr__(self) -> str:
+        return "\n".join(map(str, self.statements))
+
+class Identifier(Node):
+    def __init__(self, name: str) -> None:
         self.name = name
-        self.left = left
-        self.right = right
 
     def __repr__(self) -> str:
-        string = ""
-        if self.left:
-            string += f"{self.left} "
+        return self.name
 
-        string += f"{self.name}"
-
-        if self.right:
-            string += f" {self.right}"
-
-        return string
-
-# custom type for Instruction class
-class Instruction(Statement):
-    """Assembly instruction"""
-    def __init__(self, opcode: str, operands: List[Union[int, str, Expression]]) -> None:
-        self.opcode = opcode
-        self.operands = operands
+class Number(Node):
+    def __init__(self, value: int) -> None:
+        self.value = value
 
     def __repr__(self) -> str:
-        return f"{self.opcode} {', '.join(map(str, self.operands))}"
+        return hex(self.value)
+
+class StringLiteral(Node):
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+    def __repr__(self) -> str:
+        return f'"{self.text}"'
+
+class CharLiteral(Node):
+    def __init__(self, ch: str) -> None:
+        self.ch = ch
+
+    def __repr__(self) -> str:
+        return f"'{self.ch}'"
 
 class Label(Statement):
-    """Assembly label"""
     def __init__(self, name: str) -> None:
         self.name = name
 
     def __repr__(self) -> str:
         return f"{self.name}:"
 
-class Program(Node):
-    """A program is composed of statements"""
-    def __init__(self, statements: List[Statement]) -> None:
-        self.statements = statements
+class Directive(Statement):
+    def __init__(self, name: str, args: List[Node], label: Optional[str] = None) -> None:
+        self.name = name
+        self.args = args
+        self.label = label          # optional identifier placed before directive
 
     def __repr__(self) -> str:
-        return "\n".join(map(str, self.statements))
+        prefix = f"{self.label}" if self.label else ""
+        args_s = ", ".join(map(str, self.args)) if self.args else ""
+        return f"{prefix}{self.name} {args_s}".rstrip()
+
+class Instruction(Statement):
+    def __init__(self, opcode: str, operands: List[Union[Node,str,int]]) -> None:
+        self.opcode = opcode
+        self.operands = operands
+
+    def __repr__(self) -> str:
+        ops = ", ".join(map(str, self.operands))
+        return f"{self.opcode} {ops}".rstrip()
