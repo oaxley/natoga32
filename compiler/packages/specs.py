@@ -96,3 +96,18 @@ TOKENS_SPECS = [
 # compile the regexp
 ALL_TOKENS = '|'.join(f'(?P<{value}>{pattern})' for value, pattern in TOKENS_SPECS)
 RE_PATTERNS = re.compile(ALL_TOKENS)
+
+# operators precedence
+# "Please Excuse My Dear Aunt Sally"
+OP_INFO = {
+    '*' : (6, TokenType.STAR),
+    '/' : (6, TokenType.SLASH),
+    '%' : (6, TokenType.MODULO),
+    '+' : (5, TokenType.PLUS),
+    '-' : (5, TokenType.MINUS),
+    '<<': (4, TokenType.LSHIFT),
+    '>>': (4, TokenType.RSHIFT),
+    '&' : (3, TokenType.AND),
+    '^' : (2, TokenType.XOR),
+    '|' : (1, TokenType.OR)
+}
