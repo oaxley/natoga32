@@ -16,6 +16,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Union, Optional
 
 #----- classes
+
+# Nodes
 class Node:
     pass
 
@@ -29,33 +31,57 @@ class Program(Node):
     def __repr__(self) -> str:
         return "\n".join(map(str, self.statements))
 
-class Identifier(Node):
-    def __init__(self, name: str) -> None:
-        self.name = name
+# Expressions
+
+class Expression(Node):
+    pass
+
+class BinaryOp(Expression):
+    def __init__(self, op: str, left: Expression, right: Expression) -> None:
+        self.op = op
+        self.left = left
+        self.right = right
 
     def __repr__(self) -> str:
-        return self.name
+        return f"{self.left} {self.op} {self.right}"
 
-class Number(Node):
+class UnaryOp(Expression):
+    def __init__(self, op: str, expr: Expression) -> None:
+        self.op = op
+        self.expr = expr
+
+    def __repr__(self) -> str:
+        return f"({self.op}{self.expr})"
+
+class Number(Expression):
     def __init__(self, value: int) -> None:
         self.value = value
 
     def __repr__(self) -> str:
         return hex(self.value)
 
-class StringLiteral(Node):
+class Identifier(Expression):
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def __repr__(self) -> str:
+        return self.name
+
+class StringLiteral(Expression):
     def __init__(self, text: str) -> None:
         self.text = text
 
     def __repr__(self) -> str:
         return f'"{self.text}"'
 
-class CharLiteral(Node):
+class CharLiteral(Expression):
     def __init__(self, ch: str) -> None:
         self.ch = ch
 
     def __repr__(self) -> str:
         return f"'{self.ch}'"
+
+# Statements
 
 class Label(Statement):
     def __init__(self, name: str) -> None:
