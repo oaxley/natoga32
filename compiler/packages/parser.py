@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Union
 import packages.ast as ast
 
 from packages.token import TokenStream
-from packages.specs import TokenType
+from packages.specs import TokenType, OP_INFO
 
 
 #----- class
@@ -93,7 +93,6 @@ class Parser:
         args: List[ast.Node] = []
         while True:
             token = self.ts.peek()
-
             if not token or token.type in [TokenType.EOL, TokenType.EOF]:
                 break
 
@@ -102,35 +101,8 @@ class Parser:
                 self.ts.advance()
                 continue
 
-            # parse possible token types: number, string, char, ident, comma ...
-            if token.type == TokenType.NUMBER:
-                t = self.ts.advance()
-                args.append(ast.Number(int(t.value, 0))) # type: ignore
-
-            elif token.type == TokenType.STRING:
-                t = self.ts.advance()
-                # strip the quotes around the string
-                s = t.value    # type: ignore
-                if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
-                    s = s[1:-1]
-                args.append(ast.StringLiteral(s))
-
-            elif token.type == TokenType.CHAR:
-                t = self.ts.advance()
-                # strip simple quotes
-                s = t.value    # type: ignore
-                if len(s) >= 2 and s[0] == "'" and s[-1] == "'":
-                    s = s[1:-1]
-                args.append(ast.CharLiteral(s))
-
-            elif token.type == TokenType.IDENT:
-                t = self.ts.advance()
-                args.append(ast.Identifier(t.value)) # type: ignore
-
-            else:
-                # unknown token. Add it to the list as Identifier to consume it
-                t = self.ts.advance()
-                args.append(ast.Identifier(t.value)) # type: ignore
+            expr = self.parse_expression()
+            args.append(expr)
 
         return args
 
@@ -171,3 +143,78 @@ class Parser:
 
         return ast.Instruction(op_tok.value, args)
 
+    def parse_expression(self, min_prec=1) -> ast.Expression:
+        # parse the left part of the expression
+        left = self.parse_primary()
+
+        # parse binary operators
+        while True:
+            token = self.ts.peek()
+            if token is None:
+                break
+
+            # look for the token in the list of operators
+            op = None
+            op_prec = -1
+            for sym, (prec, ttype) in OP_INFO.items():
+                if token.type == ttype:
+                    op = sym
+                    op_prec = prec
+                    break
+
+            if op is None:      # this is not an operator
+                break
+
+            # operator precedence check
+            if op_prec < min_prec:
+                break
+
+            # consume the operator
+            self.ts.advance()
+
+            # parse the right hand side of the expression, with higher precedence
+            right = self.parse_expression(op_prec + 1)
+
+            # create the BinaryOp Node (recursively)
+            left = ast.BinaryOp(op, left, right)
+
+        return left
+
+    def parse_primary(self) -> ast.Expression:
+        token = self.ts.advance()
+        if token is None:
+            raise SyntaxError("Unexpected EOF expression!")
+
+        if token.type == TokenType.NUMBER:
+            return ast.Number(int(token.value, 0))
+
+        if token.type == TokenType.IDENT:
+            return ast.Identifier(token.value)
+
+        if token.type == TokenType.STRING:
+            # strip the quotes around the string
+            s = token.value    # type: ignore
+            if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+                s = s[1:-1]
+            return ast.StringLiteral(s)
+
+        if token.type == TokenType.CHAR:
+            # strip simple quotes
+            s = token.value    # type: ignore
+            if len(s) >= 2 and s[0] == "'" and s[-1] == "'":
+                s = s[1:-1]
+            return ast.CharLiteral(s)
+
+        if token.type == TokenType.LPARENT:
+            expr = self.parse_expression()
+            self.ts.expect(TokenType.RPARENT)           # a closing ')' must match the initial '('
+            self.ts.advance()
+            return expr
+
+        # unary operator
+        if token.type in [TokenType.PLUS, TokenType.MINUS]:
+            op = '+' if token.type == TokenType.PLUS else '-'
+            right = self.parse_primary()
+            return ast.UnaryOp(op, right)
+
+        raise SyntaxError(f"Unexpected token in expression: {token}")
