@@ -13,11 +13,14 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+import os
 
 from dataclasses import dataclass
 
 from packages.token import Token, TokenStream, TokenType
+from packages.lexer import Lexer
 
 
 #----- globals
@@ -35,8 +38,9 @@ class MacroDefinition:
 class MacroProcessor:
     def __init__(self) -> None:
         self.macros = { }
+        self.includes = set()
 
-    def preprocess(self, tokens) -> List[Token]:
+    def preprocess(self, tokens: List[Token], current_file: str) -> List[Token]:
         """Pre-process the source file to build macro and expand it"""
         ts = TokenStream(tokens)
         out: List[Token] = []
@@ -59,6 +63,13 @@ class MacroProcessor:
                 expanded = self._expand_macro(self.macros[token.value], ts)
                 expanded = self._expand_tokens_recursive(expanded)
                 out.extend(expanded)
+                continue
+
+            # --- include ---
+            if token.type == TokenType.DIRECTIVE and token.value == '.include':
+                included = self._handle_include(ts, current_file)
+                included = self.preprocess(included, current_file)
+                out.extend(included)
                 continue
 
             # --- standard token ---
@@ -191,3 +202,48 @@ class MacroProcessor:
             ts.advance()
 
         return output
+
+    def _handle_include(self, ts: TokenStream, current_file: str) -> List[Token]:
+        """Handle include of other files"""
+        ts.advance()    # consumer .include
+
+        # next token must be a string
+        token = ts.advance()
+        if not token:
+            raise SyntaxError("Error while processing .include directive!")
+
+        if token.type != TokenType.STRING:
+            raise SyntaxError(f".include directive expects a string literal, got {token.type.name}")
+
+        # extract the filename
+        filename = token.value.strip('"')
+
+        # consume EOL if present
+        if ts.peek() and ts.peek().type == TokenType.EOL:   # type: ignore
+            ts.advance()
+
+        # resolve relative path
+        full_path = os.path.join(os.path.dirname(current_file), filename)
+
+        # detect recursion
+        if full_path in self.includes:
+            raise Exception(f"Recursive include detected: {full_path}")
+
+        # process the file - add it to the set to avoid infinite recursion
+        self.includes.add(full_path)
+        try:
+            # --- open file
+            fh = open(full_path, 'r', encoding='utf-8')
+
+            # --- lexer processing
+            lexer = Lexer()
+            lexer.parse(fh)
+
+            # --- macro pre-processing
+            tokens = self.preprocess(lexer.tokens, full_path)
+
+            return tokens
+
+        finally:
+            # remove the file from the set
+            self.includes.remove(full_path)
