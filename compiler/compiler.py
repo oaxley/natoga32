@@ -26,6 +26,7 @@ from packages.config import Config
 from packages.lexer import Lexer
 from packages.token import TokenStream
 from packages.parser import Parser
+from packages.macro import MacroProcessor
 
 
 # ----- begin
@@ -53,8 +54,12 @@ if args.debug:
         print(i)
     sys.exit(0)
 
+# pre-processor
+macro_preprocessor = MacroProcessor()
+tokens = macro_preprocessor.preprocess(lexer.tokens)
+
 # parser
-parser = Parser(TokenStream(lexer.tokens))
+parser = Parser(TokenStream(tokens))
 program = parser.parse_program()
 
 print("==== AST ====")
