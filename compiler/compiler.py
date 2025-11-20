@@ -45,9 +45,12 @@ except FileNotFoundError as e:
     print(e)
     sys.exit(1)
 
+# open the file
+fh = open(config.input_file, "r", encoding="utf-8")
+
 # create a new lexer
-lexer = Lexer(config)
-lexer.parse()
+lexer = Lexer()
+lexer.parse(fh)
 
 if args.debug:
     for i in lexer.tokens:
@@ -56,7 +59,7 @@ if args.debug:
 
 # pre-processor
 macro_preprocessor = MacroProcessor()
-tokens = macro_preprocessor.preprocess(lexer.tokens)
+tokens = macro_preprocessor.preprocess(lexer.tokens, config.input_file)
 
 # parser
 parser = Parser(TokenStream(tokens))

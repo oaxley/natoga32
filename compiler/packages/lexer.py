@@ -13,11 +13,9 @@
 
 #----- imports
 from __future__ import annotations
-from typing import List
+from typing import List, Union, TextIO
 
-from packages.config import Config
 from packages.token import Token
-
 from packages.specs import TokenType, RE_PATTERNS
 
 
@@ -25,22 +23,26 @@ from packages.specs import TokenType, RE_PATTERNS
 class Lexer:
     """Process the assembly file and create tokens"""
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self) -> None:
         """Constructor"""
-        # current row/col
         self._row: int = 0
-
-        self._config = config
         self._tokens: List[Token] = []
 
-    def parse(self) -> None:
-        with open(self._config.input_file, "r") as fh:
-            for line in fh:
+    def parse(self, content: Union[str, TextIO]) -> None:
+        """Parse either from a file or a string"""
+        if isinstance(content, str):
+            # content is a string buffer
+            for line in content.splitlines():
+                self._row = self._row + 1
+                self.tokenize(line)
+        else:
+            # content is a file handler
+            for line in content:
                 self._row = self._row + 1
                 self.tokenize(line)
 
-            # end of file
-            self._tokens.append(Token(TokenType.EOF, "", self._row, 0))
+        # end of file
+        self._tokens.append(Token(TokenType.EOF, "", self._row, 0))
 
     def tokenize(self, line) -> None:
         # remove the newline delimiter
