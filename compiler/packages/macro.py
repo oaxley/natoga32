@@ -72,6 +72,12 @@ class MacroProcessor:
                 out.extend(included)
                 continue
 
+            # --- for loops ---
+            if token.type == TokenType.DIRECTIVE and token.value == '.for':
+                expanded = self._handle_for_loop(ts, current_file)
+                out.extend(expanded)
+                continue
+
             # --- standard token ---
             out.append(token)
             ts.advance()
@@ -247,3 +253,102 @@ class MacroProcessor:
         finally:
             # remove the file from the set
             self.includes.remove(full_path)
+
+    def _handle_for_loop(self, ts: TokenStream, current_file: str) -> List[Token]:
+        """Handle for loops"""
+        ts.advance()    # consume .for
+
+        # 1. loop variable name
+        token = ts.advance()
+        if not token:
+            raise SyntaxError("Error while processing .for directive!")
+
+        if token.type == TokenType.IDENT:
+            var_name = token.value
+        else:
+            raise SyntaxError(".for expects: .for <IDENT> = start, end, step")
+
+        # 2. ensure we have '='
+        token = ts.advance()
+        if token and token.value != '=':
+            raise SyntaxError(".for syntax error: expected '='")
+
+        # 3. start value
+        token = ts.advance()
+        if token and token.type == TokenType.NUMBER:
+            start_value = int(token.value, 0)
+        else:
+            raise SyntaxError(".for start value must be a number")
+
+        # 4. ','
+        ts.advance()
+
+        # 5. end value
+        token = ts.advance()
+        if token and token.type == TokenType.NUMBER:
+            end_value = int(token.value, 0)
+        else:
+            raise SyntaxError(".for end value must be a number")
+
+        # 6. Optional step
+        token = ts.peek()
+        if token and token.type == TokenType.COMMA:
+            # step is provided
+            ts.advance()
+
+            token = ts.advance()
+            if token and token.type == TokenType.NUMBER:
+                step_val = int(token.value, 0)
+            else:
+                raise SyntaxError(".for step must be a number")
+        else:
+            # step not provided -> default to +1
+            step_val = 1
+
+        # consume EOL
+        if token and token.type == TokenType.EOL:
+            ts.advance()
+
+        # --- capture body
+        body: List[Token] = []
+        while True:
+            token = ts.peek()
+            if token is None:
+                raise SyntaxError("Missing .endf for macro definition")
+
+            if token.type == TokenType.DIRECTIVE and token.value == '.endf':
+                break
+
+            # add everything to the body, and move forward
+            body.append(token)
+            ts.advance()
+
+        # consumer .endf and EOL
+        ts.advance()
+        if ts.peek() and ts.peek().type == TokenType.EOL:   # type: ignore
+            ts.advance()
+
+        # --- body expansion
+        tokens: List[Token] = []
+        current = start_value
+        while (step_val > 0 and current < end_value) or (step_val < 0 and current > end_value):
+
+            iteration_body: List[Token] = []
+            for token in body:
+                # substitute var_name with NUMBER token
+                if token.type == TokenType.IDENT and token.value == var_name:
+                    iteration_body.append(Token(TokenType.NUMBER, str(current), token.row, token.col))
+                else:
+                    # clone the token to avoid messing up with the loop body
+                    iteration_body.append(Token(token.type, token.value, token.row, token.col))
+
+            # pre-process to allow macros inside loops
+            iteration_body = self.preprocess(iteration_body, current_file)
+
+            # add those tokens to the global list
+            tokens.extend(iteration_body)
+
+            # current = current +/- step_val
+            current += step_val
+
+        return tokens

@@ -34,6 +34,7 @@ class TokenType(IntEnum):
     CHAR = auto()                       # a single char 'A'
 
     # operators & symbols
+    EQUAL = auto()                      # '='
     LPARENT = auto()                    # '('
     RPARENT = auto()                    # ')'
     COMMA = auto()                      # ','
@@ -68,6 +69,7 @@ TOKENS_SPECS = [
 
 
     # operators & symbols
+    (TokenType.EQUAL.name, r'='),
     (TokenType.LPARENT.name, r'\('),
     (TokenType.RPARENT.name, r'\)'),
     (TokenType.COMMA.name, r'\,'),
