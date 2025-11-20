@@ -61,7 +61,7 @@ class MacroProcessor:
             # --- macro expansion ---
             if token.type == TokenType.IDENT and token.value in self.macros:
                 expanded = self._expand_macro(self.macros[token.value], ts, current_file)
-                expanded = self._expand_tokens_recursive(expanded)
+                expanded = self._expand_tokens_recursive(expanded, current_file)
                 out.extend(expanded)
                 continue
 
@@ -194,7 +194,7 @@ class MacroProcessor:
         expanded = self.preprocess(expanded, current_file)
         return expanded
 
-    def _expand_tokens_recursive(self, tokens: List[Token], depth: int = 0) -> List[Token]:
+    def _expand_tokens_recursive(self, tokens: List[Token], current_file: str, depth: int = 0) -> List[Token]:
         """Expand tokens recursively inside the macro"""
         ts = TokenStream(tokens)
 
@@ -206,7 +206,7 @@ class MacroProcessor:
                 raise SyntaxError("Error during recursive macro expansion!")
 
             if token.type == TokenType.IDENT and token.value in self.macros:
-                expanded = self._expand_macro(self.macros[token.value], ts, depth + 1)
+                expanded = self._expand_macro(self.macros[token.value], ts, current_file, depth + 1)
                 output.extend(expanded)
                 continue
 
