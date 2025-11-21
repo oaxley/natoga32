@@ -299,31 +299,42 @@ class MacroProcessor:
         # 6. Optional step
         token = ts.peek()
         if token and token.type == TokenType.COMMA:
-            # step is provided
+            # consume the comma and retrieve the next token
             ts.advance()
+            token = ts.peek()
 
-            token = ts.advance()
             if token and token.type == TokenType.NUMBER:
                 step_val = int(token.value, 0)
+
+                # consume the number and retrieve the next token
+                ts.advance()
+                token = ts.peek()
             else:
                 raise SyntaxError(".for step must be a number")
         else:
             # step not provided -> default to +1
             step_val = 1
 
-        # consume EOL
+        # consume EOL if present
         if token and token.type == TokenType.EOL:
             ts.advance()
 
         # --- capture body
         body: List[Token] = []
+        depth = 1
         while True:
             token = ts.peek()
+
             if token is None:
                 raise SyntaxError("Missing .endf for macro definition")
 
+            if token.type == TokenType.DIRECTIVE and token.value == '.for':
+                depth += 1
+
             if token.type == TokenType.DIRECTIVE and token.value == '.endf':
-                break
+                depth -= 1
+                if depth == 0:
+                    break
 
             # add everything to the body, and move forward
             body.append(token)
