@@ -52,6 +52,7 @@ class TokenType(IntEnum):
     DOLLAR = auto()                     # alias for current PC
 
     # misc
+    PASTE = auto()                      # token pasting '##'
     SKIP = auto()                       # spaces and tabs
     COMMENT = auto()
 
@@ -87,6 +88,7 @@ TOKENS_SPECS = [
     (TokenType.DOLLAR.name, r'\$'),
 
     # misc
+    (TokenType.PASTE.name, r'##'),
     (TokenType.SKIP.name, r'[ \t]+'),
     (TokenType.COMMENT.name, r';[^\n]*'),
 ]
