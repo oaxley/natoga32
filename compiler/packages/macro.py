@@ -82,6 +82,9 @@ class MacroProcessor:
             out.append(token)
             ts.advance()
 
+        # apply pasting, DUP, etc...
+        out = self._apply_token_pasting(out)
+        out = self._apply_dup(out)
         return out
 
     def _parse_macro_definition(self, ts: TokenStream) -> MacroDefinition:
@@ -404,3 +407,49 @@ class MacroProcessor:
             i += 1
 
         return pasted
+
+    def _apply_dup(self, tokens: List[Token]) -> List[Token]:
+        """Expands 'VALUE DUP(x)' pattern, which repeats x times the VALUE
+
+        Args:
+            tokens: the list of tokens from the Lexer
+        Returns:
+            a new list of tokens with the DUP expanded
+        """
+        result: List[Token] = []
+        i = 0
+
+        while i < len(tokens):
+            token = tokens[i]
+
+            # look for pattern VALUE DUP( NUMBER )
+            if (
+                i + 4 < len(tokens)
+                and tokens[i+1].type == TokenType.IDENT
+                and tokens[i+1].value.upper() == 'DUP'
+                and tokens[i+2].type == TokenType.LPARENT
+            ):
+                # ensure we have a right parenthesis
+                if tokens[i+4].type != TokenType.RPARENT:
+                    raise SyntaxError("Unmatched parenthesis in DUP expression")
+
+                # ensure we have a number
+                if tokens[i+3].type not in [TokenType.NUMBER, TokenType.CHAR, TokenType.IDENT]:
+                    raise SyntaxError(f"DUP argument must be NUMBER, got {tokens[i+3].type.name}")
+
+                count = int(tokens[i+3].value, 0)
+
+                # replace the whole expression
+                for _ in range(count):
+                    result.append(Token(token.type, token.value, token.row, token.col))
+                    result.append(Token(TokenType.COMMA, ",", token.row, token.col))
+
+                # move forward
+                i += 5
+                continue
+
+            # keep adding normal tokens
+            result.append(token)
+            i += 1
+
+        return result
