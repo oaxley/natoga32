@@ -32,6 +32,49 @@ def clone_token(token: Token) -> Token:
     """Clone a Token with Shallow Copy"""
     return Token(token.type, token.value, token.row, token.col)
 
+def capture_body(ts: TokenStream, begin: str, end: str) -> List[Token]:
+    """Parse the token stream and extract the body between 'begin' and 'end' tokens
+
+    Args:
+        ts    : the stream of tokens
+        begin : token for the beginning marker
+        end   : token for the end marker
+
+    Returns:
+        The token list corresponding to the body
+    """
+    body: List[Token] = []
+    depth = 1       # depth tracker
+
+    while True:
+        token = ts.peek()
+
+        if token is None:
+            break
+
+        # depth tracker (for nested bodies)
+        if token.type == TokenType.DIRECTIVE and token.value == begin:
+            depth += 1
+            if depth > MAX_BODY_DEPTH:
+                raise SyntaxError("Nested body max limit exceeded!")
+
+        if token.type == TokenType.DIRECTIVE and token.value == end:
+            depth -= 1
+            if depth == 0:
+                break
+
+        # add everything to the body, and move forward
+        body.append(token)
+        ts.advance()
+
+    # consume "end" marker & EOL
+    ts.advance()
+    if ts.peek() and ts.peek().type == TokenType.EOL:   # type: ignore
+        ts.advance()
+
+    # return the body
+    return body
+
 
 #----- classes
 
@@ -146,22 +189,7 @@ class MacroProcessor:
             ts.advance()
 
         # parse the body until we reach .endm
-        body: List[Token] = []
-        while True:
-            token = ts.peek()
-            if token is None:
-                break
-
-            if token.type == TokenType.DIRECTIVE and token.value == '.endm':
-                ts.advance()        # consume .endm
-
-                # check for EOL
-                if ts.peek() and ts.peek().type == TokenType.EOL: # type: ignore
-                    ts.advance()
-                break
-
-            body.append(token)
-            ts.advance()
+        body = capture_body(ts, '.macro', '.endm')
 
         return MacroDefinition(name, params, body)
 
@@ -344,30 +372,7 @@ class MacroProcessor:
             ts.advance()
 
         # --- capture body
-        body: List[Token] = []
-        depth = 1
-        while True:
-            token = ts.peek()
-
-            if token is None:
-                raise SyntaxError("Missing .endf for macro definition")
-
-            if token.type == TokenType.DIRECTIVE and token.value == '.for':
-                depth += 1
-
-            if token.type == TokenType.DIRECTIVE and token.value == '.endf':
-                depth -= 1
-                if depth == 0:
-                    break
-
-            # add everything to the body, and move forward
-            body.append(token)
-            ts.advance()
-
-        # consumer .endf and EOL
-        ts.advance()
-        if ts.peek() and ts.peek().type == TokenType.EOL:   # type: ignore
-            ts.advance()
+        body = capture_body(ts, '.for', '.endf')
 
         # --- body expansion
         tokens: List[Token] = []
