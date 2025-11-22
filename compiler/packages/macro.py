@@ -37,11 +37,11 @@ class MacroDefinition:
 
 class MacroProcessor:
     def __init__(self) -> None:
-        self.macros = { }
+        self.macros: Dict[str, MacroDefinition] = { }
         self.includes = set()
 
     def preprocess(self, tokens: List[Token], current_file: str) -> List[Token]:
-        """Perform macro pre-processins
+        """Perform macro pre-processing
 
         Args:
             tokens      : the list of tokens from the Lexer
@@ -109,16 +109,19 @@ class MacroProcessor:
         return out
 
     def _parse_macro_definition(self, ts: TokenStream) -> MacroDefinition:
-        """Parse a macro definition and add it to the Macro table"""
+        """Parse a macro definition and add it to the Macro table
+
+        Args:
+            ts : the token stream instance
+        Returns
+            A MacroDefintion with the name, params and body
+        """
         ts.advance()    # consume .macro
 
         # retrieve the macro name
         token = ts.advance()
-        if not token:
-            raise SyntaxError("EOF encounter during macro processing!")
-
-        if token.type != TokenType.IDENT:
-            raise SyntaxError("Macro name must be an identifier!")
+        if not token or token.type != TokenType.IDENT:
+            raise SyntaxError("Macro definition requires a name")
 
         name = token.value
 
@@ -126,10 +129,8 @@ class MacroProcessor:
         params: List[str] = []
         while True:
             token = ts.peek()
-            if not token:
-                raise SyntaxError("Error while reading macro parameters!")
-
-            if token.type == TokenType.EOL:
+            if not token or token.type == TokenType.EOL:
+                ts.advance()        # consumer EOL
                 break
 
             if token.type == TokenType.IDENT:
@@ -138,29 +139,22 @@ class MacroProcessor:
             # move forward
             ts.advance()
 
-        # consume EOL
-        ts.advance()
-
         # parse the body until we reach .endm
         body: List[Token] = []
         while True:
             token = ts.peek()
             if token is None:
-                raise SyntaxError("Missing .endm for macro definition")
-
-            if token.type == TokenType.DIRECTIVE and token.value == '.endm':
                 break
 
-            # add everything to the body, and move forward
+            if token.type == TokenType.DIRECTIVE and token.value == '.endm':
+                ts.advance()        # consume .endm
+
+                # check for EOL
+                if ts.peek() and ts.peek().type == TokenType.EOL: # type: ignore
+                    ts.advance()
+                break
+
             body.append(token)
-            ts.advance()
-
-        # consume .endm
-        ts.advance()
-
-        # consume EOL if present
-        token = ts.peek()
-        if token and token.type == TokenType.EOL:
             ts.advance()
 
         return MacroDefinition(name, params, body)
