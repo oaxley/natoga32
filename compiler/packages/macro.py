@@ -70,8 +70,7 @@ def capture_body(ts: TokenStream, begin: str, end: str) -> List[Token]:
 
     # consume "end" marker & EOL
     ts.advance()
-    if ts.peek() and ts.peek().type == TokenType.EOL:   # type: ignore
-        ts.advance()
+    if ts.expect(TokenType.EOL): ts.advance()
 
     # return the body
     return body
@@ -181,11 +180,7 @@ class MacroProcessor:
         ts.advance()    # consume .macro
 
         # retrieve the macro name
-        token = ts.advance()
-        if not token or token.type != TokenType.IDENT:
-            raise SyntaxError("Macro definition requires a name")
-
-        name = token.value
+        name = get_value(ts, TokenType.IDENT)
 
         # parse the parameters
         params: List[str] = []
@@ -292,22 +287,14 @@ class MacroProcessor:
         """
         ts.advance()    # consumer .include
 
-        # next token must be a string
-        token = ts.advance()
-        if not token or token.type != TokenType.STRING:
-            raise SyntaxError("Include directive requires a string")
-
-        # extract the filename
-        filename = token.value.strip('"')
+        # retrieve the filename (STRING)
+        filename = get_value(ts, TokenType.STRING).strip('"')
 
         # consume EOL if present
-        if ts.peek() and ts.peek().type == TokenType.EOL:   # type: ignore
-            ts.advance()
+        if ts.expect(TokenType.EOL): ts.advance()
 
         # resolve relative path
         full_path = os.path.join(os.path.dirname(current_file), filename)
-
-        # detect recursion
         if full_path in self.includes:
             raise Exception(f"Recursive include detected: {full_path}")
 
@@ -324,10 +311,7 @@ class MacroProcessor:
             lexer = Lexer()
             lexer.parse(fh)
 
-            # --- macro pre-processing
-            tokens = self.preprocess(lexer.tokens, full_path)
-
-            return tokens
+            return lexer.tokens
 
         finally:
             # remove the file from the set
@@ -454,7 +438,7 @@ class MacroProcessor:
 
                 # replace the whole expression
                 for _ in range(count):
-                    result.append(Token(token.type, token.value, token.row, token.col))
+                    result.append(clone_token(token))
                     result.append(Token(TokenType.COMMA, ",", token.row, token.col))
 
                 # move forward
