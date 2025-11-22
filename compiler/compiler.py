@@ -48,22 +48,26 @@ except FileNotFoundError as e:
 # open the file
 fh = open(config.input_file, "r", encoding="utf-8")
 
-# create a new lexer
-lexer = Lexer()
-lexer.parse(fh)
+try:
+    # create a new lexer
+    lexer = Lexer()
+    lexer.parse(fh)
 
-if args.debug:
-    for i in lexer.tokens:
-        print(i)
-    sys.exit(0)
+    if args.debug:
+        for i in lexer.tokens:
+            print(i)
+        sys.exit(0)
 
-# pre-processor
-macro_preprocessor = MacroProcessor()
-tokens = macro_preprocessor.preprocess(lexer.tokens, config.input_file)
+    # pre-processor
+    macro_preprocessor = MacroProcessor()
+    tokens = macro_preprocessor.preprocess(lexer.tokens, config.input_file)
 
-# parser
-parser = Parser(TokenStream(tokens))
-program = parser.parse_program()
+    # parser
+    parser = Parser(TokenStream(tokens))
+    program = parser.parse_program()
 
-print("==== AST ====")
-print(program)
+    print("==== AST ====")
+    print(program)
+
+except Exception as e:
+    print(str(e))
