@@ -25,6 +25,7 @@ from packages.lexer import Lexer
 
 #----- globals
 MAX_MACRO_EXPANSION_DEPTH = 100
+MAX_BODY_DEPTH = 50
 
 
 #----- functions
@@ -268,16 +269,21 @@ class MacroProcessor:
             self.expansion_depth -= 1
 
     def _handle_include(self, ts: TokenStream, current_file: str) -> List[Token]:
-        """Handle include of other files"""
+        """Handle '.include' directive
+
+        Args:
+            ts           : the token stream instance
+            current_file : the current file being processed
+
+        Returns:
+            A new list of tokens from the file included
+        """
         ts.advance()    # consumer .include
 
         # next token must be a string
         token = ts.advance()
-        if not token:
-            raise SyntaxError("Error while processing .include directive!")
-
-        if token.type != TokenType.STRING:
-            raise SyntaxError(f".include directive expects a string literal, got {token.type.name}")
+        if not token or token.type != TokenType.STRING:
+            raise SyntaxError("Include directive requires a string")
 
         # extract the filename
         filename = token.value.strip('"')
@@ -297,7 +303,10 @@ class MacroProcessor:
         self.includes.add(full_path)
         try:
             # --- open file
-            fh = open(full_path, 'r', encoding='utf-8')
+            try:
+                fh = open(full_path, 'r', encoding='utf-8')
+            except FileNotFoundError:
+                raise SyntaxError(f"File not found during include [{full_path}]")
 
             # --- lexer processing
             lexer = Lexer()
