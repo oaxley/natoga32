@@ -27,6 +27,12 @@ from packages.lexer import Lexer
 MAX_MACRO_EXPANSION_DEPTH = 100
 
 
+#----- functions
+def clone_token(token: Token) -> Token:
+    """Clone a Token with Shallow Copy"""
+    return Token(token.type, token.value, token.row, token.col)
+
+
 #----- classes
 
 @dataclass
@@ -39,6 +45,7 @@ class MacroProcessor:
     def __init__(self) -> None:
         self.macros: Dict[str, MacroDefinition] = { }
         self.includes = set()
+        self.expansion_depth = 0
 
     def preprocess(self, tokens: List[Token], current_file: str) -> List[Token]:
         """Perform macro pre-processing
@@ -91,7 +98,6 @@ class MacroProcessor:
                 # --- macro expansion
                 if token.value in self.macros:
                     expanded = self._expand_macro(self.macros[token.value], ts, current_file)
-                    expanded = self._expand_tokens_recursive(expanded, current_file)
                     expanded = self._apply_token_pasting(expanded)
                     expanded = self._apply_dup(expanded)
                     expanded = self.preprocess(expanded, current_file)
@@ -159,82 +165,79 @@ class MacroProcessor:
 
         return MacroDefinition(name, params, body)
 
-    def _expand_macro(self, macro: MacroDefinition, ts: TokenStream, current_file: str, depth: int = 0) -> List[Token]:
+    def _expand_macro(self, macro: MacroDefinition, ts: TokenStream, current_file: str) -> List[Token]:
+        """Expand macro invocation at current stream position
 
-        if depth > MAX_MACRO_EXPANSION_DEPTH:
-            raise SyntaxError("Max macro recursion depth exceeded!")
+        Args:
+            macro           : the macro detected during processin
+            ts              : the current token stream
+            current_file    : the current file being processed
 
-        ts.advance()        # consume macro name
+        Returns:
+            A new token list, with the macro expanded
+        """
+        # recursion depth check
+        self.expansion_depth += 1
+        try:
+            if self.expansion_depth >= MAX_MACRO_EXPANSION_DEPTH:
+                raise SyntaxError("Macro expansion recursion limit exceeded")
 
-        # --- parse arguments as a List of Tokens
-        args: List[List[Token]] = []
-        for i, param in enumerate(macro.params):
-            # collect tokens until COMMA or EOL
-            arg_tokens = []
-            while not ts.at_end():
-                token = ts.peek()
-                if token.type in [TokenType.COMMA, TokenType.EOL]: # type: ignore
+            # consume the macro name (MacroDefinition is already properly populated)
+            ts.advance()
+
+            # parse the parameters. if EOL, means no parameters.
+            params: List[List[Token]] = []
+            if ts.peek() and ts.peek().type == TokenType.EOL:   # type: ignore
+                ts.advance()    # consume EOL
+
+            else:
+                # we are trying to see if the macro parameters are simple tokens
+                # or a complete expression that will have to be expanded later
+                while not ts.at_end():
+                    # collect tokens until COMMA or EOL
+                    arg_tokens: List[Token] = []
+                    while not ts.at_end():
+                        token = ts.peek()
+                        if token and token.type in [TokenType.COMMA, TokenType.EOL]:
+                            break
+
+                        arg_tokens.append(ts.advance())     # type: ignore
+
+                    params.append(arg_tokens)
+
+                    # consume COMMA if present
+                    if ts.peek() and ts.peek().type == TokenType.COMMA:     # type: ignore
+                        ts.advance()
+                        continue
+
+                    # we have reach EOL
+                    if ts.peek() and ts.peek().type == TokenType.EOL:       # type: ignore
+                        ts.advance()
+
                     break
-                arg_tokens.append(token)
-                ts.advance()
 
-            args.append(arg_tokens)
+            # Map parameters -> token lists (fill with empty lists if fewer args)
+            mapping: Dict[str, List[Token]] = {}
+            for i, pname in enumerate(macro.params):
+                mapping[pname] = params[i] if i < len(params) else []
 
-            # consume the comma if present
-            if ts.peek() and ts.peek().type == TokenType.COMMA: # type: ignore
-                ts.advance()
-                continue
+            # expand the macro body with substitution
+            expanded: List[Token] = []
+            for bt in macro.body:
+                # token is a parameter
+                if bt.type == TokenType.IDENT and bt.value in mapping:
+                    for t in mapping[bt.value]:
+                        expanded.append(clone_token(t))
+                    continue
 
-            # break if no comma
-            break
+                # normal token
+                expanded.append(clone_token(bt))
 
-        # consumer final EOL
-        if ts.peek() and ts.peek().type == TokenType.EOL:   # type: ignore
-            ts.advance()
+            return expanded
 
-        # --- create substitution map
-        mapping = dict(zip(macro.params, args))
-
-        # --- expand the macro body with substitution
-        expanded: List[Token] = []
-        for token in macro.body:
-            # token in a parameter
-            if token.type == TokenType.IDENT and token.value in mapping:
-                for arg_tok in mapping[token.value]:
-                    # clone token to avoid mutating the original
-                    expanded.append(Token(arg_tok.type, arg_tok.value, arg_tok.row, arg_tok.col))
-                continue
-
-            # normal token
-            expanded.append(Token(token.type, token.value, token.row, token.col))
-
-        # --- allow for pasting
-        expanded = self._apply_token_pasting(expanded)
-
-        # --- allow for nested macro expansion
-        expanded = self.preprocess(expanded, current_file)
-        return expanded
-
-    def _expand_tokens_recursive(self, tokens: List[Token], current_file: str, depth: int = 0) -> List[Token]:
-        """Expand tokens recursively inside the macro"""
-        ts = TokenStream(tokens)
-
-        output: List[Token] = []
-        while not ts.at_end():
-            token = ts.peek()
-
-            if not token:
-                raise SyntaxError("Error during recursive macro expansion!")
-
-            if token.type == TokenType.IDENT and token.value in self.macros:
-                expanded = self._expand_macro(self.macros[token.value], ts, current_file, depth + 1)
-                output.extend(expanded)
-                continue
-
-            output.append(token)
-            ts.advance()
-
-        return output
+        finally:
+            # reduce the recursion depth
+            self.expansion_depth -= 1
 
     def _handle_include(self, ts: TokenStream, current_file: str) -> List[Token]:
         """Handle include of other files"""
