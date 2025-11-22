@@ -76,6 +76,18 @@ def capture_body(ts: TokenStream, begin: str, end: str) -> List[Token]:
     # return the body
     return body
 
+def get_value(ts: TokenStream, ttype: TokenType, value: Optional[str] = None) -> str:
+    """Return next token value from the stream, only if its type correspond to ttype"""
+    token = ts.advance()
+
+    if not token or token.type != ttype:
+        raise SyntaxError(f"Token value is either None or of the wrong type!")
+
+    if value and token.value != value:
+        raise SyntaxError(f"Expecting '{token.value}', got '{value}'!")
+
+    return token.value
+
 
 #----- classes
 
