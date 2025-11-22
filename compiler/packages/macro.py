@@ -41,50 +41,71 @@ class MacroProcessor:
         self.includes = set()
 
     def preprocess(self, tokens: List[Token], current_file: str) -> List[Token]:
-        """Pre-process the source file to build macro and expand it"""
+        """Perform macro pre-processins
+
+        Args:
+            tokens      : the list of tokens from the Lexer
+            current_file: the filename of the current file processed
+
+        Returns:
+            A new list of tokens, with the macro expanded.
+        """
         ts = TokenStream(tokens)
         out: List[Token] = []
 
         while not ts.at_end():
             token = ts.peek()
-
             if not token:
-                raise SyntaxError("EOF encounter during macro processing!")
+                break
 
-            # --- macro definition ---
-            if token.type == TokenType.DIRECTIVE and token.value == '.macro':
-                # parse the macro definition
-                macro = self._parse_macro_definition(ts)
-                self.macros[macro.name] = macro
-                continue
+            # take care of directives
+            if token.type == TokenType.DIRECTIVE:
 
-            # --- macro expansion ---
-            if token.type == TokenType.IDENT and token.value in self.macros:
-                expanded = self._expand_macro(self.macros[token.value], ts, current_file)
-                expanded = self._expand_tokens_recursive(expanded, current_file)
-                out.extend(expanded)
-                continue
+                # --- .macro
+                if token.value == '.macro':
+                    macro = self._parse_macro_definition(ts)
+                    self.macros[macro.name] = macro
+                    continue
 
-            # --- include ---
-            if token.type == TokenType.DIRECTIVE and token.value == '.include':
-                included = self._handle_include(ts, current_file)
-                included = self.preprocess(included, current_file)
-                out.extend(included)
-                continue
+                # --- .include
+                elif token.value == '.include':
+                    included = self._handle_include(ts, current_file)
+                    included = self.preprocess(included, current_file)
+                    included = self._apply_token_pasting(included)
+                    included = self._apply_dup(included)
+                    out.extend(included)
+                    continue
 
-            # --- for loops ---
-            if token.type == TokenType.DIRECTIVE and token.value == '.for':
-                expanded = self._handle_for_loop(ts, current_file)
-                out.extend(expanded)
-                continue
+                # --- .for
+                elif token.value == '.for':
+                    expanded = self._handle_for_loop(ts, current_file)
+                    expanded = self._apply_token_pasting(expanded)
+                    expanded = self._apply_dup(expanded)
+                    expanded = self.preprocess(expanded, current_file)
+                    out.extend(expanded)
+                    continue
 
-            # --- standard token ---
+            # identities token
+            elif token.type == TokenType.IDENT:
+
+                # --- macro expansion
+                if token.value in self.macros:
+                    expanded = self._expand_macro(self.macros[token.value], ts, current_file)
+                    expanded = self._expand_tokens_recursive(expanded, current_file)
+                    expanded = self._apply_token_pasting(expanded)
+                    expanded = self._apply_dup(expanded)
+                    expanded = self.preprocess(expanded, current_file)
+                    out.extend(expanded)
+                    continue
+
+            # regular token
             out.append(token)
             ts.advance()
 
-        # apply pasting, DUP, etc...
+        # apply pasting and 'dup' one last time
         out = self._apply_token_pasting(out)
         out = self._apply_dup(out)
+
         return out
 
     def _parse_macro_definition(self, ts: TokenStream) -> MacroDefinition:
