@@ -13,7 +13,7 @@
 
 # ----- imports
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from dataclasses import dataclass
 
@@ -65,10 +65,16 @@ class TokenStream:
         self.pos += 1
         return token
 
-    def expect(self, kind: TokenType) -> bool:
-        """Return True if the token has type 'kind'"""
+    def expect(self, what: Union[TokenType, str]) -> bool:
+        """Return True if the current token, is either the same value, or same type"""
         token = self.peek()
-        return (token is not None and token.type == kind)
+        if token:
+            if isinstance(what, TokenType) and token.type == what:
+                return True
+            elif isinstance(what, str) and token.value == what:
+                return True
+
+        return False
 
     def at_end(self) -> bool:
         """True if we have process all the tokens or reached EOF"""
