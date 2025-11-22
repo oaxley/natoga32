@@ -375,30 +375,40 @@ class MacroProcessor:
         while i < len(tokens):
             token = tokens[i]
 
-            # look for pattern VALUE DUP( NUMBER )
+            # look for pattern VALUE DUP( expr )
             if (
-                i + 4 < len(tokens)
+                i + 3 < len(tokens)
                 and tokens[i+1].type == TokenType.IDENT
                 and tokens[i+1].value.upper() == 'DUP'
                 and tokens[i+2].type == TokenType.LPARENT
             ):
-                # ensure we have a right parenthesis
-                if tokens[i+4].type != TokenType.RPARENT:
+                # find the matching RPARENT
+                j = i + 3
+                depth = 1
+                while (j < len(tokens)) and (depth > 0):
+                    if tokens[j].type == TokenType.LPARENT:
+                        depth += 1
+                    if tokens[j].type == TokenType.RPARENT:
+                        depth -= 1
+                    j += 1
+
+                if depth != 0:
                     raise SyntaxError("Unmatched parenthesis in DUP expression")
 
-                # ensure we have a number
-                if tokens[i+3].type not in [TokenType.NUMBER, TokenType.CHAR, TokenType.IDENT]:
-                    raise SyntaxError(f"DUP argument must be NUMBER, got {tokens[i+3].type.name}")
+                # retrieve all the tokens from the expression and evaluate it
+                expr = tokens[i+3:j-1]
+                value = helper.evaluate_expr(expr)
 
-                count = int(tokens[i+3].value, 0)
+                if value < 0:
+                    raise SyntaxError("DUP count must be non-negative")
 
                 # replace the whole expression
-                for _ in range(count):
+                for _ in range(value):
                     result.append(helper.clone_token(token))
                     result.append(Token(TokenType.COMMA, ",", token.row, token.col))
 
                 # move forward
-                i += 5
+                i = j
                 continue
 
             # keep adding normal tokens
