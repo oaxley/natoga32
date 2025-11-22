@@ -102,3 +102,59 @@ def get_value(ts: TokenStream, ttype: TokenType, tvalue: Optional[str] = None) -
 
     return token.value
 
+
+def evaluate_expr(tokens: List[Token]) -> int:
+    """Evaluate a simple expression
+
+    Minimal expression parser that supports:
+    - numbers (dec, hex, bin),
+    - parantheses
+    - operators (+ - * / % << >> & | ^)
+
+    Args:
+        tokens (List[Token]): the expression to parse
+
+    Returns:
+        int: the value once the expression has been evaluated
+    """
+    if not tokens:
+        raise SyntaxError("Expression is empty!")
+
+    # operators mapping
+    op_map: Dict[TokenType, str] = {
+        TokenType.PLUS: '+',
+        TokenType.MINUS: '-',
+        TokenType.STAR: '*',
+        TokenType.SLASH: '/',
+        TokenType.MODULO: '%',
+        TokenType.LSHIFT: '<<',
+        TokenType.RSHIFT: '>>',
+        TokenType.AND: '&',
+        TokenType.OR: '|',
+        TokenType.XOR: '^'
+    }
+
+    parts = []
+    for t in tokens:
+        if t.type == TokenType.NUMBER:
+            parts.append(t.value)
+        elif t.type == TokenType.LPARENT:
+            parts.append('(')
+        elif t.type == TokenType.RPARENT:
+            parts.append(')')
+        elif t.type in op_map:
+            parts.append(op_map[t.type])
+        else:
+            # default insertion
+            parts.append(t.value)
+
+    # build the expression from its part
+    expr = " ".join(parts)
+
+    # evaluate the expression, only with python standard ops
+    try:
+        value = eval(expr, {"__builtins__": None}, {})
+    except Exception as e:
+        raise SyntaxError(f"Unable to evaluate expression '{expr}': {e}!")
+
+    return int(value)
