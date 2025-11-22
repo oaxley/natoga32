@@ -22,70 +22,10 @@ from dataclasses import dataclass
 from packages.token import Token, TokenStream, TokenType
 from packages.lexer import Lexer
 
+from packages import helper
 
 #----- globals
 MAX_MACRO_EXPANSION_DEPTH = 100
-MAX_BODY_DEPTH = 50
-
-
-#----- functions
-def clone_token(token: Token) -> Token:
-    """Clone a Token with Shallow Copy"""
-    return Token(token.type, token.value, token.row, token.col)
-
-def capture_body(ts: TokenStream, begin: str, end: str) -> List[Token]:
-    """Parse the token stream and extract the body between 'begin' and 'end' tokens
-
-    Args:
-        ts    : the stream of tokens
-        begin : token for the beginning marker
-        end   : token for the end marker
-
-    Returns:
-        The token list corresponding to the body
-    """
-    body: List[Token] = []
-    depth = 1       # depth tracker
-
-    while True:
-        token = ts.peek()
-
-        if token is None:
-            break
-
-        # depth tracker (for nested bodies)
-        if token.type == TokenType.DIRECTIVE and token.value == begin:
-            depth += 1
-            if depth > MAX_BODY_DEPTH:
-                raise SyntaxError("Nested body max limit exceeded!")
-
-        if token.type == TokenType.DIRECTIVE and token.value == end:
-            depth -= 1
-            if depth == 0:
-                break
-
-        # add everything to the body, and move forward
-        body.append(token)
-        ts.advance()
-
-    # consume "end" marker & EOL
-    ts.advance()
-    if ts.expect(TokenType.EOL): ts.advance()
-
-    # return the body
-    return body
-
-def get_value(ts: TokenStream, ttype: TokenType, value: Optional[str] = None) -> str:
-    """Return next token value from the stream, only if its type correspond to ttype"""
-    token = ts.advance()
-
-    if not token or token.type != ttype:
-        raise SyntaxError(f"Token value is either None or of the wrong type!")
-
-    if value and token.value != value:
-        raise SyntaxError(f"Expecting '{token.value}', got '{value}'!")
-
-    return token.value
 
 
 #----- classes
@@ -196,7 +136,7 @@ class MacroProcessor:
         ts.advance()    # consume .macro
 
         # retrieve the macro name
-        name = get_value(ts, TokenType.IDENT)
+        name = helper.get_value(ts, TokenType.IDENT)
 
         # parse the parameters
         params: List[str] = []
@@ -213,7 +153,7 @@ class MacroProcessor:
             ts.advance()
 
         # parse the body until we reach .endm
-        body = capture_body(ts, '.macro', '.endm')
+        body = helper.capture_body(ts, '.macro', '.endm')
 
         return MacroDefinition(name, params, body)
 
@@ -279,11 +219,11 @@ class MacroProcessor:
                 # token is a parameter
                 if bt.type == TokenType.IDENT and bt.value in mapping:
                     for t in mapping[bt.value]:
-                        expanded.append(clone_token(t))
+                        expanded.append(helper.clone_token(t))
                     continue
 
                 # normal token
-                expanded.append(clone_token(bt))
+                expanded.append(helper.clone_token(bt))
 
             return expanded
 
@@ -304,7 +244,7 @@ class MacroProcessor:
         ts.advance()    # consumer .include
 
         # retrieve the filename (STRING)
-        filename = get_value(ts, TokenType.STRING).strip('"')
+        filename = helper.get_value(ts, TokenType.STRING).strip('"')
 
         # consume EOL if present
         if ts.expect(TokenType.EOL): ts.advance()
@@ -338,17 +278,17 @@ class MacroProcessor:
         ts.advance()    # consume .for
 
         # parse <IDENT> = <NUMBER>, <NUMBER>
-        var_name = get_value(ts, TokenType.IDENT)
-        get_value(ts, TokenType.EQUAL)
-        start_value = int(get_value(ts, TokenType.NUMBER), 0)
+        var_name = helper.get_value(ts, TokenType.IDENT)
+        helper.get_value(ts, TokenType.EQUAL)
+        start_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
         ts.advance()
-        end_value = int(get_value(ts, TokenType.NUMBER), 0)
+        end_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
 
         # 6. Optional step
         step_value = 1
         if ts.expect(TokenType.COMMA):
             ts.advance()    # remove comma
-            step_value = int(get_value(ts, TokenType.NUMBER), 0)
+            step_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
             if step_value == 0:
                 raise SyntaxError("Step value cannot be 0")
 
@@ -356,7 +296,7 @@ class MacroProcessor:
         if ts.expect(TokenType.EOL): ts.advance()
 
         # --- capture body
-        body = capture_body(ts, '.for', '.endf')
+        body = helper.capture_body(ts, '.for', '.endf')
 
         # --- body expansion
         tokens: List[Token] = []
@@ -377,7 +317,7 @@ class MacroProcessor:
                     iteration_body.append(Token(TokenType.NUMBER, str(current), token.row, token.col))
                 else:
                     # clone the token to avoid messing up with the loop body
-                    iteration_body.append(clone_token(token))
+                    iteration_body.append(helper.clone_token(token))
 
             # pre-process to allow macros inside loops
             iteration_body = self.preprocess(iteration_body, current_file)
@@ -454,7 +394,7 @@ class MacroProcessor:
 
                 # replace the whole expression
                 for _ in range(count):
-                    result.append(clone_token(token))
+                    result.append(helper.clone_token(token))
                     result.append(Token(TokenType.COMMA, ",", token.row, token.col))
 
                 # move forward
