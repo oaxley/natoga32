@@ -32,6 +32,7 @@ class TokenType(IntEnum):
     LABEL = auto()                      # any identifier terminated with ':'
     STRING = auto()                     # a "string"
     CHAR = auto()                       # a single char 'A'
+    ENVVAR = auto()
 
     # operators & symbols
     EQUAL = auto()                      # '='
@@ -65,6 +66,7 @@ TOKENS_SPECS = [
     (TokenType.DIRECTIVE.name, r'\.[A-Za-z_][A-Za-z0-9_]*'),
     (TokenType.LABEL.name, r'[A-Za-z_][A-Za-z0-9_]*:'),
     (TokenType.IDENT.name, r'[A-Za-z_][A-Za-z0-9_-]*'),
+    (TokenType.ENVVAR.name, r'\$\[[^\]]*\]'),
     (TokenType.STRING.name, r'\"[^\"]*\"'),
     (TokenType.CHAR.name, r'\'.\''),
 

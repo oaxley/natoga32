@@ -159,6 +159,22 @@ class MacroProcessor:
                     out.extend(expanded)
                     continue
 
+            # environment variables replacement
+            elif token.type == TokenType.ENVVAR:
+                name = token.value[2:-1]
+                envvar = os.getenv(name)
+                if envvar != None:
+                    try:
+                        value = int(envvar, 0)
+                        out.append(Token(TokenType.NUMBER,hex(value),token.row,token.col))
+                    except ValueError:
+                        out.append(Token(TokenType.STRING,f'"{envvar}"',token.row,token.col))
+                else:
+                    raise SyntaxError(f"Could not find environment variable '{name}'")
+
+                ts.advance()
+                continue
+
             # regular token
             out.append(token)
             ts.advance()
