@@ -337,60 +337,23 @@ class MacroProcessor:
         """Handle for loops"""
         ts.advance()    # consume .for
 
-        # 1. loop variable name
-        token = ts.advance()
-        if not token:
-            raise SyntaxError("Error while processing .for directive!")
-
-        if token.type == TokenType.IDENT:
-            var_name = token.value
-        else:
-            raise SyntaxError(".for expects: .for <IDENT> = start, end, step")
-
-        # 2. ensure we have '='
-        token = ts.advance()
-        if token and token.value != '=':
-            raise SyntaxError(".for syntax error: expected '='")
-
-        # 3. start value
-        token = ts.advance()
-        if token and token.type == TokenType.NUMBER:
-            start_value = int(token.value, 0)
-        else:
-            raise SyntaxError(".for start value must be a number")
-
-        # 4. ','
+        # parse <IDENT> = <NUMBER>, <NUMBER>
+        var_name = get_value(ts, TokenType.IDENT)
+        get_value(ts, TokenType.EQUAL)
+        start_value = int(get_value(ts, TokenType.NUMBER), 0)
         ts.advance()
-
-        # 5. end value
-        token = ts.advance()
-        if token and token.type == TokenType.NUMBER:
-            end_value = int(token.value, 0)
-        else:
-            raise SyntaxError(".for end value must be a number")
+        end_value = int(get_value(ts, TokenType.NUMBER), 0)
 
         # 6. Optional step
-        token = ts.peek()
-        if token and token.type == TokenType.COMMA:
-            # consume the comma and retrieve the next token
-            ts.advance()
-            token = ts.peek()
-
-            if token and token.type == TokenType.NUMBER:
-                step_val = int(token.value, 0)
-
-                # consume the number and retrieve the next token
-                ts.advance()
-                token = ts.peek()
-            else:
-                raise SyntaxError(".for step must be a number")
-        else:
-            # step not provided -> default to +1
-            step_val = 1
+        step_value = 1
+        if ts.expect(TokenType.COMMA):
+            ts.advance()    # remove comma
+            step_value = int(get_value(ts, TokenType.NUMBER), 0)
+            if step_value == 0:
+                raise SyntaxError("Step value cannot be 0")
 
         # consume EOL if present
-        if token and token.type == TokenType.EOL:
-            ts.advance()
+        if ts.expect(TokenType.EOL): ts.advance()
 
         # --- capture body
         body = capture_body(ts, '.for', '.endf')
@@ -398,7 +361,14 @@ class MacroProcessor:
         # --- body expansion
         tokens: List[Token] = []
         current = start_value
-        while (step_val > 0 and current < end_value) or (step_val < 0 and current > end_value):
+
+        # loop condition
+        if step_value > 0:
+            cond = lambda c: c < end_value
+        else:
+            cond = lambda c: c > end_value
+
+        while cond(current):
 
             iteration_body: List[Token] = []
             for token in body:
@@ -407,7 +377,7 @@ class MacroProcessor:
                     iteration_body.append(Token(TokenType.NUMBER, str(current), token.row, token.col))
                 else:
                     # clone the token to avoid messing up with the loop body
-                    iteration_body.append(Token(token.type, token.value, token.row, token.col))
+                    iteration_body.append(clone_token(token))
 
             # pre-process to allow macros inside loops
             iteration_body = self.preprocess(iteration_body, current_file)
@@ -416,9 +386,8 @@ class MacroProcessor:
             tokens.extend(iteration_body)
 
             # current = current +/- step_val
-            current += step_val
+            current += step_value
 
-        tokens = self._apply_token_pasting(tokens)
         return tokens
 
     def _apply_token_pasting(self, tokens: List[Token]) -> List[Token]:
