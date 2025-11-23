@@ -26,7 +26,8 @@ from packages.config import Config
 from packages.lexer import Lexer
 from packages.token import TokenStream
 from packages.parser import Parser
-from packages.macro import MacroProcessor
+# from packages.macro import MacroProcessor
+from packages.preprocessor import PreProcessor
 
 
 # ----- begin
@@ -59,8 +60,8 @@ try:
         sys.exit(0)
 
     # pre-processor
-    macro_preprocessor = MacroProcessor()
-    tokens = macro_preprocessor.preprocess(lexer.tokens, config.input_file)
+    preproc = PreProcessor()
+    tokens = preproc.process(lexer.tokens, config.input_file)
 
     # parser
     parser = Parser(TokenStream(tokens))
