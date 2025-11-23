@@ -1,0 +1,183 @@
+# -*- coding: utf-8 -*-
+# vim: filetype=python
+#
+# This source file is subject to the MIT License
+# that is bundled with this package in the file LICENSE.txt.
+# It is also available through the Internet at this address:
+# https://opensource.org/license/mit
+#
+# @author	Sebastien LEGRAND
+# @license	MIT License
+#
+# @brief	Compiler pre-processor main file
+
+#----- imports
+from __future__ import annotations
+from typing import Any, Dict, List
+
+import os
+
+from packages.token import Token, TokenStream, TokenType
+
+from . import helper
+from .macros import MacroDefinition, parse_macro_definition, expand_macro
+from .includes import handle_include
+from .token_pasting import apply_token_pasting
+from .dup import apply_dup
+
+
+#----- class
+class PreProcessor:
+    """Compiler pre-processor"""
+
+    def __init__(self) -> None:
+        """Constructor"""
+        self.macros: Dict[str, MacroDefinition] = {}
+
+    def process(self, tokens: List[Token], current_file: str) -> List[Token]:
+        """Perform pre-processing of the source file
+
+        Args:
+            tokens (List[Token]): the list of tokens from the Lexer
+            current_file (str): the filename of the current file being processed
+
+        Returns:
+            List[Token]: the new list of tokens after pre-processing is done
+        """
+        ts = TokenStream(tokens)
+        out: List[Token] = []
+
+        while not ts.at_end():
+            token = ts.peek()
+            if not token:
+                break
+
+            # take care of directives
+            if token.type == TokenType.DIRECTIVE:
+
+                # --- .macro
+                if token.value == '.macro':
+                    macro = parse_macro_definition(ts)
+                    self.macros[macro.name] = macro
+                    continue
+
+                # --- .include
+                elif token.value == '.include':
+                    included = handle_include(ts, current_file)
+                    included = self.process(included, current_file)
+                    included = apply_token_pasting(included)
+                    included = apply_dup(included)
+                    out.extend(included)
+                    continue
+
+                # --- .for
+                elif token.value == '.for':
+                    expanded = self._handle_for_loop(ts, current_file)
+                    expanded = apply_token_pasting(expanded)
+                    expanded = apply_dup(expanded)
+                    expanded = self.process(expanded, current_file)
+                    out.extend(expanded)
+                    continue
+
+            # identities token
+            elif token.type == TokenType.IDENT:
+
+                # --- macro expansion
+                if token.value in self.macros:
+                    expanded = expand_macro(self.macros[token.value], ts)
+                    expanded = apply_token_pasting(expanded)
+                    expanded = apply_dup(expanded)
+                    expanded = self.process(expanded, current_file)
+                    out.extend(expanded)
+                    continue
+
+            # environment variables replacement
+            elif token.type == TokenType.ENVVAR:
+                name = token.value[2:-1]
+                envvar = os.getenv(name)
+                if envvar != None:
+                    try:
+                        value = int(envvar, 0)
+                        out.append(Token(TokenType.NUMBER,hex(value),token.row,token.col))
+                    except ValueError:
+                        out.append(Token(TokenType.STRING,f'"{envvar}"',token.row,token.col))
+                else:
+                    raise SyntaxError(f"Could not find environment variable '{name}'")
+
+                ts.advance()
+                continue
+
+            # regular token
+            out.append(token)
+            ts.advance()
+
+        # apply pasting and 'dup' one last time
+        out = apply_token_pasting(out)
+        out = apply_dup(out)
+
+        return out
+
+    def _handle_for_loop(self, ts: TokenStream, current_file: str) -> List[Token]:
+        """Handle '.for/.endf' directives
+
+        Args:
+            ts (TokenStream): the current token stream
+            current_file (str): the filename of the file being processed
+
+        Returns:
+            List[Token]: a list of tokens to insert at the ".for" loop position
+        """
+        ts.advance()    # consume .for
+
+        # parse <IDENT> = <NUMBER>, <NUMBER>
+        var_name = helper.get_value(ts, TokenType.IDENT)
+        helper.get_value(ts, TokenType.EQUAL)
+        start_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+        ts.advance()
+        end_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+
+        # 6. Optional step
+        step_value = 1
+        if ts.expect(TokenType.COMMA):
+            ts.advance()    # remove comma
+            step_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+            if step_value == 0:
+                raise SyntaxError("Step value cannot be 0")
+
+        # consume EOL if present
+        if ts.expect(TokenType.EOL): ts.advance()
+
+        # --- capture body
+        body = helper.capture_body(ts, '.for', '.endf')
+
+        # --- body expansion
+        tokens: List[Token] = []
+        current = start_value
+
+        # loop condition
+        if step_value > 0:
+            cond = lambda c: c < end_value
+        else:
+            cond = lambda c: c > end_value
+
+        while cond(current):
+
+            iteration_body: List[Token] = []
+            for token in body:
+                # substitute var_name with NUMBER token
+                if token.type == TokenType.IDENT and token.value == var_name:
+                    iteration_body.append(Token(TokenType.NUMBER, str(current), token.row, token.col))
+                else:
+                    # clone the token to avoid messing up with the loop body
+                    iteration_body.append(helper.clone_token(token))
+
+            # pre-process to allow macros inside loops
+            iteration_body = self.process(iteration_body, current_file)
+
+            # add those tokens to the global list
+            tokens.extend(iteration_body)
+
+            # current = current +/- step_val
+            current += step_value
+
+        return tokens
