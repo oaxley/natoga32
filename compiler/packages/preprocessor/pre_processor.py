@@ -18,6 +18,7 @@ from typing import Any, Dict, List
 import os
 
 from packages.token import Token, TokenStream, TokenType
+from packages.symbols import SymbolTable
 
 from . import helper
 from .macros import MacroDefinition, parse_macro_definition, expand_macro
@@ -26,15 +27,17 @@ from .for_loops import handle_for_loop
 from .token_pasting import apply_token_pasting
 from .dup import apply_dup
 from .environment import handle_envvar
+from .define import handle_define
 
 
 #----- class
 class PreProcessor:
     """Compiler pre-processor"""
 
-    def __init__(self) -> None:
+    def __init__(self, symbols: SymbolTable) -> None:
         """Constructor"""
         self.macros: Dict[str, MacroDefinition] = {}
+        self.symbols = symbols
 
     def process(self, tokens: List[Token], current_file: str) -> List[Token]:
         """Perform pre-processing of the source file
@@ -65,6 +68,7 @@ class PreProcessor:
                 if token.value == '.macro':
                     macro = parse_macro_definition(ts)
                     self.macros[macro.name] = macro
+                    self.symbols.add(macro.name, "")
                     continue
 
                 # --- .include
@@ -72,7 +76,7 @@ class PreProcessor:
                     included = handle_include(ts, current_file)
                     included = self.process(included, current_file)
                     included = apply_token_pasting(included)
-                    included = apply_dup(included)
+                    included = apply_dup(included, self.symbols)
                     out.extend(included)
                     continue
 
@@ -80,10 +84,20 @@ class PreProcessor:
                 elif token.value == '.for':
                     expanded = handle_for_loop(ts)
                     expanded = apply_token_pasting(expanded)
-                    expanded = apply_dup(expanded)
+                    expanded = apply_dup(expanded, self.symbols)
                     expanded = self.process(expanded, current_file)
                     out.extend(expanded)
                     continue
+
+                # --- .define
+                elif token.value == '.define':
+                    handle_define(ts, self.symbols)
+                    continue
+
+                # --- .if / .ifdef / .ifndef
+                elif token.value in [ '.if', '.ifdef', '.ifndef']:
+                    pass
+
 
             # identities token
             elif token.type == TokenType.IDENT:
@@ -92,7 +106,7 @@ class PreProcessor:
                 if token.value in self.macros:
                     expanded = expand_macro(self.macros[token.value], ts)
                     expanded = apply_token_pasting(expanded)
-                    expanded = apply_dup(expanded)
+                    expanded = apply_dup(expanded, self.symbols)
                     expanded = self.process(expanded, current_file)
                     out.extend(expanded)
                     continue
@@ -103,7 +117,7 @@ class PreProcessor:
 
         # apply pasting and 'dup' one last time
         out = apply_token_pasting(out)
-        out = apply_dup(out)
+        out = apply_dup(out, self.symbols)
 
         return out
 
