@@ -16,11 +16,13 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from packages.token import Token, TokenType
+from packages.symbols import SymbolTable
+
 from . import helper
 
 
 #----- functions
-def apply_dup(tokens: List[Token]) -> List[Token]:
+def apply_dup(tokens: List[Token], symbols: SymbolTable) -> List[Token]:
     """Expands 'VALUE DUP(x)' pattern, which repeats x times the VALUE
 
     Args:
@@ -57,14 +59,20 @@ def apply_dup(tokens: List[Token]) -> List[Token]:
 
             # retrieve all the tokens from the expression and evaluate it
             expr = tokens[i+3:j-1]
-            value = helper.evaluate_expr(expr)
+            count = helper.evaluate_expr(expr)
 
-            if value < 0:
+            if count < 0:
                 raise SyntaxError("DUP count must be non-negative")
 
+            # check if the token is in the symbol table
+            if symbols.exists(token.value):
+                value = Token(TokenType.NUMBER, symbols.value(token.value), token.row, token.col)
+            else:
+                value = helper.clone_token(token)
+
             # replace the whole expression
-            for _ in range(value):
-                result.append(helper.clone_token(token))
+            for _ in range(count):
+                result.append(value)
                 result.append(Token(TokenType.COMMA, ",", token.row, token.col))
 
             # move forward
