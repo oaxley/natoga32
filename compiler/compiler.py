@@ -26,8 +26,8 @@ from packages.config import Config
 from packages.lexer import Lexer
 from packages.token import TokenStream
 from packages.parser import Parser
-# from packages.macro import MacroProcessor
 from packages.preprocessor import PreProcessor
+from packages.symbols import SymbolTable
 
 
 # ----- begin
@@ -50,6 +50,9 @@ except FileNotFoundError as e:
 fh = open(config.input_file, "r", encoding="utf-8")
 
 try:
+    # global symbol table
+    symbols = SymbolTable()
+
     # create a new lexer
     lexer = Lexer()
     lexer.parse(fh)
@@ -60,7 +63,7 @@ try:
         sys.exit(0)
 
     # pre-processor
-    preproc = PreProcessor()
+    preproc = PreProcessor(symbols)
     tokens = preproc.process(lexer.tokens, config.input_file)
 
     # parser
