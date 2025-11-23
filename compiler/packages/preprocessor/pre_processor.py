@@ -22,6 +22,7 @@ from packages.token import Token, TokenStream, TokenType
 from . import helper
 from .macros import MacroDefinition, parse_macro_definition, expand_macro
 from .includes import handle_include
+from .for_loops import handle_for_loop
 from .token_pasting import apply_token_pasting
 from .dup import apply_dup
 
@@ -72,7 +73,7 @@ class PreProcessor:
 
                 # --- .for
                 elif token.value == '.for':
-                    expanded = self._handle_for_loop(ts, current_file)
+                    expanded = handle_for_loop(ts)
                     expanded = apply_token_pasting(expanded)
                     expanded = apply_dup(expanded)
                     expanded = self.process(expanded, current_file)
@@ -117,67 +118,4 @@ class PreProcessor:
 
         return out
 
-    def _handle_for_loop(self, ts: TokenStream, current_file: str) -> List[Token]:
-        """Handle '.for/.endf' directives
 
-        Args:
-            ts (TokenStream): the current token stream
-            current_file (str): the filename of the file being processed
-
-        Returns:
-            List[Token]: a list of tokens to insert at the ".for" loop position
-        """
-        ts.advance()    # consume .for
-
-        # parse <IDENT> = <NUMBER>, <NUMBER>
-        var_name = helper.get_value(ts, TokenType.IDENT)
-        helper.get_value(ts, TokenType.EQUAL)
-        start_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
-        ts.advance()
-        end_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
-
-        # 6. Optional step
-        step_value = 1
-        if ts.expect(TokenType.COMMA):
-            ts.advance()    # remove comma
-            step_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
-            if step_value == 0:
-                raise SyntaxError("Step value cannot be 0")
-
-        # consume EOL if present
-        if ts.expect(TokenType.EOL): ts.advance()
-
-        # --- capture body
-        body = helper.capture_body(ts, '.for', '.endf')
-
-        # --- body expansion
-        tokens: List[Token] = []
-        current = start_value
-
-        # loop condition
-        if step_value > 0:
-            cond = lambda c: c < end_value
-        else:
-            cond = lambda c: c > end_value
-
-        while cond(current):
-
-            iteration_body: List[Token] = []
-            for token in body:
-                # substitute var_name with NUMBER token
-                if token.type == TokenType.IDENT and token.value == var_name:
-                    iteration_body.append(Token(TokenType.NUMBER, str(current), token.row, token.col))
-                else:
-                    # clone the token to avoid messing up with the loop body
-                    iteration_body.append(helper.clone_token(token))
-
-            # pre-process to allow macros inside loops
-            iteration_body = self.process(iteration_body, current_file)
-
-            # add those tokens to the global list
-            tokens.extend(iteration_body)
-
-            # current = current +/- step_val
-            current += step_value
-
-        return tokens
