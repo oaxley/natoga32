@@ -43,7 +43,17 @@ def handle_for_loop(ts: TokenStream) -> List[Token]:
     step_value = 1
     if ts.expect(TokenType.COMMA):
         ts.advance()    # remove comma
-        step_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+
+        # detect negative/positive sign if any
+        sign = 1
+        if ts.expect(TokenType.MINUS):
+            sign = -1
+            ts.advance()
+        elif ts.expect(TokenType.PLUS):
+            ts.advance()
+
+        # retrieve the step value
+        step_value = sign * int(helper.get_value(ts, TokenType.NUMBER), 0)
         if step_value == 0:
             raise SyntaxError("Step value cannot be 0")
 
