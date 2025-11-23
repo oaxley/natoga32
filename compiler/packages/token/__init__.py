@@ -12,6 +12,6 @@
 # @brief	__init__ file for token package
 
 #----- imports
-from token_dataclass import Token
-from token_stream import TokenStream
-from token_type import TokenType
+from .token_dataclass import Token
+from .token_stream import TokenStream
+from .token_type import TokenType

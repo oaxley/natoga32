@@ -17,8 +17,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import packages.ast as ast
 
-from packages.token import TokenStream
-from packages.specs import TokenType, OP_INFO
+from packages.token import TokenStream, TokenType
+from packages.specs import OP_INFO
 
 
 #----- class

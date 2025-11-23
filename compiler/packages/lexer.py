@@ -15,11 +15,11 @@
 from __future__ import annotations
 from typing import List, Union, TextIO
 
-from packages.token import Token
-from packages.specs import TokenType, RE_PATTERNS
+from packages.token import Token, TokenType
+from packages.specs import RE_PATTERNS
 
 
-#----- classes
+#----- class
 class Lexer:
     """Process the assembly file and create tokens"""
 

@@ -15,8 +15,8 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional, Union
 
-from token_dataclass import Token
-from token_type import TokenType
+from .token_dataclass import Token
+from .token_type import TokenType
 
 
 #----- class

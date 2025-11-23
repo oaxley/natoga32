@@ -16,48 +16,8 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 import re
-from enum import IntEnum, auto
 
-#----- class
-# token types
-class TokenType(IntEnum):
-    # control characters
-    EOF = auto()                        # end of file
-    EOL = auto()                        # end of line '\n'
-
-    # numbers & directives
-    NUMBER = auto()                     # any numbers
-    DIRECTIVE = auto()                  # assembler directive
-    IDENT = auto()                      # identifier
-    LABEL = auto()                      # any identifier terminated with ':'
-    STRING = auto()                     # a "string"
-    CHAR = auto()                       # a single char 'A'
-    ENVVAR = auto()
-
-    # operators & symbols
-    EQUAL = auto()                      # '='
-    LPARENT = auto()                    # '('
-    RPARENT = auto()                    # ')'
-    COMMA = auto()                      # ','
-    PLUS = auto()                       # '+'
-    MINUS = auto()                      # '-'
-    STAR = auto()                       # '*'
-    SLASH = auto()                      # '/'
-    MODULO = auto()                     # '%'
-    LSHIFT = auto()                     # '<<'
-    RSHIFT = auto()                     # '>>'
-    AND = auto()                        # '&'
-    OR = auto()                         # '|'
-    XOR = auto()                        # '^'
-    QUOTE = auto()                      # '"'
-    DOLLAR = auto()                     # alias for current PC
-
-    # misc
-    PASTE = auto()                      # token pasting '##'
-    SKIP = auto()                       # spaces and tabs
-    COMMENT = auto()
-
-    UNKNOWN = auto()                    # unknown word
+from packages.token import TokenType
 
 
 #----- globals
@@ -86,7 +46,6 @@ TOKENS_SPECS = [
     (TokenType.AND.name, r'&'),
     (TokenType.OR.name, r'\|'),
     (TokenType.XOR.name, r'\^'),
-    (TokenType.QUOTE.name, r'\"'),
     (TokenType.DOLLAR.name, r'\$'),
 
     # misc
