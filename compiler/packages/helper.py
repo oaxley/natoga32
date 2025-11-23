@@ -82,7 +82,7 @@ def capture_body(ts: TokenStream, begin: str, end: str) -> List[Token]:
 
 def get_value(ts: TokenStream, ttype: TokenType, tvalue: Optional[str] = None) -> str:
     """Return next token value from the stream, only if its type correspond to ttype
-       or its value is equal to tvalue
+    or its value is equal to tvalue
 
     Args:
         ts (TokenStream): the token stream

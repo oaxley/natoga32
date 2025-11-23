@@ -30,6 +30,11 @@ class Parser:
         self.ts = tokens
 
     def parse_program(self) -> ast.Program:
+        """Parse the 'Program'
+
+        Returns:
+            ast.Program: the AST Program root node
+        """
         stmts: List[ast.Statement] = []
 
         while not self.ts.at_end():
@@ -49,6 +54,11 @@ class Parser:
         return ast.Program(stmts)
 
     def parse_statement(self) -> Optional[ast.Statement]:
+        """Parse a single statement
+
+        Returns:
+            Optional[ast.Statement]: None if no statement were found, otherwise the corresponding AST Statement
+        """
         token = self.ts.peek()
         if not token:
             return None
@@ -77,6 +87,11 @@ class Parser:
         raise SyntaxError(f"Unexpected token: {token.type.name} ({token.row}, {token.col})")
 
     def parse_label(self) -> ast.Label:
+        """Process a label
+
+        Returns:
+            ast.Label: the string that represents the label, without the ':' if it is present
+        """
         token = self.ts.advance()
         name = token.value              # type: ignore
 
@@ -90,6 +105,11 @@ class Parser:
         return ast.Label(name)
 
     def parse_operands(self) -> List[ast.Node]:
+        """Parse the operands / arguments
+
+        Returns:
+            List[ast.Node]: a list of AST Node (or derivates) that represents the operands of the root node
+        """
         args: List[ast.Node] = []
         while True:
             token = self.ts.peek()
@@ -108,6 +128,11 @@ class Parser:
 
 
     def parse_directive(self) -> ast.Directive:
+        """Parse a Directive
+
+        Returns:
+            ast.Directive: a node that represents the Directive and its operands in the source code
+        """
         # possible patterns:
         # DIRECTIVE ...
         # IDENT DIRECTIVE ...
@@ -130,6 +155,11 @@ class Parser:
         return ast.Directive(dir_tok.value, args, label_name)
 
     def parse_instruction(self) -> ast.Instruction:
+        """Parse a simple instruction in the source code
+
+        Returns:
+            ast.Instruction: a node that represents an Assembly Instruction
+        """
         # instruction: IDENT <operands separated by comma>
 
         op_tok = self.ts.advance()
@@ -143,7 +173,15 @@ class Parser:
 
         return ast.Instruction(op_tok.value, args)
 
-    def parse_expression(self, min_prec=1) -> ast.Expression:
+    def parse_expression(self, min_prec: int = 1) -> ast.Expression:
+        """Parse a complex expression
+
+        Args:
+            min_prec (int): the current minimal precedence
+
+        Returns:
+            ast.Expression: a node that represents the AST Expression
+        """
         # parse the left part of the expression
         left = self.parse_primary()
 
@@ -181,6 +219,11 @@ class Parser:
         return left
 
     def parse_primary(self) -> ast.Expression:
+        """Parse the left side of an expression
+
+        Returns:
+            ast.Expression: the left side of an expression
+        """
         token = self.ts.advance()
         if token is None:
             raise SyntaxError("Unexpected EOF expression!")

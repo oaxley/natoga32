@@ -43,14 +43,14 @@ class MacroProcessor:
         self.expansion_depth = 0
 
     def preprocess(self, tokens: List[Token], current_file: str) -> List[Token]:
-        """Perform macro pre-processing
+        """Perform pre-processing of the source file
 
         Args:
-            tokens      : the list of tokens from the Lexer
-            current_file: the filename of the current file processed
+            tokens (List[Token]): the list of tokens from the Lexer
+            current_file (str): the filename of the current file being processed
 
         Returns:
-            A new list of tokens, with the macro expanded.
+            List[Token]: the new list of tokens after pre-processing is done
         """
         ts = TokenStream(tokens)
         out: List[Token] = []
@@ -129,9 +129,10 @@ class MacroProcessor:
         """Parse a macro definition and add it to the Macro table
 
         Args:
-            ts : the token stream instance
+            ts (TokenStream): the token stream instance
+
         Returns
-            A MacroDefintion with the name, params and body
+            MacroDefinition: an instance of MacroDefinition representing the macro
         """
         ts.advance()    # consume .macro
 
@@ -161,12 +162,12 @@ class MacroProcessor:
         """Expand macro invocation at current stream position
 
         Args:
-            macro           : the macro detected during processin
-            ts              : the current token stream
-            current_file    : the current file being processed
+            macro (MacroDefinition): the macro detected during processing
+            ts (TokenStream): the current token stream
+            current_file (str): the current file being processed
 
         Returns:
-            A new token list, with the macro expanded
+            List[Token]: A list of tokens after the macro has been expanded
         """
         # recursion depth check
         self.expansion_depth += 1
@@ -235,11 +236,11 @@ class MacroProcessor:
         """Handle '.include' directive
 
         Args:
-            ts           : the token stream instance
-            current_file : the current file being processed
+            ts (TokenStream): the token stream instance
+            current_file (str): the current file being processed
 
         Returns:
-            A new list of tokens from the file included
+            List[Token]: a list of tokens to insert at the ".include" position
         """
         ts.advance()    # consumer .include
 
@@ -274,7 +275,15 @@ class MacroProcessor:
             self.includes.remove(full_path)
 
     def _handle_for_loop(self, ts: TokenStream, current_file: str) -> List[Token]:
-        """Handle for loops"""
+        """Handle '.for/.endf' directives
+
+        Args:
+            ts (TokenStream): the current token stream
+            current_file (str): the filename of the file being processed
+
+        Returns:
+            List[Token]: a list of tokens to insert at the ".for" loop position
+        """
         ts.advance()    # consume .for
 
         # parse <IDENT> = <NUMBER>, <NUMBER>
@@ -331,7 +340,14 @@ class MacroProcessor:
         return tokens
 
     def _apply_token_pasting(self, tokens: List[Token]) -> List[Token]:
-        """Process pasting to allow form 'x##i'"""
+        """Process token pasting operator '##' to merge two tokens together
+
+        Args:
+            tokens (List[Token]): the tokens representing the pasting operation (i##k)
+
+        Returns:
+            List[Token]: a new list of tokens to replace the previous pasting operator
+        """
         # --- process pasting
         pasted: List[Token] = []
         i = 0
@@ -365,9 +381,10 @@ class MacroProcessor:
         """Expands 'VALUE DUP(x)' pattern, which repeats x times the VALUE
 
         Args:
-            tokens: the list of tokens from the Lexer
+            tokens (List[Token]): the list of tokens from the Lexer
+
         Returns:
-            a new list of tokens with the DUP expanded
+            List[Token]: a new list of tokens to replace the DUP sequence
         """
         result: List[Token] = []
         i = 0

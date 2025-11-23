@@ -29,22 +29,31 @@ class Lexer:
         self._tokens: List[Token] = []
 
     def parse(self, content: Union[str, TextIO]) -> None:
-        """Parse either from a file or a string"""
+        """Parse either from a file or a string
+
+        Args:
+            content (Union[str, TextIO]): either a string buffer or IO File
+        """
         if isinstance(content, str):
             # content is a string buffer
             for line in content.splitlines():
                 self._row = self._row + 1
-                self.tokenize(line)
+                self._tokenize(line)
         else:
             # content is a file handler
             for line in content:
                 self._row = self._row + 1
-                self.tokenize(line)
+                self._tokenize(line)
 
         # end of file
         self._tokens.append(Token(TokenType.EOF, "", self._row, 0))
 
-    def tokenize(self, line) -> None:
+    def _tokenize(self, line: str) -> None:
+        """Tokenize a source code line
+
+        Args:
+            line (str): a line of source code
+        """
         # remove the newline delimiter
         line = line.rstrip('\n')
 
@@ -69,4 +78,9 @@ class Lexer:
 
     @property
     def tokens(self) -> List[Token]:
+        """Returns the list of tokens parsed by the lexer
+
+        Returns:
+            List[Token]: the list of tokens parsed from the source code
+        """
         return self._tokens
