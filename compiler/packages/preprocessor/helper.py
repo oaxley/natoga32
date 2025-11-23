@@ -93,7 +93,7 @@ def get_value(ts: TokenStream, ttype: TokenType, tvalue: Optional[str] = None) -
     token = ts.advance()
 
     if not token or token.type != ttype:
-        raise SyntaxError(f"Token value is either None or of the wrong type!")
+        raise SyntaxError(f"Token value is either None or of the wrong type (expected {ttype})!")
 
     if tvalue and token.value != tvalue:
         raise SyntaxError(f"Expecting '{tvalue}', got '{token.value}'!")
