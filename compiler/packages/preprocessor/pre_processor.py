@@ -25,6 +25,7 @@ from .includes import handle_include
 from .for_loops import handle_for_loop
 from .token_pasting import apply_token_pasting
 from .dup import apply_dup
+from .environment import handle_envvar
 
 
 #----- class
@@ -45,7 +46,11 @@ class PreProcessor:
         Returns:
             List[Token]: the new list of tokens after pre-processing is done
         """
-        ts = TokenStream(tokens)
+        # process the environment variables expansion
+        tmp = handle_envvar(tokens)
+
+        # create a new token stream from the result
+        ts = TokenStream(tmp)
         out: List[Token] = []
 
         while not ts.at_end():
@@ -91,22 +96,6 @@ class PreProcessor:
                     expanded = self.process(expanded, current_file)
                     out.extend(expanded)
                     continue
-
-            # environment variables replacement
-            elif token.type == TokenType.ENVVAR:
-                name = token.value[2:-1]
-                envvar = os.getenv(name)
-                if envvar != None:
-                    try:
-                        value = int(envvar, 0)
-                        out.append(Token(TokenType.NUMBER,hex(value),token.row,token.col))
-                    except ValueError:
-                        out.append(Token(TokenType.STRING,f'"{envvar}"',token.row,token.col))
-                else:
-                    raise SyntaxError(f"Could not find environment variable '{name}'")
-
-                ts.advance()
-                continue
 
             # regular token
             out.append(token)
