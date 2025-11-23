@@ -69,5 +69,5 @@ try:
     print("==== AST ====")
     print(program)
 
-except Exception as e:
+except SyntaxError as e:
     print(str(e))
