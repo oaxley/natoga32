@@ -45,7 +45,6 @@ def handle_envvar(tokens: List[Token]) -> List[Token]:
         if token.type == TokenType.ENVVAR:
             name = token.value[2:-1]
             envvar = os.getenv(name, "")         # set the default value to empty
-            print(f"--> {token} | name: {name} | value: '{envvar}'")
 
             # try to convert it to a number
             try:
