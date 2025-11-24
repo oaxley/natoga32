@@ -34,8 +34,16 @@ class TokenType(IntEnum):
     CHAR = auto()                       # a single char 'A'
     ENVVAR = auto()
 
+    # comparators
+    EQ = auto()                         # '=='
+    NEQ = auto()                        # '!='
+    GT = auto()                         # '<'
+    LT = auto()                         # '>'
+    GTE = auto()                        # '>='
+    LTE = auto()                        # '<='
+
     # operators & symbols
-    EQUAL = auto()                      # '='
+    ASSIGN = auto()                     # '='
     LPARENT = auto()                    # '('
     RPARENT = auto()                    # ')'
     COMMA = auto()                      # ','
