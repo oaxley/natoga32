@@ -28,6 +28,7 @@ from .token_pasting import apply_token_pasting
 from .dup import apply_dup
 from .environment import handle_envvar
 from .define import handle_define
+from .conditionals import handle_conditionals
 
 
 #----- class
@@ -96,8 +97,12 @@ class PreProcessor:
 
                 # --- .if / .ifdef / .ifndef
                 elif token.value in [ '.if', '.ifdef', '.ifndef']:
-                    pass
-
+                    block = handle_conditionals(ts, self.symbols)
+                    block = apply_token_pasting(block)
+                    block = apply_dup(block, self.symbols)
+                    block = self.process(block, current_file)
+                    out.extend(block)
+                    continue
 
             # identities token
             elif token.type == TokenType.IDENT:
