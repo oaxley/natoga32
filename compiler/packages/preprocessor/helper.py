@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from packages.token import Token, TokenStream, TokenType
+from packages.symbols import SymbolTable
 
 
 #----- globals
@@ -101,7 +102,7 @@ def get_value(ts: TokenStream, ttype: TokenType, tvalue: Optional[str] = None) -
     return token.value
 
 
-def evaluate_expr(tokens: List[Token]) -> int:
+def evaluate_expr(tokens: List[Token], symbols: SymbolTable) -> int:
     """Evaluate a simple expression
 
     Minimal expression parser that supports:
@@ -132,6 +133,9 @@ def evaluate_expr(tokens: List[Token]) -> int:
         TokenType.XOR: '^'
     }
 
+    # dictionary representing the local vars
+    locals = {}
+
     parts = []
     for t in tokens:
         if t.type == TokenType.NUMBER:
@@ -142,6 +146,9 @@ def evaluate_expr(tokens: List[Token]) -> int:
             parts.append(')')
         elif t.type in op_map:
             parts.append(op_map[t.type])
+        elif t.type == TokenType.IDENT and symbols.exists(t.value):
+            parts.append(t.value)
+            locals[t.value] = symbols.value(t.value)
         else:
             # default insertion
             parts.append(t.value)
@@ -151,7 +158,7 @@ def evaluate_expr(tokens: List[Token]) -> int:
 
     # evaluate the expression, only with python standard ops
     try:
-        value = eval(expr, {"__builtins__": None}, {})
+        value = eval(expr, {"__builtins__": None}, locals)
     except Exception as e:
         raise SyntaxError(f"Unable to evaluate expression '{expr}': {e}!")
 
