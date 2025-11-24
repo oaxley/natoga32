@@ -30,9 +30,17 @@ TOKENS_SPECS = [
     (TokenType.STRING.name, r'\"[^\"]*\"'),
     (TokenType.CHAR.name, r'\'.\''),
 
+    # '<' '<<' operators
+    (TokenType.LSHIFT.name, r'<<'),
+    (TokenType.LTE.name, r'<='),
+    (TokenType.LT.name, r'<'),
+
+    (TokenType.RSHIFT.name, r'>>'),
+    (TokenType.GTE.name, r'>='),
+    (TokenType.GT.name, r'>'),
 
     # operators & symbols
-    (TokenType.EQUAL.name, r'='),
+    (TokenType.ASSIGN.name, r'='),
     (TokenType.LPARENT.name, r'\('),
     (TokenType.RPARENT.name, r'\)'),
     (TokenType.COMMA.name, r'\,'),
@@ -41,12 +49,12 @@ TOKENS_SPECS = [
     (TokenType.STAR.name, r'\*'),
     (TokenType.SLASH.name, r'/'),
     (TokenType.MODULO.name, r'%'),
-    (TokenType.LSHIFT.name, r'<<'),
-    (TokenType.RSHIFT.name, r'>>'),
     (TokenType.AND.name, r'&'),
     (TokenType.OR.name, r'\|'),
     (TokenType.XOR.name, r'\^'),
     (TokenType.DOLLAR.name, r'\$'),
+
+
 
     # misc
     (TokenType.PASTE.name, r'##'),
