@@ -133,9 +133,6 @@ def evaluate_expr(tokens: List[Token], symbols: SymbolTable) -> int:
         TokenType.XOR: '^'
     }
 
-    # dictionary representing the local vars
-    locals = {}
-
     parts = []
     for t in tokens:
         if t.type == TokenType.NUMBER:
@@ -147,8 +144,7 @@ def evaluate_expr(tokens: List[Token], symbols: SymbolTable) -> int:
         elif t.type in op_map:
             parts.append(op_map[t.type])
         elif t.type == TokenType.IDENT and symbols.exists(t.value):
-            parts.append(t.value)
-            locals[t.value] = symbols.value(t.value)
+            parts.append(symbols.value(t.value))
         else:
             # default insertion
             parts.append(t.value)
@@ -158,7 +154,7 @@ def evaluate_expr(tokens: List[Token], symbols: SymbolTable) -> int:
 
     # evaluate the expression, only with python standard ops
     try:
-        value = eval(expr, {"__builtins__": None}, locals)
+        value = eval(expr, {"__builtins__": None}, {})
     except Exception as e:
         raise SyntaxError(f"Unable to evaluate expression '{expr}': {e}!")
 
