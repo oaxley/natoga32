@@ -59,7 +59,7 @@ def apply_dup(tokens: List[Token], symbols: SymbolTable) -> List[Token]:
 
             # retrieve all the tokens from the expression and evaluate it
             expr = tokens[i+3:j-1]
-            count = helper.evaluate_expr(expr)
+            count = helper.evaluate_expr(expr, symbols)
 
             if count < 0:
                 raise SyntaxError("DUP count must be non-negative")

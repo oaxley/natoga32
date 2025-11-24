@@ -46,7 +46,7 @@ def handle_define(ts: TokenStream, symbols: SymbolTable) -> None:
         ts.advance()
 
     # compute the value
-    value = helper.evaluate_expr(tokens)
+    value = helper.evaluate_expr(tokens, symbols)
 
     # add the information to the symbol table
     symbols.add(name, str(value))
