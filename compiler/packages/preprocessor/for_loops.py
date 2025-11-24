@@ -34,7 +34,7 @@ def handle_for_loop(ts: TokenStream) -> List[Token]:
 
     # parse <IDENT> = <NUMBER>, <NUMBER>
     var_name = helper.get_value(ts, TokenType.IDENT)
-    helper.get_value(ts, TokenType.EQUAL)
+    helper.get_value(ts, TokenType.ASSIGN)
     start_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
     ts.advance()
     end_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
