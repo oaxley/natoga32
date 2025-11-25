@@ -59,7 +59,7 @@ def handle_conditionals(ts: TokenStream, symbols: SymbolTable) -> List[Token]:
         value = helper.evaluate_expr(expr, symbols)
         condition = bool(value)
 
-    elif directive in ['.ifdef', 'ifndef']:
+    elif directive in ['.ifdef', '.ifndef']:
         # next token must be IDENT
         if not ts.expect(TokenType.IDENT):
             raise SyntaxError(".ifdef/.ifndef requires an IDENT")
