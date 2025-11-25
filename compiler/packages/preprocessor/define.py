@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from packages.token import Token, TokenStream, TokenType
-from packages.symbols import SymbolTable
+from packages.symbols import SymbolTable, SymbolType
 
 from . import helper
 
@@ -50,4 +50,4 @@ def handle_define(ts: TokenStream, symbols: SymbolTable) -> None:
     value = helper.evaluate_expr(tokens, symbols)
 
     # add the information to the symbol table
-    symbols.add(name, str(value))
+    symbols.define(name, value, SymbolType.DEFINE, None)

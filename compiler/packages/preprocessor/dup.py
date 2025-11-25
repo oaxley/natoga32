@@ -66,7 +66,8 @@ def apply_dup(tokens: List[Token], symbols: SymbolTable) -> List[Token]:
 
             # check if the token is in the symbol table
             if symbols.exists(token.value):
-                value = Token(TokenType.NUMBER, symbols.value(token.value), token.row, token.col)
+                symbol = symbols.get(token.value)
+                value = Token(TokenType.NUMBER, str(symbol.value), token.row, token.col)
             else:
                 value = helper.clone_token(token)
 
