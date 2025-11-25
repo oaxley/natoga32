@@ -81,6 +81,40 @@ class CharLiteral(Expression):
     def __repr__(self) -> str:
         return f"'{self.ch}'"
 
+
+# Relocation nodes
+class RelocExpr(Expression):
+    pass
+
+class HiRel(RelocExpr):
+    def __init__(self, expr: Expression) -> None:
+        self.symbol = expr
+
+    def __repr__(self) -> str:
+        return f"%hi({self.symbol})"
+
+class LoRel(RelocExpr):
+    def __init__(self, expr: Expression) -> None:
+        self.symbol = expr
+
+    def __repr__(self) -> str:
+        return f"%lo({self.symbol})"
+
+class PCRelHi(RelocExpr):
+    def __init__(self, expr: Expression) -> None:
+        self.symbol = expr
+
+    def __repr__(self) -> str:
+        return f"%pcrel_hi({self.symbol})"
+
+class PCRelLo(RelocExpr):
+    def __init__(self, expr: Expression) -> None:
+        self.symbol = expr
+
+    def __repr__(self) -> str:
+        return f"%pcrel_lo({self.symbol})"
+
+
 # Statements
 
 class Label(Statement):
