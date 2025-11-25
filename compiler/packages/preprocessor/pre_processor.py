@@ -116,6 +116,12 @@ class PreProcessor:
                     out.extend(expanded)
                     continue
 
+                # --- define
+                if self.symbols.exists(token.value):
+                    out.append(self._expand_define(token))
+                    ts.advance()
+                    continue
+
             # regular token
             out.append(token)
             ts.advance()
@@ -126,4 +132,15 @@ class PreProcessor:
 
         return out
 
+    def _expand_define(self, token: Token) -> Token:
+        """Expand an IDENT that exists as .define
 
+        Args:
+            token (Token): the IDENT token
+
+        Returns:
+            Token: the new Token to replace the identifier
+        """
+        value = self.symbols.value(token.value)
+
+        return Token(TokenType.NUMBER, str(value), token.row, token.col)
