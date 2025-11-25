@@ -63,7 +63,7 @@ TOKENS_SPECS = [
     # misc
     (TokenType.PASTE.name, r'##'),
     (TokenType.SKIP.name, r'[ \t]+'),
-    (TokenType.COMMENT.name, r';[^\n]*'),
+    (TokenType.COMMENT.name, r'[;#][^\n]*'),
 ]
 
 # compile the regexp
