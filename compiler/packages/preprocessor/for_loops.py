@@ -16,12 +16,13 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from packages.token import Token, TokenStream, TokenType
+from packages.symbols import SymbolTable, SymbolType
 
 from . import helper
 
 
 #----- functions
-def handle_for_loop(ts: TokenStream) -> List[Token]:
+def handle_for_loop(ts: TokenStream, symbols: SymbolTable) -> List[Token]:
     """Handle '.for/.endf' directives
 
     Args:
@@ -35,9 +36,34 @@ def handle_for_loop(ts: TokenStream) -> List[Token]:
     # parse <IDENT> = <NUMBER>, <NUMBER>
     var_name = helper.get_value(ts, TokenType.IDENT)
     helper.get_value(ts, TokenType.ASSIGN)
-    start_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+
+    # start value
+    start_value = 0
+    token = ts.peek()
+    if token:
+        if token.type == TokenType.NUMBER:
+            start_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+        elif token.type == TokenType.IDENT and symbols.exists(token.value):
+            start_value = symbols.get(token.value).value
+
+    if start_value is None:
+        start_value = 0
+
     ts.advance()
-    end_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+
+    # end value
+    end_value = 0
+    token = ts.peek()
+    if token:
+        if token.type == TokenType.NUMBER:
+            end_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+        elif token.type == TokenType.IDENT and symbols.exists(token.value):
+            end_value = symbols.get(token.value).value
+
+    if end_value is None:
+        end_value = 0
+
+    ts.advance()
 
     # 6. Optional step
     step_value = 1
@@ -53,7 +79,19 @@ def handle_for_loop(ts: TokenStream) -> List[Token]:
             ts.advance()
 
         # retrieve the step value
-        step_value = sign * int(helper.get_value(ts, TokenType.NUMBER), 0)
+        token = ts.peek()
+        if token:
+            if token.type == TokenType.NUMBER:
+                step_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+            elif token.type == TokenType.IDENT and symbols.exists(token.value):
+                step_value = symbols.get(token.value).value
+
+        if step_value is None:
+            step_value = 1
+
+        step_value *= sign
+        ts.advance()
+
         if step_value == 0:
             raise SyntaxError("Step value cannot be 0")
 
