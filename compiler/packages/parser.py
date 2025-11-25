@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import packages.ast as ast
 
-from packages.token import TokenStream, TokenType
+from packages.token import Token, TokenStream, TokenType
 from packages.specs import OP_INFO
 
 
@@ -248,10 +248,30 @@ class Parser:
                 s = s[1:-1]
             return ast.CharLiteral(s)
 
+        if token.type in [TokenType.M_ABS_LO, TokenType.M_ABS_HI, TokenType.M_PCREL_LO, TokenType.M_PCREL_HI]:
+            if not self.ts.expect(TokenType.LPARENT):
+                raise SyntaxError("Missing parenthesis")
+
+            expr = self.parse_expression()
+            if self.ts.expect(TokenType.RPARENT):
+                self.ts.advance()
+
+            match token.type:
+                case TokenType.M_ABS_LO:
+                    return ast.LoRel(expr)
+                case TokenType.M_ABS_HI:
+                    return ast.HiRel(expr)
+                case TokenType.M_PCREL_LO:
+                    return ast.PCRelLo(expr)
+                case TokenType.M_PCREL_HI:
+                    return ast.PCRelHi(expr)
+
+            return expr
+
         if token.type == TokenType.LPARENT:
             expr = self.parse_expression()
-            self.ts.expect(TokenType.RPARENT)           # a closing ')' must match the initial '('
-            self.ts.advance()
+            if self.ts.expect(TokenType.RPARENT):           # a closing ')' must match the initial '('
+                self.ts.advance()
             return expr
 
         # unary operator
