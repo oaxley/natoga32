@@ -13,13 +13,22 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from dataclasses import dataclass
+from enum import IntEnum, auto
 
 from packages.token import Token
 
 #----- classes
+
+# symbol types
+class SymbolType(IntEnum):
+    LABEL = auto()
+    DEFINE = auto()
+    MACRO = auto()
+    UNKNOWN = auto()
+
 
 # a single symbol
 @dataclass
@@ -28,10 +37,18 @@ class Symbol:
 
     Members:
     - name (str): the name of the symbol
-    - value (str): the value of the symbol
+    - value (Optional[int]): numeric value / address of the symbol
+    - type (SymbolType): the type of the symbol
+    - section (Optional[str]): the section where the symbol is defined, or None
+    - defined (bool): True if the symbol has been assigned
+    - relocations (List[?]): relocation data (for future use)
     """
     name: str
-    value: str
+    value: Optional[int]
+    type: SymbolType
+    section: Optional[str]
+    defined: bool
+
 
 class SymbolTable:
 
@@ -39,14 +56,42 @@ class SymbolTable:
         """Constructor"""
         self.symbols: Dict[str, Symbol] = {}
 
-    def add(self, name: str, value: str) -> None:
-        """Add a new symbol to the table
+    def define(self, name: str, value: Optional[int], type: SymbolType, section: Optional[str]) -> None:
+        """Define a new symbol in the table
 
         Args:
-            name (str): the name of the symbol to add
-            value (str): the associated value
+            name (str): the name of the symbol
+            value (Optional[int]): numeric value / address of the symbol
+            type (SymbolType): the type of the symbol
+            section (Optional[str]): the section where the symbol is defined, or None
         """
-        self.symbols[name] = Symbol(name, value)
+        if name in self.symbols and self.symbols[name].defined:
+            raise Exception(f"Symbol {name} redefined!")
+        self.symbols[name] = Symbol(name, value, type, section, True)
+
+    def declare(self, name) -> None:
+        """Declare a new symbool in the table
+
+        Args:
+            name (str): the name of the symbol
+        """
+        if name not in self.symbols:
+            self.symbols[name] = Symbol(name, None, SymbolType.UNKNOWN, None, False)
+
+
+    def get(self, name) -> Symbol:
+        """Retrieve a symbol from the table
+
+        Args:
+            name (str): the name of the symbol
+
+        Returns:
+            Symbol: the associated symbol
+        """
+        if name not in self.symbols:
+            self.declare(name)
+
+        return self.symbols[name]
 
     def exists(self, name: str) -> bool:
         """Check if a symbol exists
@@ -58,17 +103,3 @@ class SymbolTable:
             bool: True if the symbol exists, False otherwise
         """
         return (name in self.symbols)
-
-    def value(self, name: str) -> str:
-        """Return the value of a symbol
-
-        Args:
-            name (str): the name of the symbol
-
-        Returns:
-            str: the associate value of the symbol
-        """
-        if name in self.symbols:
-            return self.symbols[name].value
-        else:
-            return ""
