@@ -30,6 +30,12 @@ TOKENS_SPECS = [
     (TokenType.STRING.name, r'\"[^\"]*\"'),
     (TokenType.CHAR.name, r'\'.\''),
 
+    # memory relocation operator
+    (TokenType.M_ABS_LO.name, r'%lo'),
+    (TokenType.M_ABS_HI.name, r'%hi'),
+    (TokenType.M_PCREL_LO.name, r'%pcrel_lo'),
+    (TokenType.M_PCREL_HI.name, r'%pcrel_hi'),
+
     # '<' '<<' operators
     (TokenType.LSHIFT.name, r'<<'),
     (TokenType.LTE.name, r'<='),
@@ -53,8 +59,6 @@ TOKENS_SPECS = [
     (TokenType.OR.name, r'\|'),
     (TokenType.XOR.name, r'\^'),
     (TokenType.DOLLAR.name, r'\$'),
-
-
 
     # misc
     (TokenType.PASTE.name, r'##'),

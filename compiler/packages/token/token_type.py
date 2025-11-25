@@ -64,5 +64,11 @@ class TokenType(IntEnum):
     SKIP = auto()                       # spaces and tabs
     COMMENT = auto()
 
+    # relocation tokens
+    M_ABS_LO = auto()                   # %lo
+    M_ABS_HI = auto()                   # %hi
+    M_PCREL_LO = auto()                 # %pcrel_lo
+    M_PCREL_HI = auto()                 # %pcrel_hi
+
     # unknown type
     UNKNOWN = auto()
