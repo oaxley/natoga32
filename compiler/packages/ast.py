@@ -125,15 +125,20 @@ class Label(Statement):
         return f"{self.name}:"
 
 class Directive(Statement):
-    def __init__(self, name: str, args: List[Node], label: Optional[str] = None) -> None:
+    def __init__(self, name: str, args: List[Node]) -> None:
         self.name = name
-        self.args = args
-        self.label = label          # optional identifier placed before directive
+        self.label: Optional[Node] = None
+
+        if len(args) > 1:
+            self.label = args[0]
+            self.args = args[1:]
+        else:
+            self.args = args
 
     def __repr__(self) -> str:
-        prefix = f"{self.label} " if self.label else ""
+        label = f"{str(self.label)} " if self.label else ""
         args_s = ", ".join(map(str, self.args)) if self.args else ""
-        return f"{prefix}{self.name} {args_s}".rstrip()
+        return f"{self.name} {label}{args_s}".rstrip()
 
 class Instruction(Statement):
     def __init__(self, opcode: str, operands: List[Node]) -> None:

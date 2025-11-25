@@ -63,25 +63,18 @@ class Parser:
         if not token:
             return None
 
-        if token.type == TokenType.EOL:
-            self.ts.advance()
-            return None
+        match token.type:
+            case TokenType.EOL:
+                self.ts.advance()
+                return None
 
-        if token.type == TokenType.LABEL:
-            return self.parse_label()
+            case TokenType.LABEL:
+                return self.parse_label()
 
-        if token.type in [TokenType.DIRECTIVE, TokenType.IDENT]:
-            # different cases:
-            # IDENT followed by DIRECTIVE -> VALUE .equ ...
-            # DIRECTIVE alone -> .data, .text
-            # IDENT then sth else -> instruction
-            if token.type == TokenType.IDENT:
-                next_token = self.ts.peek(1)
-                if next_token and next_token.type == TokenType.DIRECTIVE:
-                    return self.parse_directive()
-                else:
-                    return self.parse_instruction()
-            else:
+            case TokenType.IDENT:
+                return self.parse_instruction()
+
+            case TokenType.DIRECTIVE:
                 return self.parse_directive()
 
         raise SyntaxError(f"Unexpected token: {token.type.name} ({token.row}, {token.col})")
@@ -133,26 +126,17 @@ class Parser:
         Returns:
             ast.Directive: a node that represents the Directive and its operands in the source code
         """
-        # possible patterns:
-        # DIRECTIVE ...
-        # IDENT DIRECTIVE ...
-        label_name: Optional[str] = None
-        next_token = self.ts.peek(1)
-        if self.ts.expect(TokenType.IDENT) and next_token and next_token.type == TokenType.DIRECTIVE:
-            # form: IDENT DIRECTIVE ...
-            label_name = self.ts.advance().value    # type: ignore
+        # retrieve the directive name
+        dir_name = self.ts.advance().value  # type: ignore
 
-        dir_tok = self.ts.advance()
-        if not dir_tok or dir_tok.type != TokenType.DIRECTIVE:
-            raise SyntaxError(f"Expected DIRECTIVE token!")
-
+        # parse all the operands
         args = self.parse_operands()
 
-        # consume the trailing EOL if there
+        # consume the trailing EOL
         if self.ts.expect(TokenType.EOL):
             self.ts.advance()
 
-        return ast.Directive(dir_tok.value, args, label_name)
+        return ast.Directive(dir_name, args)
 
     def parse_instruction(self) -> ast.Instruction:
         """Parse a simple instruction in the source code
@@ -265,8 +249,6 @@ class Parser:
                     return ast.PCRelLo(expr)
                 case TokenType.M_PCREL_HI:
                     return ast.PCRelHi(expr)
-
-            return expr
 
         if token.type == TokenType.LPARENT:
             expr = self.parse_expression()
