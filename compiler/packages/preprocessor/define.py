@@ -40,6 +40,7 @@ def handle_define(ts: TokenStream, symbols: SymbolTable) -> None:
     while True:
         token = ts.peek()
         if not token or token.type == TokenType.EOL:
+            ts.advance()
             break
 
         tokens.append(token)
