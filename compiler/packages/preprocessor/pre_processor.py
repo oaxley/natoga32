@@ -18,7 +18,7 @@ from typing import Any, Dict, List
 import os
 
 from packages.token import Token, TokenStream, TokenType
-from packages.symbols import SymbolTable
+from packages.symbols import SymbolTable, SymbolType
 
 from . import helper
 from .macros import MacroDefinition, parse_macro_definition, expand_macro
@@ -69,7 +69,7 @@ class PreProcessor:
                 if token.value == '.macro':
                     macro = parse_macro_definition(ts)
                     self.macros[macro.name] = macro
-                    self.symbols.add(macro.name, "")
+                    self.symbols.define(macro.name, None, SymbolType.MACRO, None)
                     continue
 
                 # --- .include
@@ -83,7 +83,7 @@ class PreProcessor:
 
                 # --- .for
                 elif token.value == '.for':
-                    expanded = handle_for_loop(ts)
+                    expanded = handle_for_loop(ts, self.symbols)
                     expanded = apply_token_pasting(expanded)
                     expanded = apply_dup(expanded, self.symbols)
                     expanded = self.process(expanded, current_file)
@@ -141,6 +141,5 @@ class PreProcessor:
         Returns:
             Token: the new Token to replace the identifier
         """
-        value = self.symbols.value(token.value)
-
-        return Token(TokenType.NUMBER, str(value), token.row, token.col)
+        symbol = self.symbols.get(token.value)
+        return Token(TokenType.NUMBER, str(symbol.value), token.row, token.col)
