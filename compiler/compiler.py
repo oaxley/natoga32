@@ -24,7 +24,6 @@ import packages.ast as ast
 
 from packages.config import Config
 from packages.lexer import Lexer
-from packages.token import TokenStream
 from packages.parser import Parser
 from packages.preprocessor import PreProcessor
 from packages.symbols import SymbolTable
@@ -67,7 +66,7 @@ try:
     tokens = preproc.process(lexer.tokens, config.input_file)
 
     # parser
-    parser = Parser(TokenStream(tokens))
+    parser = Parser(tokens)
     program = parser.parse_program()
 
     print("==== AST ====")

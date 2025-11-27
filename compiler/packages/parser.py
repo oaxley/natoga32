@@ -25,9 +25,9 @@ from packages.specs import OP_INFO
 class Parser:
     """Parse the stream of tokens"""
 
-    def __init__(self, tokens: TokenStream) -> None:
+    def __init__(self, tokens: List[Token]) -> None:
         """Constructor"""
-        self.ts = tokens
+        self.ts = TokenStream(tokens)
 
     def parse_program(self) -> ast.Program:
         """Parse the 'Program'
