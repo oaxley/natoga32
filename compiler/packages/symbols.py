@@ -46,8 +46,8 @@ class Symbol:
     name: str
     value: Optional[int]
     type: SymbolType
-    section: Optional[str]
-    defined: bool
+    section: Optional[str] = None
+    defined: bool = False
 
 
 class SymbolTable:
@@ -56,7 +56,7 @@ class SymbolTable:
         """Constructor"""
         self.symbols: Dict[str, Symbol] = {}
 
-    def define(self, name: str, value: Optional[int], type: SymbolType, section: Optional[str]) -> None:
+    def define(self, name: str, value: Optional[int], type: SymbolType, section: Optional[str] = None) -> None:
         """Define a new symbol in the table
 
         Args:
@@ -103,3 +103,7 @@ class SymbolTable:
             bool: True if the symbol exists, False otherwise
         """
         return (name in self.symbols)
+
+    def __repr__(self) -> str:
+        return f"{self.symbols}"
+
