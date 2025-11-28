@@ -41,13 +41,15 @@ class Symbol:
     - type (SymbolType): the type of the symbol
     - section (Optional[str]): the section where the symbol is defined, or None
     - defined (bool): True if the symbol has been assigned
-    - relocations (List[?]): relocation data (for future use)
     """
     name: str
     value: Optional[int]
     type: SymbolType
     section: Optional[str] = None
     defined: bool = False
+
+    def __repr__(self) -> str:
+        return f"""name: {self.name:<10} | value: {self.value if self.value is not None else "":<8} | type: {self.type.name:<10} | section: {self.section if self.section else "":<5} | defined: {self.defined}"""
 
 
 class SymbolTable:
@@ -104,6 +106,7 @@ class SymbolTable:
         """
         return (name in self.symbols)
 
-    def __repr__(self) -> str:
-        return f"{self.symbols}"
-
+    @property
+    def items(self):
+        for k in self.symbols.keys():
+            yield (k, self.symbols[k])
