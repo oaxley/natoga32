@@ -38,7 +38,8 @@ class SemanticAnalyzer:
         self.program = program
         self.symbols = symbols
         self.sections = sections
-        self.current_section = ""
+        self.current_section: str = ""
+        self.instr_size: int = 0
 
     def first_pass(self):
         """Execute the 1st pass of the semantic analyzer"""
@@ -46,8 +47,12 @@ class SemanticAnalyzer:
         for stmt in self.program.statements:
             if isinstance(stmt, ast.Directive):
                 self.handle_directive(stmt)
-            if isinstance(stmt, ast.Label):
+            elif isinstance(stmt, ast.Label):
                 self.handle_label(stmt)
+            elif isinstance(stmt, ast.Instruction):
+                self.handle_instruction(stmt)
+            else:
+                raise SyntaxError(f"Unknown statement ({type(stmt)})")
 
     def handle_directive(self, directive: ast.Directive):
         """Handle the directives during the first pass
@@ -62,6 +67,8 @@ class SemanticAnalyzer:
 
         # handle each directives
         match directive.name:
+            case '.cpu':
+                self._handle_cpu(directive.args[0])
             case '.skip':
                 self._handle_skip(directive.args[0])
             case '.align':
@@ -76,10 +83,35 @@ class SemanticAnalyzer:
                 print(f"[{directive.name}]")
 
     def handle_label(self, label: ast.Label):
-        """Handle Labels"""
+        """Handle Labels
+
+        Args:
+            label (ast.Label): the label statement
+        """
         section = self.sections[self.current_section]
         self.symbols.define(label.name, section.offset, SymbolType.LABEL, self.current_section)
 
+
+    def handle_instruction(self, instr: ast.Instruction):
+        """Handle Instructions
+
+        Args:
+            instr (ast.Instruction): the instruction statement
+        """
+        section = self.sections[self.current_section]
+        instr.address = section.offset
+        section.offset += 4
+
+
+    def _handle_cpu(self, arg: ast.Node):
+        """Handle .cpu directive"""
+        assert isinstance(arg, ast.Identifier)
+        if arg.name == "risc-v":
+            self.instr_size = 4
+        elif arg.name == "x68fp":
+            self.instr_size = 2
+        else:
+            raise SyntaxError("Unknown architecture type!")
 
     def _handle_skip(self, arg: ast.Node) -> None:
         """Handle the .skip directive"""
