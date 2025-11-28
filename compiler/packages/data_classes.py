@@ -60,10 +60,8 @@ class Section:
     align: int = 1
     address: int = 0
 
-    def emit_bytes(self, bs: bytes):
-        self.data.extend(bs)
-        self.offset += len(bs)
-
+    def __repr__(self) -> str:
+        return f"""data: {self.data}\noffset: {self.offset}\nrelocations: {self.relocations}"""
 
 @dataclass
 class EvalResult:
