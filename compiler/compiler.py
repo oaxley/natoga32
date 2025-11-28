@@ -91,9 +91,11 @@ try:
     semantic = SemanticAnalyzer(program, symbols, sections)
     semantic.first_pass()
 
-    # print("==== AST ====")
-    # print(program)
+    print("==== SECTIONS ====")
     print(sections)
+
+    print("\n==== SYMBOLS ====")
+    print(symbols)
 
 except SyntaxError as e:
     print(str(e))
