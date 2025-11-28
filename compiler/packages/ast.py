@@ -200,6 +200,7 @@ class Instruction(Statement):
     def __init__(self, opcode: str, operands: List[Node]) -> None:
         self.opcode = opcode
         self.operands = operands
+        self.address: int = 0
 
     def __repr__(self) -> str:
         ops = ", ".join(map(str, self.operands))
