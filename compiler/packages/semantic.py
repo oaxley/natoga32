@@ -40,6 +40,7 @@ class SemanticAnalyzer:
         self.sections = sections
         self.current_section: str = ""
         self.instr_size: int = 0
+        self.entry_point: str = ""
 
     def first_pass(self):
         """Execute the 1st pass of the semantic analyzer"""
@@ -79,6 +80,8 @@ class SemanticAnalyzer:
                 self._handle_data(directive.name, directive.args)
             case '.asciz':
                 self._handle_string(directive.args[0])
+            case '.global':
+                self._handle_global(directive.args[0])
             case _:
                 print(f"[{directive.name}]")
 
@@ -102,6 +105,15 @@ class SemanticAnalyzer:
         instr.address = section.offset
         section.offset += 4
 
+
+    def _handle_global(self, arg: ast.Node):
+        """Handle .global directive
+
+        Args:
+            arg (ast.Node): the node indicating the main entrypoint
+        """
+        assert isinstance(arg, ast.Identifier)
+        self.entry_point = arg.name
 
     def _handle_cpu(self, arg: ast.Node):
         """Handle .cpu directive"""
