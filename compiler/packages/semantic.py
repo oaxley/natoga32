@@ -18,6 +18,7 @@ from typing import Any, Dict, List
 from packages import data_classes
 from packages import ast
 from packages.symbols import Symbol, SymbolTable, SymbolType
+from packages import evaluator
 
 
 #----- globals
@@ -38,7 +39,6 @@ class SemanticAnalyzer:
         self.symbols = symbols
         self.sections = sections
         self.current_section = ""
-        self.pc = 0
 
     def first_pass(self):
         """Execute the 1st pass of the semantic analyzer"""
@@ -46,7 +46,8 @@ class SemanticAnalyzer:
         for stmt in self.program.statements:
             if isinstance(stmt, ast.Directive):
                 self.handle_directive(stmt)
-
+            if isinstance(stmt, ast.Label):
+                self.handle_label(stmt)
 
     def handle_directive(self, directive: ast.Directive):
         """Handle the directives during the first pass
@@ -57,7 +58,6 @@ class SemanticAnalyzer:
         # section definition
         if directive.name in ['.data', '.text', '.bss']:
             self.current_section = directive.name
-            self.pc = 0
             return
 
         # handle each directives
@@ -70,19 +70,29 @@ class SemanticAnalyzer:
                 self._handle_org(directive.args[0])
             case '.byte' | '.half' | '.word':
                 self._handle_data(directive.name, directive.args)
+            case '.asciz':
+                self._handle_string(directive.args[0])
             case _:
                 print(f"[{directive.name}]")
+
+    def handle_label(self, label: ast.Label):
+        """Handle Labels"""
+        section = self.sections[self.current_section]
+        self.symbols.define(label.name, section.offset, SymbolType.LABEL, self.current_section)
 
 
     def _handle_skip(self, arg: ast.Node) -> None:
         """Handle the .skip directive"""
-        if isinstance(arg, ast.Number):
-            size = arg.value
-        else:
-            raise SyntaxError("Directive '.skip' needs a number!")
-
         # select the current section
         section = self.sections[self.current_section]
+
+        assert isinstance(arg, ast.Expression)
+        result = evaluator.const_eval(arg, self.symbols, section.offset)
+
+        if result.value:
+            size = result.value
+        else:
+            raise SyntaxError(".skip directive expect a number or a fully qualified expression!")
 
         # just move the .bss pointer
         if self.current_section == ".bss":
@@ -96,12 +106,16 @@ class SemanticAnalyzer:
 
     def _handle_align(self, arg: ast.Node) -> None:
         """Handle .align directive"""
-        if isinstance(arg, ast.Number):
-            value = arg.value
-        else:
-            raise SyntaxError("Directive '.align' needs a number!")
-
         section = self.sections[self.current_section]
+
+        assert isinstance(arg, ast.Expression)
+        result = evaluator.const_eval(arg, self.symbols, section.offset)
+
+        if result.value:
+            value = result.value
+        else:
+            raise SyntaxError(".align directive expect a number or a fully qualified expression!")
+
         delta = section.offset % value
         if delta != 0:
             padding = value - delta
@@ -111,12 +125,15 @@ class SemanticAnalyzer:
 
     def _handle_org(self, arg: ast.Node) -> None:
         """Handle .org directive"""
-        if isinstance(arg, ast.Number):
-            value = arg.value
-        else:
-            raise SyntaxError("Directive '.align' needs a number!")
-
         section = self.sections[self.current_section]
+
+        assert isinstance(arg, ast.Expression)
+        result = evaluator.const_eval(arg, self.symbols, section.offset)
+
+        if result.value:
+            value = result.value
+        else:
+            raise SyntaxError(".org directive expect a number or a fully qualified expression!")
 
         if value < section.offset:
             raise SyntaxError(f"New .org offset {value} is below current offset {section.offset}!")
@@ -126,7 +143,6 @@ class SemanticAnalyzer:
 
         if section.name in ['.data', '.text']:
             section.data.extend(b"\x00" * padding)
-
 
     def _handle_data(self, directive: str, args: List[ast.Node]) -> None:
         """Handle directives like .byte, .word, .half"""
@@ -143,24 +159,28 @@ class SemanticAnalyzer:
             case _:
                 size = 1
 
-        # increase offset
-        section.offset += size * len(args)
-
         # add the values to the data section
         for node in args:
-            if isinstance(node, ast.Number):
-                if node.value < 0:
-                    section.data.extend(node.value.to_bytes(size, 'big', signed=True))
-                else:
-                    section.data.extend(node.value.to_bytes(size, 'big', signed=False))
+            assert isinstance(node, ast.Expression)
+            result = evaluator.const_eval(node, self.symbols, section.offset)
 
-            elif isinstance(node, ast.CharLiteral):
-                if len(node.ch) > 1:
-                    value = node.ch[0]
-                else:
-                    value = node.ch
-
-                section.data.append(ord(value))
-
+            if result.reloc:
+                section.relocations.append(result.reloc)
+                section.data.extend(b"\x00" * size)
             else:
-                print(f"? {type(node)}")
+                assert result.value is not None
+                if result.value < 0:
+                    section.data.extend(result.value.to_bytes(size, 'big', signed=True))
+                else:
+                    section.data.extend(result.value.to_bytes(size, 'big', signed=False))
+
+            section.offset += size
+
+    def _handle_string(self, arg: ast.Node) -> None:
+        """Handle .asciz directive"""
+        section = self.sections[self.current_section]
+
+        assert isinstance(arg, ast.StringLiteral)
+        section.offset += len(arg.text) + 1
+        section.data.extend(arg.text.encode('utf-8'))
+        section.data.extend(b"\x00")
