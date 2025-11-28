@@ -76,6 +76,10 @@ try:
     parser = Parser(tokens)
     program = parser.parse_program()
 
+    if args.debug == 3:
+        program.debug()
+        sys.exit(0)
+
     # define the assembly sections
     sections: Dict[str, Section] = {
         ".text": Section(".text"),
