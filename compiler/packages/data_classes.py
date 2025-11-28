@@ -13,9 +13,11 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from dataclasses import dataclass, field
+
+from packages import ast
 
 
 #----- classes
@@ -34,10 +36,10 @@ class Relocation:
     """
     offset: int
     type: str
-    symbol: str
-    addend: int
-    place_size: int
-    place_inst: bytes
+    symbol: ast.Node
+    addend: int = 0
+    place_size: Optional[int] = None
+    place_inst: Optional[bytes] = None
 
 
 @dataclass
@@ -63,4 +65,14 @@ class Section:
         self.offset += len(bs)
 
 
+@dataclass
+class EvalResult:
+    """Result of a constant evaluation, that can be either a number or a relocation
+
+    Members:
+    - value (Optional[int]): an integer if the value is known, None otherwise
+    - reloc (Optional[Relocation]): a relocation structure if value cannot be computed
+    """
+    value: Optional[int] = None
+    reloc: Optional[Relocation] = None
 
