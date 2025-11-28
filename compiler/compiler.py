@@ -91,11 +91,18 @@ try:
     semantic = SemanticAnalyzer(program, symbols, sections)
     semantic.first_pass()
 
-    print("==== SECTIONS ====")
-    print(sections)
+    if args.debug == 4:
+        print("==== SECTIONS ====")
+        for v in sections.items():
+            print(v[0])
+            print(v[1])
+            print()
 
-    print("\n==== SYMBOLS ====")
-    print(symbols)
+        print("\n==== SYMBOLS ====")
+        for k, v in symbols.items:
+            print(v)
+
+        sys.exit(0)
 
 except SyntaxError as e:
     print(str(e))
