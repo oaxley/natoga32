@@ -218,6 +218,9 @@ class Parser:
         if token.type == TokenType.IDENT:
             return ast.Identifier(token.value)
 
+        if token.type == TokenType.DOLLAR:
+            return ast.CurrentPC()
+
         if token.type == TokenType.STRING:
             # strip the quotes around the string
             s = token.value    # type: ignore

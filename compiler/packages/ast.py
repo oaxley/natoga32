@@ -168,6 +168,16 @@ class PCRelLo(RelocExpr):
         self.symbol.debug(indent + 4)
         print(" " * indent + ">")
 
+class CurrentPC(Expression):
+    def __init__(self) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        return "$"
+
+    def debug(self, indent: int = 0) -> None:
+        print(" " * indent + f"<CurrentPC>")
+
 
 # Statements
 
