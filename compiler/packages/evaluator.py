@@ -23,7 +23,40 @@ from packages.symbols import Symbol, SymbolTable, SymbolType
 
 #----- functions
 
-def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> EvalResult:
+def _eval_binop(op: str, a: int, b: int) -> int:
+    """Evaluate a BinaryOp
+
+    Args:
+        op (str): the operation
+        a (int): the left member of the operation
+        b (int): the right member of the operation
+    """
+    match op:
+        case '+':
+            return (a + b)
+        case '-':
+            return (a - b)
+        case '*':
+            return (a * b)
+        case '/':
+            return (a // b if b != 0 else 0)
+        case '%':
+            return (a % b)
+        case '<<':
+            return (a << b)
+        case '>>':
+            return (a >> b)
+        case '&':
+            return (a & b)
+        case '|':
+            return (a | b)
+        case '^':
+            return (a ^ b)
+        case _:
+            raise ValueError(f"Unknown operator '{op}' for BinaryOp.")
+
+
+def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: Optional[int] = None) -> EvalResult:
     """Try to evaluate an expression `expr` to an integer
 
     Args:
@@ -65,7 +98,14 @@ def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> EvalResul
             return EvalResult(value=int(v))
 
         # relocation needed
-        return EvalResult(reloc=Relocation(pc, 'SYMBOL', expr, 0))
+        assert pc is not None
+        return EvalResult(reloc=Relocation('SYMBOL', expr, 0))
+
+    # current PC
+    if isinstance(expr, ast.CurrentPC):
+        if pc is not None:
+            return EvalResult(value=pc)
+        return EvalResult(reloc=Relocation('CURRENT_PC', expr, 0))
 
     # unary operator
     if isinstance(expr, ast.UnaryOp):
@@ -91,37 +131,51 @@ def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> EvalResul
         left = const_eval(expr.left, symbols, pc)
         right = const_eval(expr.right, symbols, pc)
 
-        # if either side return a relocation, abort
-        if left.reloc or right.reloc:
-            return EvalResult(reloc=Relocation(pc, 'EXPR_RELOC', expr, ))
+        # case 1 : both are constants
+        if left.reloc is None and right.reloc is None:
+            assert left.value
+            assert right.value
+            return EvalResult(value=_eval_binop(expr.op, left.value, right.value))
 
-        a = left.value
-        b = right.value
-        assert a is not None
-        assert b is not None
-        match expr.op:
-            case '+':
-                return EvalResult(value=(a + b))
-            case '-':
-                return EvalResult(value=(a - b))
-            case '*':
-                return EvalResult(value=(a * b))
-            case '/':
-                return EvalResult(value=(a // b if b != 0 else 0))
-            case '%':
-                return EvalResult(value=(a % b))
-            case '<<':
-                return EvalResult(value=(a << b))
-            case '>>':
-                return EvalResult(value=(a >> b))
-            case '&':
-                return EvalResult(value=(a & b))
-            case '|':
-                return EvalResult(value=(a | b))
-            case '^':
-                return EvalResult(value=(a ^ b))
+        # case 2 : left side is reloc, right side is constant
+        if left.reloc and right.reloc is None:
+            addend = right.value
+            # only + or - supported
+            if expr.op == '+':
+                return EvalResult(reloc=Relocation(
+                    left.reloc.type,
+                    left.reloc.symbol,
+                    left.reloc.addend + addend  # type: ignore
+                ))
+            if expr.op == '-':
+                return EvalResult(reloc=Relocation(
+                    left.reloc.type,
+                    left.reloc.symbol,
+                    left.reloc.addend - addend  # type: ignore
+                ))
+            raise SyntaxError(f"Error: unsupported reloc combination with '{expr.op}'")
 
-        raise SyntaxError(f"Unknown BinaryOp {expr.op}")
+        # case 3 : left side is constant, right side is reloc
+        if left.reloc is None and right.reloc:
+            addend = left.value
+            # only + or - supported
+            if expr.op == '+':
+                return EvalResult(reloc=Relocation(
+                    right.reloc.type,
+                    right.reloc.symbol,
+                    right.reloc.addend + addend  # type: ignore
+                ))
+            if expr.op == '-':
+                return EvalResult(reloc=Relocation(
+                    right.reloc.type,
+                    right.reloc.symbol,
+                    addend  # type: ignore
+                ))
+            raise SyntaxError(f"Error: unsupported reloc combination with '{expr.op}'")
+
+        # case 4 : both side reloc -> impossible
+        raise SyntaxError(f"Error: cannot create relocation with two symbols")
+
 
 
     # relocation node
@@ -133,7 +187,8 @@ def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> EvalResul
             return EvalResult(hi)
 
         # relocation record
-        return EvalResult(reloc=Relocation(pc, 'R_RISCV_HI20', expr.symbol))
+        assert pc is not None
+        return EvalResult(reloc=Relocation('R_RISCV_HI20', expr.symbol))
 
     if isinstance(expr, ast.LoRel):
         inner = const_eval(expr.symbol, symbols, pc)
@@ -141,7 +196,27 @@ def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> EvalResul
             lo = inner.value & 0xfff
             # I-Type immediate must preserved the sign
             return EvalResult(value=lo if lo < (1 << 11) else (lo - (1 << 12)))
-        return EvalResult(reloc=Relocation(pc, 'R_RISCV_LO12_I', expr.symbol))
+
+        assert pc is not None
+        return EvalResult(reloc=Relocation('R_RISCV_LO12_I', expr.symbol))
+
+    if isinstance(expr, ast.PCRelHi):
+        inner = const_eval(expr.symbol, symbols, pc)
+        if inner.value and pc is not None:
+            diff = inner.value - pc
+            hi = (diff + 0x800) >> 12
+            return EvalResult(value=hi)
+
+        return EvalResult(reloc=Relocation('R_RISCV_PCREL_HI20', expr.symbol))
+
+    if isinstance(expr, ast.PCRelLo):
+        inner = const_eval(expr.symbol, symbols, pc)
+        if inner.value and pc is not None:
+            diff = inner.value - pc
+            lo = diff & 0xfff
+            return EvalResult(value=lo if lo < (1 << 11) else (lo - (1 << 12)))
+
+        return EvalResult(reloc=Relocation('R_RISCV_PCREL_LO12_I', expr.symbol))
 
 
     # default
