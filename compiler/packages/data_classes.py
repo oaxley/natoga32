@@ -27,20 +27,15 @@ class Relocation:
     """Class to record the relocation needed during compilation
 
     Members:
-    - offset (int): byte offset where the relocation applies
     - type (str): the type of relocation needed
     - symbol (str): the symbol name
     - addend (int): signed addend
-    - place_size (int): 4 bytes
-    - place_inst (bytes): optional reference to the instruction for debug
+    - size (int): instruction size
     """
-    offset: int
     type: str
     symbol: ast.Node
     addend: int = 0
-    place_size: Optional[int] = None
-    place_inst: Optional[bytes] = None
-
+    size: int = 0
 
 @dataclass
 class Section:
