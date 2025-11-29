@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from dataclasses import dataclass, field
 
-from packages import ast
+from packages import ast, symbols
 
 
 #----- classes
@@ -63,6 +63,7 @@ class Section:
     def __repr__(self) -> str:
         return f"""data: {self.data}\noffset: {self.offset}\nrelocations: {self.relocations}"""
 
+
 @dataclass
 class EvalResult:
     """Result of a constant evaluation, that can be either a number or a relocation
@@ -74,3 +75,22 @@ class EvalResult:
     value: Optional[int] = None
     reloc: Optional[Relocation] = None
 
+
+section_t = Dict[str, Section]
+@dataclass
+class SAData:
+    """Semantic Analyzer data class
+
+    Members:
+    - program (ast.Program): the AST root node
+    - symbols (SymbolTable): the global symbols table
+    - sections (section_t): the sections map
+    - instr_size (int): the instruction size
+    - entry_point (str): the label marked as entry point
+    """
+    program: ast.Program
+    symbols: symbols.SymbolTable
+    sections: section_t
+
+    instr_size: int = 0
+    entry_point: str = ""
