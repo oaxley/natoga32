@@ -31,10 +31,12 @@ class Relocation:
     - symbol (str): the symbol name
     - addend (int): signed addend
     - size (int): instruction size
+    - address (int): address where the relocation should take place
     """
     type: str
     symbol: ast.Node
     addend: int = 0
+    address: int = 0
     size: int = 0
 
 @dataclass

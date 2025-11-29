@@ -13,11 +13,13 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from packages import data_classes as dc
 from packages import ast
 from packages import evaluator
+
+from packages.architecture import Architecture, Riscv, X68fp
 
 
 #----- class
@@ -33,6 +35,7 @@ class SecondPass:
         """
         self.data = data
         self.current_section = ""
+        self.arch: Optional[Architecture] = None
 
     def process(self) -> None:
         """Execute the second pass"""
@@ -71,14 +74,6 @@ class SecondPass:
             case _:
                 pass
 
-
-    def _instruction(self, instr: ast.Instruction) -> None:
-        """Process the Instruction statement
-
-        Args:
-            instr (ast.Instruction): a statement representing an instruction
-        """
-
     def _d_cpu(self, arg: ast.Node) -> None:
         """Handle the .cpu directive
 
@@ -86,9 +81,12 @@ class SecondPass:
             arg (ast.Node): the cpu type Identifier
         """
         assert isinstance(arg, ast.Identifier)
-        #
-        # TODO: read the CPU definition / configuration
-        #
+        if arg.name == "risc-v":
+            self.arch = Riscv()
+        elif arg.name == "x68fp":
+            self.arch = X68fp()
+        else:
+            raise SyntaxError(f"Error: unknown architecture '{arg.name}'")
 
     def _d_skip(self, arg: ast.Node) -> None:
         """Handle the .cpu directive
@@ -181,13 +179,14 @@ class SecondPass:
             return
 
         # compute the size associated with the directive
+        assert self.arch is not None
         match directive:
             case '.byte':
-                size = 1
+                size = self.arch.config.byte
             case '.half':
-                size = 2
+                size = self.arch.config.half
             case '.word':
-                size = 4
+                size = self.arch.config.word
             case _:
                 size = 1
 
@@ -224,3 +223,16 @@ class SecondPass:
         if is_nul:
             section.offset += 1
             section.data.extend(b"\x00")
+
+    def _instruction(self, instr: ast.Instruction) -> None:
+        """Process the Instruction statement
+
+        Args:
+            instr (ast.Instruction): a statement representing an instruction
+        """
+        section = self.data.sections[self.current_section]
+
+        pc = instr.address
+        operands = []
+        for op in instr.operands:
+            print(op)
