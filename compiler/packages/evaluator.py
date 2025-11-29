@@ -133,9 +133,7 @@ def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: Optional[int] = N
 
         # case 1 : both are constants
         if left.reloc is None and right.reloc is None:
-            assert left.value
-            assert right.value
-            return EvalResult(value=_eval_binop(expr.op, left.value, right.value))
+            return EvalResult(value=_eval_binop(expr.op, left.value, right.value)) # type: ignore
 
         # case 2 : left side is reloc, right side is constant
         if left.reloc and right.reloc is None:
@@ -175,8 +173,6 @@ def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: Optional[int] = N
 
         # case 4 : both side reloc -> impossible
         raise SyntaxError(f"Error: cannot create relocation with two symbols")
-
-
 
     # relocation node
     if isinstance(expr, ast.HiRel):
