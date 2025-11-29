@@ -76,8 +76,8 @@ class FirstPass:
                 self._d_string(directive.args[0], True)
             case '.ascii':
                 self._d_string(directive.args[0], False)
-            case '.global':
-                self._d_global(directive.args[0])
+            case '.entrypoint':
+                self._d_entry(directive.args[0])
             case _:
                 pass
 
@@ -222,8 +222,8 @@ class FirstPass:
         if is_nul:
             section.offset += 1
 
-    def _d_global(self, arg: ast.Node) -> None:
-        """Handle the .global directive
+    def _d_entry(self, arg: ast.Node) -> None:
+        """Handle the .entrypoint directive
 
         Args:
             arg (ast.Node): an identifier representing the entrypoint label
