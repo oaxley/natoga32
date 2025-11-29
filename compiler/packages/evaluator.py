@@ -77,7 +77,7 @@ def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: Optional[int] = N
         try:
             if symbols.exists(name):
                 s = symbols.get(name)
-                if s.type == SymbolType.DEFINE and s.value:
+                if s.type in [SymbolType.DEFINE, SymbolType.LABEL] and s.value:
                     return int(s.value)
 
             return None
