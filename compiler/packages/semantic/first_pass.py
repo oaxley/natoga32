@@ -13,12 +13,13 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from packages import data_classes as dc
 from packages import ast
 from packages import evaluator
 from packages.symbols import SymbolType
+from packages.architecture import Architecture, Riscv, X68fp
 
 
 #----- class
@@ -34,6 +35,7 @@ class FirstPass:
         """
         self.data = data
         self.current_section = ""
+        self.arch: Optional[Architecture] = None
 
     def process(self) -> None:
         """Execute the first pass"""
@@ -77,7 +79,7 @@ class FirstPass:
             case '.global':
                 self._d_global(directive.args[0])
             case _:
-                print(f"[{directive.name}]")
+                pass
 
     def _label(self, label: ast.Label) -> None:
         """Process the Label statement
@@ -107,11 +109,13 @@ class FirstPass:
         assert isinstance(arg, ast.Identifier)
         match arg.name:
             case "risc-v":
-                self.data.instr_size = 4
+                self.arch = Riscv()
             case "x68fp":
-                self.data.instr_size = 2
+                self.arch = X68fp()
             case _:
-                raise SyntaxError(f"Error: unknown CPU identifier '{arg.name}'")
+                raise SyntaxError(f"Error: unknown architecture '{arg.name}'")
+
+        self.data.instr_size = self.arch.config.instr_size
 
     def _d_skip(self, arg: ast.Node) -> None:
         """Handle the .cpu directive
@@ -193,11 +197,14 @@ class FirstPass:
         # compute the size associated with the directive
         match directive:
             case '.byte':
-                size = 1
+                assert self.arch is not None
+                size = self.arch.config.byte
             case '.half':
-                size = 2
+                assert self.arch is not None
+                size = self.arch.config.half
             case '.word':
-                size = 4
+                assert self.arch is not None
+                size = self.arch.config.word
             case _:
                 size = 1
 
