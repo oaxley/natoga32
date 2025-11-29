@@ -195,15 +195,13 @@ class FirstPass:
         section = self.data.sections[self.current_section]
 
         # compute the size associated with the directive
+        assert self.arch is not None
         match directive:
             case '.byte':
-                assert self.arch is not None
                 size = self.arch.config.byte
             case '.half':
-                assert self.arch is not None
                 size = self.arch.config.half
             case '.word':
-                assert self.arch is not None
                 size = self.arch.config.word
             case _:
                 size = 1
