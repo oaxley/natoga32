@@ -30,8 +30,8 @@ class Relocation:
     - type (str): the type of relocation needed
     - symbol (str): the symbol name
     - addend (int): signed addend
-    - size (int): instruction size
     - address (int): address where the relocation should take place
+    - size (int): instruction size
     """
     type: str
     symbol: ast.Node
