@@ -54,9 +54,7 @@ class BinaryOp(Expression):
 
     def debug(self, indent: int = 0) -> None:
         print(" " * indent + f"<BinaryOp [{self.op}]")
-        print(" " * (indent + 2) + "left:")
         self.left.debug(indent+4)
-        print(" " * (indent + 2) + "right:")
         self.right.debug(indent+4)
         print(" " * indent + ">")
 
@@ -70,7 +68,6 @@ class UnaryOp(Expression):
 
     def debug(self, indent: int = 0) -> None:
         print(" " * indent + f"<UnaryOp [{self.op}]")
-        print(" " * (indent + 2) + "expr:")
         self.expr.debug(indent+4)
         print(" " * indent + ">")
 
