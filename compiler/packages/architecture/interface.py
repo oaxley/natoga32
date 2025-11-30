@@ -13,7 +13,7 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -50,4 +50,6 @@ class Architecture(ABC):
         self.encoder: Encoder = Encoder()
         self.config: CPU = CPU()
 
-
+    @abstractmethod
+    def is_register(self, operand: str) -> Tuple[bool, int]:
+        """Check if operand is a register"""
