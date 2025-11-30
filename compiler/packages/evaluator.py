@@ -175,45 +175,5 @@ def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> EvalResul
         # case 4 : both side reloc -> impossible
         raise SyntaxError(f"Error: cannot create relocation with two symbols")
 
-    # relocation node
-    if isinstance(expr, ast.HiRel):
-        inner = const_eval(expr.symbol, symbols, pc)
-        if inner.value:
-            # RISC-V hi: (value + 0x800) >> 12
-            hi = (inner.value + 0x800) >> 12
-            return EvalResult(hi)
-
-        # relocation record
-        return EvalResult(reloc=Relocation('R_RISCV_HI20', expr.symbol, 0, pc))
-
-    if isinstance(expr, ast.LoRel):
-        inner = const_eval(expr.symbol, symbols, pc)
-        if inner.value:
-            lo = inner.value & 0xfff
-            # I-Type immediate must preserved the sign
-            return EvalResult(value=lo if lo < (1 << 11) else (lo - (1 << 12)))
-
-        assert pc is not None
-        return EvalResult(reloc=Relocation('R_RISCV_LO12_I', expr.symbol, 0, pc))
-
-    if isinstance(expr, ast.PCRelHi):
-        inner = const_eval(expr.symbol, symbols, pc)
-        if inner.value and pc is not None:
-            diff = inner.value - pc
-            hi = (diff + 0x800) >> 12
-            return EvalResult(value=hi)
-
-        return EvalResult(reloc=Relocation('R_RISCV_PCREL_HI20', expr.symbol, 0, pc))
-
-    if isinstance(expr, ast.PCRelLo):
-        inner = const_eval(expr.symbol, symbols, pc)
-        if inner.value and pc is not None:
-            diff = inner.value - pc
-            lo = diff & 0xfff
-            return EvalResult(value=lo if lo < (1 << 11) else (lo - (1 << 12)))
-
-        return EvalResult(reloc=Relocation('R_RISCV_PCREL_LO12_I', expr.symbol, 0, pc))
-
-
     # default
     raise SyntaxError("Unhandled expression type in const_eval: " + repr(expr))
