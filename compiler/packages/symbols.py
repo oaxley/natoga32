@@ -71,17 +71,7 @@ class SymbolTable:
             raise Exception(f"Symbol {name} redefined!")
         self.symbols[name] = Symbol(name, value, type, section, True)
 
-    def declare(self, name) -> None:
-        """Declare a new symbool in the table
-
-        Args:
-            name (str): the name of the symbol
-        """
-        if name not in self.symbols:
-            self.symbols[name] = Symbol(name, None, SymbolType.UNKNOWN, None, False)
-
-
-    def get(self, name) -> Symbol:
+    def get(self, name: str) -> Symbol:
         """Retrieve a symbol from the table
 
         Args:
@@ -90,10 +80,10 @@ class SymbolTable:
         Returns:
             Symbol: the associated symbol
         """
-        if name not in self.symbols:
-            self.declare(name)
-
-        return self.symbols[name]
+        try:
+            return self.symbols[name]
+        except KeyError:
+            return Symbol("", None, SymbolType.UNKNOWN, None, False)
 
     def exists(self, name: str) -> bool:
         """Check if a symbol exists
