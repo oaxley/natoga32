@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Tuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from packages.data_classes import EvalResult
+
 
 #----- classes
 @dataclass
@@ -36,20 +38,16 @@ class CPU:
     word: int = 0
 
 
-class Encoder(ABC):
-    """Generic Encoder interface"""
-
-    def __init__(self) -> None:
-        pass
-
-
 class Architecture(ABC):
     """Generic Architecture"""
 
     def __init__(self) -> None:
-        self.encoder: Encoder = Encoder()
         self.config: CPU = CPU()
 
     @abstractmethod
     def is_register(self, operand: str) -> Tuple[bool, int]:
         """Check if operand is a register"""
+
+    @abstractmethod
+    def encode(self, opcode: str, operands: List[EvalResult]) -> bytes:
+        """Encode the instruction with its operands"""

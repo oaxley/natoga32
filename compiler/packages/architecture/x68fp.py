@@ -15,25 +15,23 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
-from .interface import Architecture, Encoder, CPU
+from .interface import Architecture, CPU
+from packages.data_classes import EvalResult
 
 
 #----- classes
-
-class X68FPEncoder(Encoder):
-    """X68FP encoder"""
-
-    def __init__(self) -> None:
-        super().__init__()
 
 class X68fp(Architecture):
     """X68FP Architecture"""
 
     def __init__(self) -> None:
         """Constructor"""
-        self.encoder: Encoder = X68FPEncoder()
         self.config: CPU = CPU(2, 1, 1, 2)
 
     def is_register(self, operand: str) -> Tuple[bool, int]:
         """Check if operand is a register"""
         return (False, 0)
+
+    def encode(self, opcode: str, operands: List[EvalResult]) -> bytes:
+        """Encode the instruction with its operands"""
+        return b"\x00"

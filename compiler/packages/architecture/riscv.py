@@ -15,23 +15,16 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
-from .interface import Encoder, Architecture, CPU
+from packages.data_classes import EvalResult
+from .interface import Architecture, CPU
 
 #----- class
-
-class RiscVEncoder(Encoder):
-    """RISC-V encoder"""
-
-    def __init__(self) -> None:
-        """Constructor"""
-        super().__init__()
 
 class Riscv(Architecture):
     """RISC-V Architecture"""
 
     def __init__(self) -> None:
         """Constructor"""
-        self.encoder: Encoder = RiscVEncoder()
         self.config: CPU = CPU(4, 1, 2, 4)
 
         # registers list and their aliases
@@ -68,3 +61,7 @@ class Riscv(Architecture):
             return (True, 8)
 
         return (False, 0)
+
+    def encode(self, opcode: str, operands: List[EvalResult]) -> bytes:
+        """Encode the instruction with its operands"""
+        return b"\x00"
