@@ -13,7 +13,7 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from .interface import Architecture, Encoder, CPU
 
@@ -33,3 +33,7 @@ class X68fp(Architecture):
         """Constructor"""
         self.encoder: Encoder = X68FPEncoder()
         self.config: CPU = CPU(2, 1, 1, 2)
+
+    def is_register(self, operand: str) -> Tuple[bool, int]:
+        """Check if operand is a register"""
+        return (False, 0)
