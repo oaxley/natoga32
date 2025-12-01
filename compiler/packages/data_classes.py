@@ -68,7 +68,9 @@ class EvalResult:
     Members:
     - value (Optional[int]): an integer if the value is known, None otherwise
     - reloc (Optional[Relocation]): a relocation structure if value cannot be computed
+    - reg (Optional[int]): an integer representing the register number
     """
     value: Optional[int] = None
     reloc: Optional[Relocation] = None
+    reg: Optional[int] = None
 
