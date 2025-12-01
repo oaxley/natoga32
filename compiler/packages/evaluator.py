@@ -100,7 +100,7 @@ def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> Tuple[boo
 
     # unary operation
     if isinstance(expr, ast.UnaryOp):
-        result, value = const_eval(expr, symbols, pc)
+        result, value = const_eval(expr.expr, symbols, pc)
         if not result:
             return (False, 0)
 
