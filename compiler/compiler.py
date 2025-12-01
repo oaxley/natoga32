@@ -55,6 +55,7 @@ try:
     symbols = SymbolTable()
 
     # create a new lexer
+    print("Phase 1 : Lexer")
     lexer = Lexer()
     lexer.parse(fh)
 
@@ -64,6 +65,7 @@ try:
         sys.exit(0)
 
     # pre-processor
+    print("Phase 2 : Pre-processor")
     preproc = PreProcessor(symbols)
     tokens = preproc.process(lexer.tokens, config.input_file)
 
@@ -73,6 +75,7 @@ try:
         sys.exit(0)
 
     # parser
+    print("Phase 3 : Parser")
     parser = Parser(tokens)
     program = parser.parse_program()
 
@@ -88,6 +91,7 @@ try:
     }
 
     # semantic analyzer
+    print("Phase 4 : Semantic Analyzer - First Pass")
     semantic = SemanticAnalyzer(program, symbols, sections)
     semantic.first_pass()
 
@@ -103,6 +107,16 @@ try:
             print(v)
 
         sys.exit(0)
+
+    print("Phase 5 : Semantic Analyzer - Second Pass")
+    semantic.second_pass()
+
+    if args.debug == 5:
+        print("==== SECTIONS ====")
+        for v in sections.items():
+            print(v[0])
+            print(v[1])
+            print()
 
 except SyntaxError as e:
     print(str(e))
