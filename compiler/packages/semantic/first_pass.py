@@ -128,14 +128,13 @@ class FirstPass:
         section = self.data.sections[self.current_section]
 
         # evaluate the skip value
-        result = evaluator.const_eval(arg, self.data.symbols, section.offset)
+        result, value = evaluator.const_eval(arg, self.data.symbols, section.offset)
 
-        if result.reloc:
+        if not result:
             raise SyntaxError(f"Error: .skip directive expects a full qualified expression")
 
         # move the pointer
-        assert result.value is not None
-        section.offset += result.value
+        section.offset += value
 
     def _d_align(self, arg: ast.Node) -> None:
         """Handle the .align directive
@@ -148,14 +147,12 @@ class FirstPass:
         section = self.data.sections[self.current_section]
 
         # evaluate the skip value
-        result = evaluator.const_eval(arg, self.data.symbols, section.offset)
-        if result.reloc:
+        result, value = evaluator.const_eval(arg, self.data.symbols, section.offset)
+
+        if not result:
             raise SyntaxError(f"Error: .align directive expects a full qualified expression")
 
         # compute the alignment
-        assert result.value is not None
-        value = result.value
-
         delta = section.offset % value
         if delta != 0:
             padding = value - delta
@@ -172,14 +169,12 @@ class FirstPass:
         section = self.data.sections[self.current_section]
 
         # evaluate the skip value
-        result = evaluator.const_eval(arg, self.data.symbols, section.offset)
-        if result.reloc:
-            raise SyntaxError(f"Error: .align directive expects a full qualified expression")
+        result, value = evaluator.const_eval(arg, self.data.symbols, section.offset)
+
+        if not result:
+            raise SyntaxError(f"Error: .org directive expects a full qualified expression")
 
         # compute the alignment
-        assert result.value is not None
-        value = result.value
-
         if value < section.offset:
             raise SyntaxError(f"Error: .org offset {value} is below current offset {section.offset}!")
 

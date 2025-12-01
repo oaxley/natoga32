@@ -13,7 +13,7 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 from packages import ast
@@ -23,7 +23,7 @@ from packages.data_classes import Relocation, EvalResult
 
 #----- functions
 
-def _eval_binop(op: str, a: int, b: int) -> int:
+def binary_op(op: str, a: int, b: int) -> int:
     """Evaluate a BinaryOp
 
     Args:
@@ -56,124 +56,80 @@ def _eval_binop(op: str, a: int, b: int) -> int:
             raise ValueError(f"Unknown operator '{op}' for BinaryOp.")
 
 
-def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> EvalResult:
-    """Try to evaluate an expression `expr` to an integer
+def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> Tuple[bool, int]:
+    """Evaluate an expression to an integer
 
     Args:
-        expr (ast.Expression): the expression to evaluate
+        expr (ast.Expression): an expression to evaluate
         symbols (SymbolTable): the symbol table
-        pc (int): the current program counter
 
     Returns:
-        EvalResult: the result of the evaluation
-
-    **Notes**:
-    - If every identifier resolves to an integer, return EvalResult(int).
-    - If the expression contains a relocation, return EvalResult(Relocation)
+        Tuple[bool, int]: True if the evaluation was done, False otherwise
     """
 
-    # helper function to resolve an identifier to an integer or None
-    def resolve_ident(name: str) -> Optional[int]:
+    # helper function to resolve a DEFINE symbol
+    def resolve_define(name: str) -> Optional[int]:
         try:
             if symbols.exists(name):
                 s = symbols.get(name)
-                if s.type in [SymbolType.DEFINE, SymbolType.LABEL] and s.value:
+                if s.defined and s.type == SymbolType.DEFINE and s.value:
                     return int(s.value)
 
             return None
         except ValueError:
             return None
 
-    # expression is a number
+    # expression is an number
     if isinstance(expr, ast.Number):
-        return EvalResult(value=expr.value)
+        return (True, expr.value)
 
+    # expression is a simple character
     if isinstance(expr, ast.CharLiteral):
-        return EvalResult(value=ord(expr.ch))
+        return (True, ord(expr.ch))
 
-    # an simple identifier
-    if isinstance(expr, ast.Identifier):
-        v = resolve_ident(expr.name)
-        if v:
-            return EvalResult(value=int(v))
-
-        # relocation needed
-        return EvalResult(reloc=Relocation('SYMBOL', expr, 0, pc))
-
-    # current PC
+    # expression is the current PC
     if isinstance(expr, ast.CurrentPC):
-        return EvalResult(value=pc)
+        return (True, pc)
 
-    # unary operator
+    # an identifier
+    if isinstance(expr, ast.Identifier):
+        v = resolve_define(expr.name)
+        if v is None:
+            return (False, 0)
+        return (True, v)
+
+    # unary operation
     if isinstance(expr, ast.UnaryOp):
-        r = const_eval(expr.expr, symbols, pc)
-        if r.reloc:
-            # cannot fold if we have a relocation
-            return EvalResult(reloc=r.reloc)
+        result, value = const_eval(expr, symbols, pc)
+        if not result:
+            return (False, 0)
 
-        v = r.value
-        if v:
-            match expr.op:
-                case '+':
-                    return EvalResult(value=+v)
-                case '-':
-                    return EvalResult(value=-v)
-                case '~':
-                    return EvalResult(value=~v)
+        match expr.op:
+            case '+':
+                return (True, value)
+            case '-':
+                return (True, -value)
+            case '~':
+                return (True, ~value)
 
-        raise SyntaxError(f"Unknown UnaryOp '{expr.op}'")
+        raise SyntaxError(f"Error: unsupported UnaryOp '{expr.op}'")
 
-    # binary operator
+    # binary operation
     if isinstance(expr, ast.BinaryOp):
-        left = const_eval(expr.left, symbols, pc)
-        right = const_eval(expr.right, symbols, pc)
 
-        # case 1 : both are constants
-        if left.reloc is None and right.reloc is None:
-            return EvalResult(value=_eval_binop(expr.op, left.value, right.value)) # type: ignore
+        # check left side
+        result, left = const_eval(expr.left, symbols, pc)
+        if not result:
+            return (False, 0)
 
-        # case 2 : left side is reloc, right side is constant
-        if left.reloc and right.reloc is None:
-            addend = right.value
-            # only + or - supported
-            if expr.op == '+':
-                return EvalResult(reloc=Relocation(
-                    left.reloc.type,
-                    left.reloc.symbol,
-                    left.reloc.addend + addend,  # type: ignore
-                    pc
-                ))
-            if expr.op == '-':
-                return EvalResult(reloc=Relocation(
-                    left.reloc.type,
-                    left.reloc.symbol,
-                    left.reloc.addend - addend,  # type: ignore
-                    pc
-                ))
-            raise SyntaxError(f"Error: unsupported reloc combination with '{expr.op}'")
+        # check right side
+        result, right = const_eval(expr.right, symbols, pc)
+        if not result:
+            return (False, 0)
 
-        # case 3 : left side is constant, right side is reloc
-        if left.reloc is None and right.reloc:
-            addend = left.value
-            # only + or - supported
-            if expr.op == '+':
-                return EvalResult(reloc=Relocation(
-                    right.reloc.type,
-                    right.reloc.symbol,
-                    right.reloc.addend + addend,  # type: ignore
-                    pc
-                ))
-            if expr.op == '-':
-                return EvalResult(reloc=Relocation(
-                    right.reloc.type,
-                    right.reloc.symbol,
-                    addend,  # type: ignore
-                    pc
-                ))
-            raise SyntaxError(f"Error: unsupported reloc combination with '{expr.op}'")
+        # compute the value
+        value = binary_op(expr.op, left, right)
+        return (True, value)
 
-        # case 4 : both side reloc -> impossible
-        raise SyntaxError(f"Error: cannot create relocation with two symbols")
-
-    # default
-    raise SyntaxError("Unhandled expression type in const_eval: " + repr(expr))
+    # default return
+    return (False, 0)
