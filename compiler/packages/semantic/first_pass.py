@@ -35,7 +35,6 @@ class FirstPass:
         """
         self.data = data
         self.current_section = ""
-        self.arch: Optional[Architecture] = None
 
     def process(self) -> None:
         """Execute the first pass"""
@@ -109,13 +108,13 @@ class FirstPass:
         assert isinstance(arg, ast.Identifier)
         match arg.name:
             case "risc-v":
-                self.arch = Riscv()
+                self.data.arch = Riscv()
             case "x68fp":
-                self.arch = X68fp()
+                self.data.arch = X68fp()
             case _:
                 raise SyntaxError(f"Error: unknown architecture '{arg.name}'")
 
-        self.data.instr_size = self.arch.config.instr_size
+        self.data.instr_size = self.data.arch.config.instr_size
 
     def _d_skip(self, arg: ast.Node) -> None:
         """Handle the .cpu directive
@@ -190,14 +189,15 @@ class FirstPass:
         section = self.data.sections[self.current_section]
 
         # compute the size associated with the directive
-        assert self.arch is not None
+        assert self.data.arch is not None
+        arch = self.data.arch
         match directive:
             case '.byte':
-                size = self.arch.config.byte
+                size = arch.config.byte
             case '.half':
-                size = self.arch.config.half
+                size = arch.config.half
             case '.word':
-                size = self.arch.config.word
+                size = arch.config.word
             case _:
                 size = 1
 

@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from dataclasses import dataclass, field
 
-from packages import ast, symbols
+from packages import ast, symbols, architecture
 
 
 #----- classes
@@ -84,6 +84,7 @@ class SAData:
     - sections (section_t): the sections map
     - instr_size (int): the instruction size
     - entry_point (str): the label marked as entry point
+    - architecture (Architecture): the selected architecture
     """
     program: ast.Program
     symbols: symbols.SymbolTable
@@ -91,3 +92,4 @@ class SAData:
 
     instr_size: int = 0
     entry_point: str = ""
+    arch: Optional[architecture.Architecture] = None
