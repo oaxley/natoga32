@@ -13,12 +13,10 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Tuple
-
+from typing import Optional, Tuple
 
 from packages import ast
 from packages.symbols import SymbolTable, SymbolType
-from packages.data_classes import Relocation, EvalResult
 
 
 #----- functions
