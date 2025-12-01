@@ -114,12 +114,15 @@ class CharLiteral(Expression):
 
 # Relocation nodes
 class RelocExpr(Expression):
+    def __init__(self, expr: Expression) -> None:
+        self.symbol = expr
+
     def debug(self, indent = 0) -> None:
         pass
 
 class HiRel(RelocExpr):
     def __init__(self, expr: Expression) -> None:
-        self.symbol = expr
+        super().__init__(expr)
 
     def __repr__(self) -> str:
         return f"%hi({self.symbol})"
@@ -131,7 +134,7 @@ class HiRel(RelocExpr):
 
 class LoRel(RelocExpr):
     def __init__(self, expr: Expression) -> None:
-        self.symbol = expr
+        super().__init__(expr)
 
     def __repr__(self) -> str:
         return f"%lo({self.symbol})"
@@ -143,7 +146,7 @@ class LoRel(RelocExpr):
 
 class PCRelHi(RelocExpr):
     def __init__(self, expr: Expression) -> None:
-        self.symbol = expr
+        super().__init__(expr)
 
     def __repr__(self) -> str:
         return f"%pcrel_hi({self.symbol})"
@@ -155,7 +158,7 @@ class PCRelHi(RelocExpr):
 
 class PCRelLo(RelocExpr):
     def __init__(self, expr: Expression) -> None:
-        self.symbol = expr
+        super().__init__(expr)
 
     def __repr__(self) -> str:
         return f"%pcrel_lo({self.symbol})"
