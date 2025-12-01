@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from dataclasses import dataclass, field
 
-from packages import ast, symbols, architecture
+from packages import ast
 
 
 #----- classes
@@ -72,24 +72,3 @@ class EvalResult:
     value: Optional[int] = None
     reloc: Optional[Relocation] = None
 
-
-section_t = Dict[str, Section]
-@dataclass
-class SAData:
-    """Semantic Analyzer data class
-
-    Members:
-    - program (ast.Program): the AST root node
-    - symbols (SymbolTable): the global symbols table
-    - sections (section_t): the sections map
-    - instr_size (int): the instruction size
-    - entry_point (str): the label marked as entry point
-    - architecture (Architecture): the selected architecture
-    """
-    program: ast.Program
-    symbols: symbols.SymbolTable
-    sections: section_t
-
-    instr_size: int = 0
-    entry_point: str = ""
-    arch: Optional[architecture.Architecture] = None

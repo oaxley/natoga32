@@ -15,11 +15,11 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
-from packages import data_classes as dc
-from packages import ast
-from packages import evaluator
+from packages import ast, evaluator
 from packages.symbols import SymbolType
-from packages.architecture import Architecture, Riscv, X68fp
+from packages.architecture import Riscv, X68fp
+
+from .struct import SAData
 
 
 #----- class
@@ -27,7 +27,7 @@ from packages.architecture import Architecture, Riscv, X68fp
 class FirstPass:
     """Semantic Analyzer - First Pass"""
 
-    def __init__(self, data: dc.SAData) -> None:
+    def __init__(self, data: SAData) -> None:
         """Constructor
 
         Args:
@@ -117,7 +117,7 @@ class FirstPass:
         self.data.instr_size = self.data.arch.config.instr_size
 
     def _d_skip(self, arg: ast.Node) -> None:
-        """Handle the .cpu directive
+        """Handle the .skip directive
 
         Args:
             arg (ast.Node): a const expression
@@ -125,14 +125,11 @@ class FirstPass:
         assert isinstance(arg, ast.Expression)
 
         section = self.data.sections[self.current_section]
-
-        # evaluate the skip value
         result, value = evaluator.const_eval(arg, self.data.symbols, section.offset)
 
         if not result:
             raise SyntaxError(f"Error: .skip directive expects a full qualified expression")
 
-        # move the pointer
         section.offset += value
 
     def _d_align(self, arg: ast.Node) -> None:
@@ -144,8 +141,6 @@ class FirstPass:
         assert isinstance(arg, ast.Expression)
 
         section = self.data.sections[self.current_section]
-
-        # evaluate the skip value
         result, value = evaluator.const_eval(arg, self.data.symbols, section.offset)
 
         if not result:
@@ -166,8 +161,6 @@ class FirstPass:
         assert isinstance(arg, ast.Expression)
 
         section = self.data.sections[self.current_section]
-
-        # evaluate the skip value
         result, value = evaluator.const_eval(arg, self.data.symbols, section.offset)
 
         if not result:

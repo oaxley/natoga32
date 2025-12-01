@@ -13,21 +13,25 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from packages import ast
+from dataclasses import dataclass
+
+from packages.ast import Program
 from packages.symbols import SymbolTable
-from packages import data_classes as dc
+from packages.data_classes import Section
 
+from .struct import SAData
 from .first_pass import FirstPass
 from .second_pass import SecondPass
+
 
 #----- class
 
 class SemanticAnalyzer:
     """Semantic Analyzer"""
 
-    def __init__(self, program: ast.Program, symbols: SymbolTable, sections: dc.section_t) -> None:
+    def __init__(self, program: Program, symbols: SymbolTable, sections: Dict[str, Section]) -> None:
         """Constructor
 
         Args:
@@ -35,7 +39,7 @@ class SemanticAnalyzer:
             symbols (SymbolTable): the symbol table
             sections (section_t): the Sections definition
         """
-        self.data = dc.SAData(program, symbols, sections)
+        self.data = SAData(program, symbols, sections)
 
     def first_pass(self) -> None:
         """Execute the semantic analyzer first pass"""
