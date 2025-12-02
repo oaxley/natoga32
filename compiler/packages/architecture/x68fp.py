@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 from .interface import Architecture, CPU
-from packages.data_classes import EvalResult
+from packages.data_classes import EvalResult, Relocation
 
 
 #----- classes
@@ -32,6 +32,6 @@ class X68fp(Architecture):
         """Check if operand is a register"""
         return (False, 0)
 
-    def encode(self, opcode: str, operands: List[EvalResult]) -> bytes:
+    def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode the instruction with its operands"""
-        return b"\x00"
+        return (b"\x00", [])
