@@ -191,7 +191,6 @@ class SecondPass:
         assert self.data.arch is not None
 
         section = self.data.sections[self.current_section]
-        symbols = self.data.symbols
 
         # process the operands
         pc = instr.address
@@ -200,7 +199,13 @@ class SecondPass:
             result = self._op_eval(cast(ast.Expression, op), pc)
             operands.append(result)
 
-        print(operands)
+        bincode, reloc = self.data.arch.encode(instr.opcode, operands)
+        if len(reloc) > 0:
+            for i in reloc:
+                section.relocations.append(i)
+
+        section.data.extend(bincode)
+        section.offset += len(bincode)
 
     def _op_eval(self, op: ast.Expression, pc: int) -> EvalResult:
         """Evaluate an operand from an opcode
