@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Tuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from packages.data_classes import EvalResult
+from packages.data_classes import EvalResult, Relocation
 
 
 #----- classes
@@ -49,5 +49,5 @@ class Architecture(ABC):
         """Check if operand is a register"""
 
     @abstractmethod
-    def encode(self, opcode: str, operands: List[EvalResult]) -> bytes:
+    def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode the instruction with its operands"""
