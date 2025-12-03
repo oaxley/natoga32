@@ -13,7 +13,7 @@
 
 #----- imports
 from __future__ import annotations
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, cast
 
 from enum import IntEnum, auto
 from dataclasses import dataclass
@@ -40,26 +40,75 @@ class Opcode:
     funct3: int
     opcode: int
     funct7: int = 0
+    rs2: int = 0
 
 # opcodes and their respective type
 OPCODES_T: Dict[str, Opcode] = {
-    'lb': Opcode(RiscVType.TYPE_I, 0b000, 0b000_0011),
-    'lh': Opcode(RiscVType.TYPE_I, 0b001, 0b000_0011),
-    'lw': Opcode(RiscVType.TYPE_I, 0b010, 0b000_0011),
-    'lbu': Opcode(RiscVType.TYPE_I, 0b100, 0b000_0011),
-    'lhu': Opcode(RiscVType.TYPE_I, 0b101, 0b000_0011),
-    'addi': Opcode(RiscVType.TYPE_I, 0b000, 0b001_0011),
-    'slli': Opcode(RiscVType.TYPE_I2, 0b001, 0b001_0011, 0),
-    'slti': Opcode(RiscVType.TYPE_I, 0b010, 0b001_0011),
+    'lb':    Opcode(RiscVType.TYPE_I, 0b000, 0b000_0011),
+    'lh':    Opcode(RiscVType.TYPE_I, 0b001, 0b000_0011),
+    'lw':    Opcode(RiscVType.TYPE_I, 0b010, 0b000_0011),
+    'lbu':   Opcode(RiscVType.TYPE_I, 0b100, 0b000_0011),
+    'lhu':   Opcode(RiscVType.TYPE_I, 0b101, 0b000_0011),
+    'addi':  Opcode(RiscVType.TYPE_I, 0b000, 0b001_0011),
+    'slli':  Opcode(RiscVType.TYPE_I2, 0b001, 0b001_0011, 0),
+    'slti':  Opcode(RiscVType.TYPE_I, 0b010, 0b001_0011),
     'sltiu': Opcode(RiscVType.TYPE_I, 0b011, 0b001_0011),
-    'xori': Opcode(RiscVType.TYPE_I, 0b100, 0b001_0011),
-    'srli': Opcode(RiscVType.TYPE_I2, 0b101, 0b001_0011, 0),
-    'srai': Opcode(RiscVType.TYPE_I2, 0b101, 0b001_0011, 0b0100_000),
-    'ori': Opcode(RiscVType.TYPE_I, 0b110, 0b001_0011),
-    'andi': Opcode(RiscVType.TYPE_I, 0b111, 0b001_0011),
+    'xori':  Opcode(RiscVType.TYPE_I, 0b100, 0b001_0011),
+    'srli':  Opcode(RiscVType.TYPE_I2, 0b101, 0b001_0011, 0),
+    'srai':  Opcode(RiscVType.TYPE_I2, 0b101, 0b001_0011, 0b0100_000),
+    'ori':   Opcode(RiscVType.TYPE_I, 0b110, 0b001_0011),
+    'andi':  Opcode(RiscVType.TYPE_I, 0b111, 0b001_0011),
+    'jalr':  Opcode(RiscVType.TYPE_I, 0b000, 0b110_0111),
+
     'auipc': Opcode(RiscVType.TYPE_U, 0, 0b001_0111),
-    'lui': Opcode(RiscVType.TYPE_U, 0, 0b011_0111),
-    'jalr': Opcode(RiscVType.TYPE_I, 0b000, 0b110_0111)
+    'lui':   Opcode(RiscVType.TYPE_U, 0, 0b011_0111),
+
+    'add':   Opcode(RiscVType.TYPE_R, 0b000, 0b011_0011, 0b0000_000),
+    'sub':   Opcode(RiscVType.TYPE_R, 0b000, 0b011_0011, 0b0100_000),
+    'sll':   Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0000_000),
+    'slt':   Opcode(RiscVType.TYPE_R, 0b010, 0b011_0011, 0b0000_000),
+    'sltu':  Opcode(RiscVType.TYPE_R, 0b011, 0b011_0011, 0b0000_000),
+    'xor':   Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_000),
+    'srl':   Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0000_000),
+    'sra':   Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0100_000),
+    'or':    Opcode(RiscVType.TYPE_R, 0b110, 0b011_0011, 0b0000_000),
+
+    'mul':   Opcode(RiscVType.TYPE_R, 0b000, 0b011_0011, 0b0000_001),
+    'mulh':  Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0000_001),
+    'mulhsu':Opcode(RiscVType.TYPE_R, 0b010, 0b011_0011, 0b0000_001),
+    'mulhu': Opcode(RiscVType.TYPE_R, 0b011, 0b011_0011, 0b0000_001),
+    'div':   Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_001),
+    'divu':  Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0000_001),
+    'rem':   Opcode(RiscVType.TYPE_R, 0b110, 0b011_0011, 0b0000_001),
+    'remu':  Opcode(RiscVType.TYPE_R, 0b111, 0b011_0011, 0b0000_001),
+
+    'clz':   Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_000, 0b00000),
+    'ctz':   Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_000, 0b00001),
+    'cpop':  Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_000, 0b00010),
+    'rev8':  Opcode(RiscVType.TYPE_R, 0b101, 0b001_0011, 0b0110_100, 0b11000),
+    'rol':   Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0110_000),
+    'ror':   Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0110_000),
+    'rori':  Opcode(RiscVType.TYPE_R, 0b101, 0b001_0011, 0b0110_000),
+
+    'bclr':  Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0100_100),
+    'bclri': Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0100_100),
+    'bext':  Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0100_100),
+    'bexti': Opcode(RiscVType.TYPE_R, 0b101, 0b001_0011, 0b0100_100),
+    'binv':  Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0110_100),
+    'binvi': Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_100),
+    'bset':  Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0010_100),
+    'bseti': Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0010_100),
+
+    'pack':  Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_100),
+    'packh': Opcode(RiscVType.TYPE_R, 0b111, 0b011_0011, 0b0000_100),
+
+    'max':   Opcode(RiscVType.TYPE_R, 0b110, 0b011_0011, 0b0000_101),
+    'maxu':  Opcode(RiscVType.TYPE_R, 0b111, 0b011_0011, 0b0000_101),
+    'min':   Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_101),
+    'minu':  Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0000_101),
+
+    'sext.h':Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_000, 0b00101),
+    'zext.h':Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_100, 0b00000),
 }
 
 #----- class
@@ -69,7 +118,7 @@ class Riscv(Architecture):
 
     def __init__(self) -> None:
         """Constructor"""
-        self.config: CPU = CPU(4, 1, 2, 4)
+        self.config: CPU = CPU(4, 32, 1, 2, 4)
 
         # registers list and their aliases
         self.reg_list: List[str] = []
@@ -119,6 +168,8 @@ class Riscv(Architecture):
                     return self._type_I(opcode, operands, True)
                 case RiscVType.TYPE_U:
                     return self._type_U(opcode, operands)
+                case RiscVType.TYPE_R:
+                    return self._type_R(opcode, operands)
 
         return (b"\x00", [])
 
@@ -174,7 +225,7 @@ class Riscv(Architecture):
         reloc: List[Relocation] = []
 
         # retrieve the operands
-        rd = operands[0].reg
+        rd = cast(int, operands[0].reg)
 
         if operands[1].value is not None:
             imm = (operands[1].value >> 12) & 0x0FFFFF
@@ -187,8 +238,6 @@ class Riscv(Architecture):
             reloc.append(r)
             print(reloc)
 
-        assert rd is not None
-
         value = (
             (imm << 12) |
             (rd << 7) |
@@ -196,3 +245,33 @@ class Riscv(Architecture):
         )
 
         return (value.to_bytes(4, 'big'), reloc)
+
+    def _type_R(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
+        """Encode type R RISC-V instructions"""
+
+        # retrieve the operands
+        xlen = self.config.xlen - 1
+        rd = cast(int, operands[0].reg) & xlen
+        rs1 = cast(int, operands[1].reg) & xlen
+
+        if len(operands) == 3:
+            if operands[2].reg is not None:
+                rs2 = operands[2].reg & xlen
+            elif operands[2].value is not None:
+                rs2 = operands[2].value & xlen
+            else:
+                raise SyntaxError("Error: Type_R cannot be relocation")
+        else:
+            rs2 = OPCODES_T[opcode].rs2
+
+        op = OPCODES_T[opcode]
+        value = (
+            (op.funct7 << 25) |
+            (rs2 << 20) |
+            (rs1 << 15) |
+            (op.funct3 << 12) |
+            (rd << 7) |
+            op.opcode
+        )
+
+        return (value.to_bytes(4, 'big'), [])
