@@ -195,8 +195,12 @@ class Riscv(Architecture):
                     assert i.reloc is not None
                     imm = 0
                     if is_uimm:
-                        i.reloc.size = 5
-                        i.reloc.position = 20
+                        i.reloc.mask = 0x01F
+                    else:
+                        i.reloc.mask = 0xFFF
+
+                    # add the _I marker for relocation
+                    i.reloc.type += '_I'
                     reloc.append(i.reloc)
 
         # ensure all the value are not None
@@ -223,20 +227,24 @@ class Riscv(Architecture):
     def _type_U(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode type U RISC-V instructions"""
         reloc: List[Relocation] = []
+        mask = 0x0FFFFF
 
         # retrieve the operands
         rd = cast(int, operands[0].reg)
 
         if operands[1].value is not None:
-            imm = (operands[1].value >> 12) & 0x0FFFFF
+            imm = (operands[1].value >> 12) & mask
         else:
-            assert operands[1].reloc is not None
             imm = 0
+
+            assert operands[1].reloc is not None
             r = operands[1].reloc
-            r.size = 20
-            r.position = 12
+
+            if r.type not in ['R_RISCV_PCREL_HI20', 'R_RISCV_HI20']:
+                raise SyntaxError(f"Error: auipc/lui support only %pcrel_hi or %hi relocations.")
+
+            r.mask = mask
             reloc.append(r)
-            print(reloc)
 
         value = (
             (imm << 12) |
