@@ -109,6 +109,10 @@ OPCODES_T: Dict[str, Opcode] = {
 
     'sext.h':Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_000, 0b00101),
     'zext.h':Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_100, 0b00000),
+
+    'sb':    Opcode(RiscVType.TYPE_S, 0b000, 0b010_0011),
+    'sh':    Opcode(RiscVType.TYPE_S, 0b001, 0b010_0011),
+    'sw':    Opcode(RiscVType.TYPE_S, 0b010, 0b010_0011),
 }
 
 #----- class
@@ -170,6 +174,8 @@ class Riscv(Architecture):
                     return self._type_U(opcode, operands)
                 case RiscVType.TYPE_R:
                     return self._type_R(opcode, operands)
+                case RiscVType.TYPE_S:
+                    return self._type_S(opcode, operands)
 
         return (b"\x00", [])
 
@@ -283,3 +289,54 @@ class Riscv(Architecture):
         )
 
         return (value.to_bytes(4, 'big'), [])
+
+    def _type_S(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
+        """Encode type S RISC-V instructions"""
+
+        reloc: List[Relocation] = []
+
+        # retrieve the operands
+        rs2 = None
+        rs1 = None
+        imm = None
+        for i in operands:
+            if i.reg is not None:
+                if rs2 is None:
+                    rs2 = i.reg
+                else:
+                    rs1 = i.reg
+            else:
+                if i.value is not None:
+                    imm = i.value & 0x0FFF
+                else:
+                    r = i.reloc
+                    assert r is not None
+                    imm = 0
+
+                    # rewrite the relocation type depending on the instruction
+                    if r.type == 'SYMBOL':
+                        r.type = 'R_RISCV_LO12'
+
+                    r.mask = 0x0FFF
+                    r.type += '_S'
+                    reloc.append(r)
+
+        # build the instruction
+        assert rs2 is not None
+        assert rs1 is not None
+        assert imm is not None
+
+        op = OPCODES_T[opcode]
+        imm4_0 = imm & 0b11111
+        imm11_5 = imm >> 5
+
+        value = (
+            (imm11_5 << 25) |
+            (rs2 << 20) |
+            (rs1 << 15) |
+            (op.funct3 << 12) |
+            (imm4_0 << 7) |
+            op.opcode
+        )
+
+        return (value.to_bytes(4, 'big'), reloc)
