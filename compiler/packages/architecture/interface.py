@@ -27,12 +27,14 @@ class CPU:
     """CPU Configuration
 
     Members:
-    - instr_size (int): the size of an instruction
+    - instr_size (int): the size of an instruction in byte
+    - xlen (int): the size of an instruction in bit
     - byte (int): the size associated with the ".byte" directive
     - half (int): the size associated with the ".half" directive
     - word (int): the size associated with the ".word" directive
     """
     instr_size: int = 0
+    xlen: int = 0
     byte: int = 0
     half: int = 0
     word: int = 0
