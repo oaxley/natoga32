@@ -271,18 +271,11 @@ class SecondPass:
                     if isinstance(op, ast.LoRel):
                         return EvalResult(reloc=Relocation('R_RISCV_LO12', op.symbol, addend, pc))
 
-                    # for PCRelHi and PCRelLo, symbol must be in the .text section
                     if isinstance(op, ast.PCRelHi):
-                        if symbol.section == self.current_section:
-                            return EvalResult(reloc=Relocation('R_RISCV_PCREL_HI20', op.symbol, addend, pc))
-                        else:
-                            raise SyntaxError(f"Error: PCRelHi cannot cross section boundaries ('{symbol.section}' != '{self.current_section}')")
+                        return EvalResult(reloc=Relocation('R_RISCV_PCREL_HI20', op.symbol, addend, pc))
 
                     if isinstance(op, ast.PCRelLo):
-                        if symbol.section == self.current_section:
-                            return EvalResult(reloc=Relocation('R_RISCV_PCREL_LO12', op.symbol, addend, pc))
-                        else:
-                            raise SyntaxError(f"Error: PCRelLo cannot cross section boundaries ('{symbol.section}' != '{self.current_section}')")
+                        return EvalResult(reloc=Relocation('R_RISCV_PCREL_LO12', op.symbol, addend, pc))
 
                     raise SyntaxError(f"Error: unknown relocation directive '{op}'")
 
