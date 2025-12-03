@@ -31,15 +31,13 @@ class Relocation:
     - symbol (str): the symbol name
     - addend (int): signed addend
     - address (int): address where the relocation should take place
-    - size (int): value size (in bits)
-    - position (int): position in the opcode (in bits)
+    - mask (int): the bit mask to apply to retrieve the value
     """
     type: str
     symbol: ast.Node
     addend: int = 0
     address: int = 0
-    size: int = 0
-    position: int = 0
+    mask: int = 0
 
 @dataclass
 class Section:
