@@ -26,7 +26,7 @@ class X68fp(Architecture):
 
     def __init__(self) -> None:
         """Constructor"""
-        self.config: CPU = CPU(2, 1, 1, 2)
+        self.config: CPU = CPU(2, 16, 1, 1, 2)
 
     def is_register(self, operand: str) -> Tuple[bool, int]:
         """Check if operand is a register"""
