@@ -120,6 +120,14 @@ OPCODES_T: Dict[str, Opcode] = {
     'sb':    Opcode(RiscVType.TYPE_S, 0b000, 0b010_0011),
     'sh':    Opcode(RiscVType.TYPE_S, 0b001, 0b010_0011),
     'sw':    Opcode(RiscVType.TYPE_S, 0b010, 0b010_0011),
+
+    'beq':   Opcode(RiscVType.TYPE_B, 0b000, 0b110_0011),
+    'bne':   Opcode(RiscVType.TYPE_B, 0b001, 0b110_0011),
+    'blt':   Opcode(RiscVType.TYPE_B, 0b100, 0b110_0011),
+    'bge':   Opcode(RiscVType.TYPE_B, 0b101, 0b110_0011),
+    'bltu':  Opcode(RiscVType.TYPE_B, 0b110, 0b110_0011),
+    'bgeu':  Opcode(RiscVType.TYPE_B, 0b111, 0b110_0011),
+
 }
 
 #----- class
@@ -183,6 +191,8 @@ class Riscv(Architecture):
                     return self._type_R(opcode, operands)
                 case RiscVType.TYPE_S:
                     return self._type_S(opcode, operands)
+                case RiscVType.TYPE_B:
+                    return self._type_B(opcode, operands)
 
         return (b"\x00", [])
 
@@ -321,7 +331,7 @@ class Riscv(Architecture):
                     imm = 0
 
                     # rewrite the relocation type depending on the instruction
-                    if r.type == 'SYMBOL':
+                    if r.type == 'LABEL':
                         r.type = 'R_RISCV_LO12'
 
                     r.mask = 0x0FFF
@@ -343,6 +353,47 @@ class Riscv(Architecture):
             (rs1 << 15) |
             (op.funct3 << 12) |
             (imm4_0 << 7) |
+            op.opcode
+        )
+
+        return (value.to_bytes(4, 'big'), reloc)
+
+    def _type_B(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
+        """Encode type B RISC-V instructions"""
+
+        reloc: List[Relocation] = []
+
+        # retrieve the operands
+        rs1 = None
+        rs2 = None
+        imm = None
+        for i in operands:
+            if i.reg is not None:
+                if rs1 is None:
+                    rs1 = i.reg
+                else:
+                    rs2 = i.reg
+            else:
+                assert i.reloc is not None
+                i.reloc.type = 'R_RISCV_BRANCH'
+                reloc.append(i.reloc)
+                imm = 0
+
+        # build the instruction
+        assert rs2 is not None
+        assert rs1 is not None
+        assert imm is not None
+
+        op = OPCODES_T[opcode]
+        imm4_0 = imm & 0b11111
+        imm11_5 = imm >> 5
+
+        value = (
+            (imm11_5 << 25) |
+            (rs2 << 20) |
+            (rs1 << 15) |
+            (op.funct3 << 12) |
+            (imm4_0 <<  7) |
             op.opcode
         )
 
