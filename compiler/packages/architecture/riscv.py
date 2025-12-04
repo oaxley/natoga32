@@ -375,26 +375,41 @@ class Riscv(Architecture):
                 else:
                     rs2 = i.reg
             else:
-                assert i.reloc is not None
-                i.reloc.type = 'R_RISCV_BRANCH'
-                reloc.append(i.reloc)
-                imm = 0
+                if i.value is not None:
+                    imm = i.value
+                elif i.reloc is not None:
+                    imm = 0
+                    i.reloc.type = 'R_RISCV_BRANCH'
+                    reloc.append(i.reloc)
 
         # build the instruction
         assert rs2 is not None
         assert rs1 is not None
         assert imm is not None
 
+        # check boundaries
+        if imm & 0b1:
+            raise SyntaxError(f"Error: branch offset must be 2-byte aligned")
+
+        if imm < -(1 << 12) or imm >= (1 << 12):
+            raise SyntaxError(f"Error: branch offset out of range")
+
+        imm12   = (imm >> 12) & 0x1
+        imm10_5 = (imm >> 5 ) & 0x3F
+        imm4_1  = (imm >> 1 ) & 0xF
+        imm11   = (imm >> 11) & 0x1
+
         op = OPCODES_T[opcode]
-        imm4_0 = imm & 0b11111
-        imm11_5 = imm >> 5
+        funct3 = op.funct3
 
         value = (
-            (imm11_5 << 25) |
-            (rs2 << 20) |
-            (rs1 << 15) |
-            (op.funct3 << 12) |
-            (imm4_0 <<  7) |
+            (imm12   << 31) |
+            (imm10_5 << 25) |
+            (rs2     << 20) |
+            (rs1     << 15) |
+            (funct3  << 12) |
+            (imm4_1  << 8 ) |
+            (imm11   << 7 ) |
             op.opcode
         )
 
