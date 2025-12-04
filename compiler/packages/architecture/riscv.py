@@ -128,6 +128,7 @@ OPCODES_T: Dict[str, Opcode] = {
     'bltu':  Opcode(RiscVType.TYPE_B, 0b110, 0b110_0011),
     'bgeu':  Opcode(RiscVType.TYPE_B, 0b111, 0b110_0011),
 
+    'jal':   Opcode(RiscVType.TYPE_J, 0b000, 0b110_1111)
 }
 
 #----- class
@@ -193,8 +194,10 @@ class Riscv(Architecture):
                     return self._type_S(opcode, operands)
                 case RiscVType.TYPE_B:
                     return self._type_B(opcode, operands)
+                case RiscVType.TYPE_J:
+                    return self._type_J(opcode, operands)
 
-        return (b"\x00", [])
+        raise SyntaxError(f"Error: unknown opcode '{opcode}'")
 
     def _type_I(self, opcode: str, operands: List[EvalResult], is_uimm: bool = False) -> Tuple[bytes, List[Relocation]]:
         """Encode type I RISC-V instructions"""
@@ -309,7 +312,6 @@ class Riscv(Architecture):
 
     def _type_S(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode type S RISC-V instructions"""
-
         reloc: List[Relocation] = []
 
         # retrieve the operands
@@ -360,7 +362,6 @@ class Riscv(Architecture):
 
     def _type_B(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode type B RISC-V instructions"""
-
         reloc: List[Relocation] = []
 
         # retrieve the operands
@@ -395,6 +396,46 @@ class Riscv(Architecture):
             (op.funct3 << 12) |
             (imm4_0 <<  7) |
             op.opcode
+        )
+
+        return (value.to_bytes(4, 'big'), reloc)
+
+    def _type_J(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
+        """Encode type J RISC-V instructions"""
+        reloc: List[Relocation] = []
+
+        # retrieve operands
+        rd = cast(int, operands[0].reg)
+
+        if operands[1].value is not None:
+            imm = operands[1].value
+            if imm & 0b1 or imm & 0b10:
+                raise SyntaxError("Error: JAL offset must be 4-byte aligned")
+
+            if imm < -(1 << 20) or imm >= (1 << 20):
+                raise SyntaxError("Error: JAL offset out of range")
+
+        else:
+            imm = 0
+
+            assert operands[1].reloc is not None
+            r = operands[1].reloc
+            r.type = 'R_RISCV_JAL'
+            reloc.append(r)
+
+        # encode the instruction
+        imm20    = (imm >> 20) & 0x1
+        imm10_1  = (imm >> 1)  & 0x3FF
+        imm11    = (imm >> 11) & 0x1
+        imm19_12 = (imm >> 12) & 0xFF
+
+        value = (
+            (imm20    << 31) |
+            (imm10_1  << 21) |
+            (imm11    << 20) |
+            (imm19_12 << 12) |
+            (rd       << 7 ) |
+            OPCODES_T[opcode].opcode
         )
 
         return (value.to_bytes(4, 'big'), reloc)
