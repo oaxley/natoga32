@@ -13,122 +13,122 @@
 
 #----- imports
 from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import IntEnum, auto
 from typing import Any, Dict, List, Tuple, cast
 
-from enum import IntEnum, auto
-from dataclasses import dataclass
-
 from packages.data_classes import EvalResult, Relocation
-from .interface import Architecture, CPU
 
+from .interface import CPU, Architecture
 
 #----- globals
 
 # RISC-V type
 class RiscVType(IntEnum):
-    TYPE_I = auto()
+    TYPE_I  = auto()
     TYPE_I2 = auto()
-    TYPE_U = auto()
-    TYPE_S = auto()
-    TYPE_R = auto()
-    TYPE_B = auto()
-    TYPE_J = auto()
+    TYPE_U  = auto()
+    TYPE_S  = auto()
+    TYPE_R  = auto()
+    TYPE_B  = auto()
+    TYPE_J  = auto()
 
 @dataclass
 class Opcode:
-    type: RiscVType
-    funct3: int
-    opcode: int
-    funct7: int = 0
-    rs2: int = 0
+    type    : RiscVType
+    opcode  : int
+    rd      : int = 0
+    funct3  : int = 0
+    rs1     : int = 0
+    rs2     : int = 0
+    funct7  : int = 0
 
 # opcodes and their respective type
 OPCODES_T: Dict[str, Opcode] = {
-    'lb':    Opcode(RiscVType.TYPE_I, 0b000, 0b000_0011),
-    'lh':    Opcode(RiscVType.TYPE_I, 0b001, 0b000_0011),
-    'lw':    Opcode(RiscVType.TYPE_I, 0b010, 0b000_0011),
-    'lbu':   Opcode(RiscVType.TYPE_I, 0b100, 0b000_0011),
-    'lhu':   Opcode(RiscVType.TYPE_I, 0b101, 0b000_0011),
-    'addi':  Opcode(RiscVType.TYPE_I, 0b000, 0b001_0011),
-    'slli':  Opcode(RiscVType.TYPE_I2, 0b001, 0b001_0011, 0),
-    'slti':  Opcode(RiscVType.TYPE_I, 0b010, 0b001_0011),
-    'sltiu': Opcode(RiscVType.TYPE_I, 0b011, 0b001_0011),
-    'xori':  Opcode(RiscVType.TYPE_I, 0b100, 0b001_0011),
-    'srli':  Opcode(RiscVType.TYPE_I2, 0b101, 0b001_0011, 0),
-    'srai':  Opcode(RiscVType.TYPE_I2, 0b101, 0b001_0011, 0b0100_000),
-    'ori':   Opcode(RiscVType.TYPE_I, 0b110, 0b001_0011),
-    'andi':  Opcode(RiscVType.TYPE_I, 0b111, 0b001_0011),
-    'jalr':  Opcode(RiscVType.TYPE_I, 0b000, 0b110_0111),
+    'lb'    : Opcode(RiscVType.TYPE_I ,0b000_0011, 0, 0b000, 0, 0, 0          ),
+    'lh'    : Opcode(RiscVType.TYPE_I ,0b000_0011, 0, 0b001, 0, 0, 0          ),
+    'lw'    : Opcode(RiscVType.TYPE_I ,0b000_0011, 0, 0b010, 0, 0, 0          ),
+    'lbu'   : Opcode(RiscVType.TYPE_I ,0b000_0011, 0, 0b100, 0, 0, 0          ),
+    'lhu'   : Opcode(RiscVType.TYPE_I ,0b000_0011, 0, 0b101, 0, 0, 0          ),
+    'addi'  : Opcode(RiscVType.TYPE_I ,0b001_0011, 0, 0b000, 0, 0, 0          ),
+    'slli'  : Opcode(RiscVType.TYPE_I2,0b001_0011, 0, 0b001, 0, 0, 0          ),
+    'slti'  : Opcode(RiscVType.TYPE_I ,0b001_0011, 0, 0b010, 0, 0, 0          ),
+    'sltiu' : Opcode(RiscVType.TYPE_I ,0b001_0011, 0, 0b011, 0, 0, 0          ),
+    'xori'  : Opcode(RiscVType.TYPE_I ,0b001_0011, 0, 0b100, 0, 0, 0          ),
+    'srli'  : Opcode(RiscVType.TYPE_I2,0b001_0011, 0, 0b101, 0, 0, 0          ),
+    'srai'  : Opcode(RiscVType.TYPE_I2,0b001_0011, 0, 0b101, 0, 0, 0b0100_000 ),
+    'ori'   : Opcode(RiscVType.TYPE_I ,0b001_0011, 0, 0b110, 0, 0, 0          ),
+    'andi'  : Opcode(RiscVType.TYPE_I ,0b001_0011, 0, 0b111, 0, 0, 0          ),
+    'jalr'  : Opcode(RiscVType.TYPE_I ,0b110_0111, 0, 0b000, 0, 0, 0          ),
 
-    'csrrw': Opcode(RiscVType.TYPE_I, 0b001, 0b111_0111),
-    'csrrs': Opcode(RiscVType.TYPE_I, 0b010, 0b111_0111),
-    'csrrc': Opcode(RiscVType.TYPE_I, 0b011, 0b111_0111),
-    'csrrwi':Opcode(RiscVType.TYPE_I, 0b101, 0b111_0111),
-    'csrrsi':Opcode(RiscVType.TYPE_I, 0b110, 0b111_0111),
-    'csrrci':Opcode(RiscVType.TYPE_I, 0b111, 0b111_0111),
+    'csrrw' : Opcode(RiscVType.TYPE_I ,0b111_0111, 0, 0b001, 0, 0, 0          ),
+    'csrrs' : Opcode(RiscVType.TYPE_I ,0b111_0111, 0, 0b010, 0, 0, 0          ),
+    'csrrc' : Opcode(RiscVType.TYPE_I ,0b111_0111, 0, 0b011, 0, 0, 0          ),
+    'csrrwi': Opcode(RiscVType.TYPE_I ,0b111_0111, 0, 0b101, 0, 0, 0          ),
+    'csrrsi': Opcode(RiscVType.TYPE_I ,0b111_0111, 0, 0b110, 0, 0, 0          ),
+    'csrrci': Opcode(RiscVType.TYPE_I ,0b111_0111, 0, 0b111, 0, 0, 0          ),
 
-    'auipc': Opcode(RiscVType.TYPE_U, 0, 0b001_0111),
-    'lui':   Opcode(RiscVType.TYPE_U, 0, 0b011_0111),
+    'auipc' : Opcode(RiscVType.TYPE_U ,0b001_0111, 0, 0b000, 0 ,0, 0          ),
+    'lui'   : Opcode(RiscVType.TYPE_U ,0b011_0111, 0, 0b000, 0 ,0, 0          ),
 
-    'add':   Opcode(RiscVType.TYPE_R, 0b000, 0b011_0011, 0b0000_000),
-    'sub':   Opcode(RiscVType.TYPE_R, 0b000, 0b011_0011, 0b0100_000),
-    'sll':   Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0000_000),
-    'slt':   Opcode(RiscVType.TYPE_R, 0b010, 0b011_0011, 0b0000_000),
-    'sltu':  Opcode(RiscVType.TYPE_R, 0b011, 0b011_0011, 0b0000_000),
-    'xor':   Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_000),
-    'srl':   Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0000_000),
-    'sra':   Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0100_000),
-    'or':    Opcode(RiscVType.TYPE_R, 0b110, 0b011_0011, 0b0000_000),
+    'add'   : Opcode(RiscVType.TYPE_R ,0b0000_000, 0, 0b000, 0, 0, 0b011_0011 ),
+    'sub'   : Opcode(RiscVType.TYPE_R ,0b0100_000, 0, 0b000, 0, 0, 0b011_0011 ),
+    'sll'   : Opcode(RiscVType.TYPE_R ,0b0000_000, 0, 0b001, 0, 0, 0b011_0011 ),
+    'slt'   : Opcode(RiscVType.TYPE_R ,0b0000_000, 0, 0b010, 0, 0, 0b011_0011 ),
+    'sltu'  : Opcode(RiscVType.TYPE_R ,0b0000_000, 0, 0b011, 0, 0, 0b011_0011 ),
+    'xor'   : Opcode(RiscVType.TYPE_R ,0b0000_000, 0, 0b100, 0, 0, 0b011_0011 ),
+    'srl'   : Opcode(RiscVType.TYPE_R ,0b0000_000, 0, 0b101, 0, 0, 0b011_0011 ),
+    'sra'   : Opcode(RiscVType.TYPE_R ,0b0100_000, 0, 0b101, 0, 0, 0b011_0011 ),
+    'or'    : Opcode(RiscVType.TYPE_R ,0b0000_000, 0, 0b110, 0, 0, 0b011_0011 ),
 
-    'mul':   Opcode(RiscVType.TYPE_R, 0b000, 0b011_0011, 0b0000_001),
-    'mulh':  Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0000_001),
-    'mulhsu':Opcode(RiscVType.TYPE_R, 0b010, 0b011_0011, 0b0000_001),
-    'mulhu': Opcode(RiscVType.TYPE_R, 0b011, 0b011_0011, 0b0000_001),
-    'div':   Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_001),
-    'divu':  Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0000_001),
-    'rem':   Opcode(RiscVType.TYPE_R, 0b110, 0b011_0011, 0b0000_001),
-    'remu':  Opcode(RiscVType.TYPE_R, 0b111, 0b011_0011, 0b0000_001),
+    'mul'   : Opcode(RiscVType.TYPE_R ,0b0000_001, 0, 0b000, 0, 0, 0b011_0011 ),
+    'mulh'  : Opcode(RiscVType.TYPE_R ,0b0000_001, 0, 0b001, 0, 0, 0b011_0011 ),
+    'mulhsu': Opcode(RiscVType.TYPE_R ,0b0000_001, 0, 0b010, 0, 0, 0b011_0011 ),
+    'mulhu' : Opcode(RiscVType.TYPE_R ,0b0000_001, 0, 0b011, 0, 0, 0b011_0011 ),
+    'div'   : Opcode(RiscVType.TYPE_R ,0b0000_001, 0, 0b100, 0, 0, 0b011_0011 ),
+    'divu'  : Opcode(RiscVType.TYPE_R ,0b0000_001, 0, 0b101, 0, 0, 0b011_0011 ),
+    'rem'   : Opcode(RiscVType.TYPE_R ,0b0000_001, 0, 0b110, 0, 0, 0b011_0011 ),
+    'remu'  : Opcode(RiscVType.TYPE_R ,0b0000_001, 0, 0b111, 0, 0, 0b011_0011 ),
 
-    'clz':   Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_000, 0b00000),
-    'ctz':   Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_000, 0b00001),
-    'cpop':  Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_000, 0b00010),
-    'rev8':  Opcode(RiscVType.TYPE_R, 0b101, 0b001_0011, 0b0110_100, 0b11000),
-    'rol':   Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0110_000),
-    'ror':   Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0110_000),
-    'rori':  Opcode(RiscVType.TYPE_R, 0b101, 0b001_0011, 0b0110_000),
+    'sext.h': Opcode(RiscVType.TYPE_R ,0b001_0011, 0, 0b001, 0, 0b00101, 0b0110_000 ),
+    'zext.h': Opcode(RiscVType.TYPE_R ,0b011_0011, 0, 0b100, 0, 0b00000, 0b0000_100 ),
+    'clz'   : Opcode(RiscVType.TYPE_R ,0b0110_000, 0, 0b001, 0, 0b00000, 0b001_0011 ),
+    'ctz'   : Opcode(RiscVType.TYPE_R ,0b0110_000, 0, 0b001, 0, 0b00001, 0b001_0011 ),
+    'cpop'  : Opcode(RiscVType.TYPE_R ,0b0110_000, 0, 0b001, 0, 0b00010, 0b001_0011 ),
+    'rev8'  : Opcode(RiscVType.TYPE_R ,0b0110_100, 0, 0b101, 0, 0b11000, 0b001_0011 ),
 
-    'bclr':  Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0100_100),
-    'bclri': Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0100_100),
-    'bext':  Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0100_100),
-    'bexti': Opcode(RiscVType.TYPE_R, 0b101, 0b001_0011, 0b0100_100),
-    'binv':  Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0110_100),
-    'binvi': Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_100),
-    'bset':  Opcode(RiscVType.TYPE_R, 0b001, 0b011_0011, 0b0010_100),
-    'bseti': Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0010_100),
+    'rol'   : Opcode(RiscVType.TYPE_R ,0b0110_000, 0, 0b001, 0, 0, 0b011_0011 ),
+    'ror'   : Opcode(RiscVType.TYPE_R ,0b0110_000, 0, 0b101, 0, 0, 0b011_0011 ),
+    'rori'  : Opcode(RiscVType.TYPE_R ,0b0110_000, 0, 0b101, 0, 0, 0b001_0011 ),
+    'bclr'  : Opcode(RiscVType.TYPE_R ,0b0100_100, 0, 0b001, 0, 0, 0b011_0011 ),
+    'bclri' : Opcode(RiscVType.TYPE_R ,0b0100_100, 0, 0b001, 0, 0, 0b001_0011 ),
+    'bext'  : Opcode(RiscVType.TYPE_R ,0b0100_100, 0, 0b101, 0, 0, 0b011_0011 ),
+    'bexti' : Opcode(RiscVType.TYPE_R ,0b0100_100, 0, 0b101, 0, 0, 0b001_0011 ),
+    'binv'  : Opcode(RiscVType.TYPE_R ,0b0110_100, 0, 0b001, 0, 0, 0b011_0011 ),
+    'binvi' : Opcode(RiscVType.TYPE_R ,0b0110_100, 0, 0b001, 0, 0, 0b001_0011 ),
+    'bset'  : Opcode(RiscVType.TYPE_R ,0b0010_100, 0, 0b001, 0, 0, 0b011_0011 ),
+    'bseti' : Opcode(RiscVType.TYPE_R ,0b0010_100, 0, 0b001, 0, 0, 0b001_0011 ),
 
-    'pack':  Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_100),
-    'packh': Opcode(RiscVType.TYPE_R, 0b111, 0b011_0011, 0b0000_100),
+    'pack'  : Opcode(RiscVType.TYPE_R ,0b011_0011, 0, 0b100, 0, 0, 0b0000_100 ),
+    'packh' : Opcode(RiscVType.TYPE_R ,0b011_0011, 0, 0b111, 0, 0, 0b0000_100 ),
+    'max'   : Opcode(RiscVType.TYPE_R ,0b011_0011, 0, 0b110, 0, 0, 0b0000_101 ),
+    'maxu'  : Opcode(RiscVType.TYPE_R ,0b011_0011, 0, 0b111, 0, 0, 0b0000_101 ),
+    'min'   : Opcode(RiscVType.TYPE_R ,0b011_0011, 0, 0b100, 0, 0, 0b0000_101 ),
+    'minu'  : Opcode(RiscVType.TYPE_R ,0b011_0011, 0, 0b101, 0, 0, 0b0000_101 ),
 
-    'max':   Opcode(RiscVType.TYPE_R, 0b110, 0b011_0011, 0b0000_101),
-    'maxu':  Opcode(RiscVType.TYPE_R, 0b111, 0b011_0011, 0b0000_101),
-    'min':   Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_101),
-    'minu':  Opcode(RiscVType.TYPE_R, 0b101, 0b011_0011, 0b0000_101),
+    'sb'    : Opcode(RiscVType.TYPE_S ,0b010_0011, 0, 0b000, 0, 0, 0),
+    'sh'    : Opcode(RiscVType.TYPE_S ,0b010_0011, 0, 0b001, 0, 0, 0),
+    'sw'    : Opcode(RiscVType.TYPE_S ,0b010_0011, 0, 0b010, 0, 0, 0),
 
-    'sext.h':Opcode(RiscVType.TYPE_R, 0b001, 0b001_0011, 0b0110_000, 0b00101),
-    'zext.h':Opcode(RiscVType.TYPE_R, 0b100, 0b011_0011, 0b0000_100, 0b00000),
+    'beq'   : Opcode(RiscVType.TYPE_B ,0b110_0011, 0, 0b000, 0, 0, 0),
+    'bne'   : Opcode(RiscVType.TYPE_B ,0b110_0011, 0, 0b001, 0, 0, 0),
+    'blt'   : Opcode(RiscVType.TYPE_B ,0b110_0011, 0, 0b100, 0, 0, 0),
+    'bge'   : Opcode(RiscVType.TYPE_B ,0b110_0011, 0, 0b101, 0, 0, 0),
+    'bltu'  : Opcode(RiscVType.TYPE_B ,0b110_0011, 0, 0b110, 0, 0, 0),
+    'bgeu'  : Opcode(RiscVType.TYPE_B ,0b110_0011, 0, 0b111, 0, 0, 0),
 
-    'sb':    Opcode(RiscVType.TYPE_S, 0b000, 0b010_0011),
-    'sh':    Opcode(RiscVType.TYPE_S, 0b001, 0b010_0011),
-    'sw':    Opcode(RiscVType.TYPE_S, 0b010, 0b010_0011),
-
-    'beq':   Opcode(RiscVType.TYPE_B, 0b000, 0b110_0011),
-    'bne':   Opcode(RiscVType.TYPE_B, 0b001, 0b110_0011),
-    'blt':   Opcode(RiscVType.TYPE_B, 0b100, 0b110_0011),
-    'bge':   Opcode(RiscVType.TYPE_B, 0b101, 0b110_0011),
-    'bltu':  Opcode(RiscVType.TYPE_B, 0b110, 0b110_0011),
-    'bgeu':  Opcode(RiscVType.TYPE_B, 0b111, 0b110_0011),
-
-    'jal':   Opcode(RiscVType.TYPE_J, 0b000, 0b110_1111)
+    'jal'   : Opcode(RiscVType.TYPE_J ,0b110_1111, 0, 0b000, 0, 0, 0)
 }
 
 #----- class
