@@ -60,6 +60,13 @@ OPCODES_T: Dict[str, Opcode] = {
     'andi':  Opcode(RiscVType.TYPE_I, 0b111, 0b001_0011),
     'jalr':  Opcode(RiscVType.TYPE_I, 0b000, 0b110_0111),
 
+    'csrrw': Opcode(RiscVType.TYPE_I, 0b001, 0b111_0111),
+    'csrrs': Opcode(RiscVType.TYPE_I, 0b010, 0b111_0111),
+    'csrrc': Opcode(RiscVType.TYPE_I, 0b011, 0b111_0111),
+    'csrrwi':Opcode(RiscVType.TYPE_I, 0b101, 0b111_0111),
+    'csrrsi':Opcode(RiscVType.TYPE_I, 0b110, 0b111_0111),
+    'csrrci':Opcode(RiscVType.TYPE_I, 0b111, 0b111_0111),
+
     'auipc': Opcode(RiscVType.TYPE_U, 0, 0b001_0111),
     'lui':   Opcode(RiscVType.TYPE_U, 0, 0b011_0111),
 
