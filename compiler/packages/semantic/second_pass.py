@@ -241,14 +241,8 @@ class SecondPass:
             if is_symbol:
                 # retrieve the symbol definition
                 symbol = symbols.get(op.name)
-
-                # only symbols that belongs to our segment can be resolved.
-                # others will emit relocation to be solved during pass #3
                 if symbol.defined:
-                    if symbol.section == self.current_section:
-                        return EvalResult(value=symbol.value)
-                    else:
-                        return EvalResult(reloc=Relocation('SYMBOL', op, symbol.value, pc)) # type: ignore
+                    return EvalResult(reloc=Relocation(symbol.type.name, op, 0, pc)) # type: ignore
 
             # for now we do not support multi-file compilation :(
             raise SyntaxError(f"Error: could not find definition for '{op.name}'")
