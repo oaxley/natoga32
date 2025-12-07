@@ -218,7 +218,7 @@ class Riscv(Architecture):
         # retrieve the operands
         rd = None
         rs1 = None
-        imm = None
+        imm = 0
         for i in operands:
             if i.reg is not None:
                 if rd is None:
@@ -241,13 +241,11 @@ class Riscv(Architecture):
                     reloc.append(i.reloc)
 
         # ensure all the value are not None
-        assert rd is not None
-        assert rs1 is not None
-        assert imm is not None
+        data = OPCODES_T[opcode]
+        rd = data.rd if rd is None else rd
+        rs1 = data.rs1 if rs1 is None else rs1
 
         # build the instruction
-        data = OPCODES_T[opcode]
-
         if is_uimm:
             imm = (data.funct7 << 5) | (imm & 31)
 
@@ -328,7 +326,7 @@ class Riscv(Architecture):
         # retrieve the operands
         rs2 = None
         rs1 = None
-        imm = None
+        imm = 0
         for i in operands:
             if i.reg is not None:
                 if rs2 is None:
@@ -352,11 +350,10 @@ class Riscv(Architecture):
                     reloc.append(r)
 
         # build the instruction
-        assert rs2 is not None
-        assert rs1 is not None
-        assert imm is not None
+        data = OPCODES_T[opcode]
+        rs1 = data.rs1 if rs1 is None else rs1
+        rs2 = data.rs2 if rs2 is None else rs2
 
-        op = OPCODES_T[opcode]
         imm4_0 = imm & 0b11111
         imm11_5 = imm >> 5
 
@@ -364,9 +361,9 @@ class Riscv(Architecture):
             (imm11_5 << 25) |
             (rs2 << 20) |
             (rs1 << 15) |
-            (op.funct3 << 12) |
+            (data.funct3 << 12) |
             (imm4_0 << 7) |
-            op.opcode
+            data.opcode
         )
 
         return (value.to_bytes(4, 'big'), reloc)
@@ -378,7 +375,7 @@ class Riscv(Architecture):
         # retrieve the operands
         rs1 = None
         rs2 = None
-        imm = None
+        imm = 0
         for i in operands:
             if i.reg is not None:
                 if rs1 is None:
@@ -394,9 +391,9 @@ class Riscv(Architecture):
                     reloc.append(i.reloc)
 
         # build the instruction
-        assert rs2 is not None
-        assert rs1 is not None
-        assert imm is not None
+        data = OPCODES_T[opcode]
+        rs1 = data.rs1 if rs1 is None else rs1
+        rs2 = data.rs2 if rs2 is None else rs2
 
         # check boundaries
         if imm & 0b1:
@@ -410,9 +407,7 @@ class Riscv(Architecture):
         imm4_1  = (imm >> 1 ) & 0xF
         imm11   = (imm >> 11) & 0x1
 
-        op = OPCODES_T[opcode]
-        funct3 = op.funct3
-
+        funct3 = data.funct3
         value = (
             (imm12   << 31) |
             (imm10_5 << 25) |
@@ -421,7 +416,7 @@ class Riscv(Architecture):
             (funct3  << 12) |
             (imm4_1  << 8 ) |
             (imm11   << 7 ) |
-            op.opcode
+            data.opcode
         )
 
         return (value.to_bytes(4, 'big'), reloc)
