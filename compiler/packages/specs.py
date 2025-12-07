@@ -25,7 +25,7 @@ TOKENS_SPECS = [
     (TokenType.NUMBER.name, r'0x[a-zA-Z0-9_]+|0b[01_]+|\b\d+\b'),
     (TokenType.DIRECTIVE.name, r'\.[A-Za-z_][A-Za-z0-9_]*'),
     (TokenType.LABEL.name, r'[A-Za-z_][A-Za-z0-9_]*:'),
-    (TokenType.IDENT.name, r'[A-Za-z_][A-Za-z0-9_-]*'),
+    (TokenType.IDENT.name, r'[A-Za-z_][A-Za-z0-9_\-\.]*'),
     (TokenType.ENVVAR.name, r'\$\[[^\]]*\]'),
     (TokenType.STRING.name, r'\"[^\"]*\"'),
     (TokenType.CHAR.name, r'\'.\''),
