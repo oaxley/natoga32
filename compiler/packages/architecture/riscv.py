@@ -128,7 +128,18 @@ OPCODES_T: Dict[str, Opcode] = {
     'bltu'  : Opcode(RiscVType.TYPE_B ,0b110_0011, 0, 0b110, 0, 0, 0),
     'bgeu'  : Opcode(RiscVType.TYPE_B ,0b110_0011, 0, 0b111, 0, 0, 0),
 
-    'jal'   : Opcode(RiscVType.TYPE_J ,0b110_1111, 0, 0b000, 0, 0, 0)
+    'jal'   : Opcode(RiscVType.TYPE_J ,0b110_1111, 0, 0b000, 0, 0, 0),
+
+    'ecall' : Opcode(RiscVType.TYPE_I, 0b111_0011, 0, 0b000, 0, 0, 0),
+    'mret'  : Opcode(RiscVType.TYPE_I, 0b111_0011, 0, 0b000, 0, 0b00010, 0),
+    'wfi'   : Opcode(RiscVType.TYPE_I, 0b111_0011, 0, 0b000, 0, 0b00101, 0b0001_000),
+
+    'new.t'  : Opcode(RiscVType.TYPE_R, 0b000_1011, 0, 0b000, 0, 0, 0),
+    'yield.t': Opcode(RiscVType.TYPE_I, 0b000_1011, 0, 0b001, 0, 0, 0),
+    'id.t'   : Opcode(RiscVType.TYPE_I, 0b000_1011, 0, 0b010, 0, 0, 0),
+    'sleep.t': Opcode(RiscVType.TYPE_I, 0b000_1011, 0, 0b100, 0, 0, 0),
+    'wake.t' : Opcode(RiscVType.TYPE_I, 0b000_1011, 0, 0b101, 0, 0, 0),
+    'end.t'  : Opcode(RiscVType.TYPE_I, 0b000_1011, 0, 0b111, 0, 0, 0),
 }
 
 #----- class
