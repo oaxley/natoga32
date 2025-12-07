@@ -15,7 +15,7 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
-from compiler.packages.ast import Instruction
+from packages.ast import Instruction
 
 from .interface import Architecture, CPU
 from packages.data_classes import EvalResult, Relocation

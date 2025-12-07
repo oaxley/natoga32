@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from enum import IntEnum, auto
 from typing import Any, Dict, List, Tuple, cast
 
-from compiler.packages.ast import Instruction
+from packages.ast import Instruction
 from packages.data_classes import EvalResult, Relocation
 
 from .interface import CPU, Architecture
