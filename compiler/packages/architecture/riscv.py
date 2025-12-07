@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from enum import IntEnum, auto
 from typing import Any, Dict, List, Tuple, cast
 
-from packages.ast import Instruction
+from packages import ast
 from packages.data_classes import EvalResult, Relocation
 
 from .interface import CPU, Architecture
@@ -463,6 +463,75 @@ class Riscv(Architecture):
 
         return (value.to_bytes(4, 'big'), reloc)
 
-    def expand(self, instr: Instruction) -> List[Instruction]:
+    def expand(self, instr: ast.Instruction) -> List[ast.Instruction]:
         """Expland the pseudo-instruction into their full instructions"""
-        return []
+        instructions: List[ast.Instruction] = []
+
+        if instr.opcode == "nop":
+            return [
+                ast.Instruction('addi', [
+                    ast.Identifier('zero'),
+                    ast.Identifier('zero'),
+                    ast.Number(0)
+                ])
+            ]
+
+        if instr.opcode == "mv":
+            return [
+                ast.Instruction('addi', [
+                    instr.operands[0],
+                    instr.operands[1],
+                    ast.Number(0)
+                ])
+            ]
+
+        if instr.opcode == "call":
+            target = cast(ast.Identifier, instr.operands[0])
+            return [
+                ast.Instruction('auipc', [
+                    ast.Identifier('x1'),
+                    ast.PCRelHi(ast.Identifier(target.name))
+                ]),
+                ast.Instruction('jalr', [
+                    ast.Identifier('x1'),
+                    ast.PCRelLo(ast.Identifier(target.name)),
+                    ast.Identifier('x1')
+                ])
+            ]
+
+        if instr.opcode == "li":
+            rd, imm = instr.operands
+
+            if isinstance(imm, ast.Number):
+                if -2048 <= imm.value <= 2047:
+                    return [
+                        ast.Instruction("addi", [rd, ast.Identifier('x0'), imm])
+                    ]
+
+                # big constant
+                upper = (imm.value + 0x800) >> 12
+                lower = imm.value - (upper << 12)
+
+                return [
+                    ast.Instruction("lui", [rd, ast.Number(upper)]),
+                    ast.Instruction("addi", [rd, rd, ast.Number(lower)])
+                ]
+
+            if isinstance(imm, ast.Expression):
+                return [
+                    ast.Instruction("lui", [rd, ast.HiRel(imm)]),
+                    ast.Instruction("addi", [rd, rd, ast.LoRel(imm)])
+                ]
+
+        if instr.opcode == "ret":
+            return [
+                ast.Instruction("jalr", [
+                    ast.Identifier('x0'),
+                    ast.Identifier('x1'),
+                    ast.Number(0)])
+            ]
+
+        else:
+            instructions.append(instr)
+
+        return instructions
