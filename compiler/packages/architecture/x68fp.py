@@ -15,6 +15,8 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
+from compiler.packages.ast import Instruction
+
 from .interface import Architecture, CPU
 from packages.data_classes import EvalResult, Relocation
 
@@ -35,3 +37,7 @@ class X68fp(Architecture):
     def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode the instruction with its operands"""
         return (b"\x00", [])
+
+    def expand(self, instr: Instruction) -> List[Instruction]:
+        """Expand pseudo-instructions"""
+        return [instr]

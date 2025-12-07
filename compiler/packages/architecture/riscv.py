@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from enum import IntEnum, auto
 from typing import Any, Dict, List, Tuple, cast
 
+from compiler.packages.ast import Instruction
 from packages.data_classes import EvalResult, Relocation
 
 from .interface import CPU, Architecture
@@ -189,7 +190,8 @@ class Riscv(Architecture):
         """Encode the instruction with its operands"""
 
         # operands
-        print(operands)
+        if len(operands) > 0:
+            print(operands)
 
         if opcode in OPCODES_T:
             match OPCODES_T[opcode].type:
@@ -460,3 +462,7 @@ class Riscv(Architecture):
         )
 
         return (value.to_bytes(4, 'big'), reloc)
+
+    def expand(self, instr: Instruction) -> List[Instruction]:
+        """Expland the pseudo-instruction into their full instructions"""
+        return []

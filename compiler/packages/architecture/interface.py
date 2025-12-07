@@ -19,6 +19,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from packages.data_classes import EvalResult, Relocation
+from packages.ast import Instruction
 
 
 #----- classes
@@ -53,3 +54,7 @@ class Architecture(ABC):
     @abstractmethod
     def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode the instruction with its operands"""
+
+    @abstractmethod
+    def expand(self, instr: Instruction) -> List[Instruction]:
+        """Expand an instruction into a list of instructions"""
