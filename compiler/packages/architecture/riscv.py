@@ -470,37 +470,9 @@ class Riscv(Architecture):
         """Expland the pseudo-instruction into their full instructions"""
         instructions: List[ast.Instruction] = []
 
-        if instr.opcode == "nop":
-            return [
-                ast.Instruction('addi', [
-                    ast.Identifier('zero'),
-                    ast.Identifier('zero'),
-                    ast.Number(0)
-                ])
-            ]
-
-        if instr.opcode == "mv":
-            return [
-                ast.Instruction('addi', [
-                    instr.operands[0],
-                    instr.operands[1],
-                    ast.Number(0)
-                ])
-            ]
-
-        if instr.opcode == "call":
-            target = cast(ast.Identifier, instr.operands[0])
-            return [
-                ast.Instruction('auipc', [
-                    ast.Identifier('x1'),
-                    ast.PCRelHi(ast.Identifier(target.name))
-                ]),
-                ast.Instruction('jalr', [
-                    ast.Identifier('x1'),
-                    ast.PCRelLo(ast.Identifier(target.name)),
-                    ast.Identifier('x1')
-                ])
-            ]
+        instr_0arg = ['nop', 'ret']
+        instr_1arg = ['call', 'j', 'jr']
+        instr_2arg = ['mv', 'seqz', 'snez', 'sltz', 'sgtz']
 
         if instr.opcode == "li":
             rd, imm = instr.operands
@@ -526,13 +498,46 @@ class Riscv(Architecture):
                     ast.Instruction("addi", [rd, rd, ast.LoRel(imm)])
                 ]
 
-        if instr.opcode == "ret":
-            return [
-                ast.Instruction("jalr", [
-                    ast.Identifier('x0'),
-                    ast.Identifier('x1'),
-                    ast.Number(0)])
-            ]
+        elif instr.opcode in instr_0arg:
+            zero = ast.Identifier('zero')
+            match instr.opcode:
+                case "nop":
+                    return [ ast.Instruction('addi', [zero, zero, ast.Number(0)]) ]
+                case "ret":
+                    return [ast.Instruction("jalr", [ zero, ast.Identifier('x1'), ast.Number(0)])]
+
+        elif instr.opcode in instr_1arg:
+            target = cast(ast.Identifier, instr.operands[0])
+            offset = ast.Identifier(target.name)
+            x0 = ast.Identifier('x0')
+            x1 = ast.Identifier('x1')
+            match instr.opcode:
+                case "call":
+                    return [
+                        ast.Instruction('auipc', [x1, ast.PCRelHi(offset)]),
+                        ast.Instruction('jalr', [x1, ast.PCRelLo(offset), x1])
+                    ]
+                case "j":
+                    return [ ast.Instruction('jal', [x0, offset]) ]
+                case "jr":
+                    return [ ast.Instruction('jal', [x1, offset])]
+
+        elif instr.opcode in instr_2arg:
+            rd = instr.operands[0]
+            rs = instr.operands[1]
+
+            match instr.opcode:
+                case "mv":
+                    return [ast.Instruction('addi', [rd, rs, ast.Number(0)])]
+                case "seqz":
+                    return [ast.Instruction('sltiu', [rd, rs, ast.Number(1)])]
+                case "snez":
+                    return [ast.Instruction('sltu', [rd, ast.Identifier('x0'), rs])]
+                case "sltz":
+                    return [ast.Instruction('slt', [rd, rs, ast.Identifier('x0')])]
+                case "sgtz":
+                    return [ast.Instruction('slt', [rd, ast.Identifier('x0'), rs])]
+
 
         else:
             instructions.append(instr)
