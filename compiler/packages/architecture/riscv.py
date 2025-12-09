@@ -251,11 +251,12 @@ class Riscv(Architecture):
         if is_uimm:
             imm = (data.funct7 << 5) | (imm & 31)
 
+        funct3 = data.funct3
         value = (
-            (imm << 20) |
-            (rs1 << 15) |
-            (data.funct3 << 12) |
-            (rd << 7) |
+            (imm    << 20) |
+            (rs1    << 15) |
+            (funct3 << 12) |
+            (rd     << 7 ) |
             data.opcode
         )
 
@@ -285,7 +286,7 @@ class Riscv(Architecture):
 
         value = (
             (imm << 12) |
-            (rd << 7) |
+            (rd  << 7 ) |
             OPCODES_T[opcode].opcode
         )
 
@@ -309,14 +310,15 @@ class Riscv(Architecture):
         else:
             rs2 = OPCODES_T[opcode].rs2
 
-        op = OPCODES_T[opcode]
+        funct3 = OPCODES_T[opcode].funct3
+        funct7 = OPCODES_T[opcode].funct7
         value = (
-            (op.funct7 << 25) |
-            (rs2 << 20) |
-            (rs1 << 15) |
-            (op.funct3 << 12) |
-            (rd << 7) |
-            op.opcode
+            (funct7 << 25) |
+            (rs2    << 20) |
+            (rs1    << 15) |
+            (funct3 << 12) |
+            (rd     << 7 ) |
+            OPCODES_T[opcode].opcode
         )
 
         return (value.to_bytes(4, 'big'), [])
@@ -358,13 +360,14 @@ class Riscv(Architecture):
 
         imm4_0 = imm & 0b11111
         imm11_5 = imm >> 5
+        funct3 = data.funct3
 
         value = (
             (imm11_5 << 25) |
-            (rs2 << 20) |
-            (rs1 << 15) |
-            (data.funct3 << 12) |
-            (imm4_0 << 7) |
+            (rs2     << 20) |
+            (rs1     << 15) |
+            (funct3  << 12) |
+            (imm4_0  << 7 ) |
             data.opcode
         )
 
