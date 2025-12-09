@@ -73,7 +73,7 @@ class FirstPass:
                 self._d_data(directive.name, directive.args)
             case '.asciz':
                 self._d_string(directive.args[0], True)
-            case '.ascii':
+            case '.string':
                 self._d_string(directive.args[0], False)
             case '.entrypoint':
                 self._d_entry(directive.args[0])
@@ -197,7 +197,7 @@ class FirstPass:
         section.offset += size * len(args)
 
     def _d_string(self, arg: ast.Node, is_nul: bool) -> None:
-        """Handle .asciz / .ascii directives
+        """Handle .asciz / .string directives
 
         Args:
             arg (ast.Node): a string literal
