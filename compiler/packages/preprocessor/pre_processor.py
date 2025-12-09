@@ -91,7 +91,7 @@ class PreProcessor:
                     continue
 
                 # --- .define
-                elif token.value == '.define':
+                elif token.value in ['.define', '.equ']:
                     handle_define(ts, self.symbols)
                     continue
 
