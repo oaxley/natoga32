@@ -9,7 +9,7 @@
 # @author	Sebastien LEGRAND
 # @license	MIT License
 #
-# @brief	Handle DUP macro
+# @brief	Handle .dup macro
 
 #----- imports
 from __future__ import annotations
@@ -23,64 +23,69 @@ from . import helper
 
 #----- functions
 def apply_dup(tokens: List[Token], symbols: SymbolTable) -> List[Token]:
-    """Expands 'VALUE DUP(x)' pattern, which repeats x times the VALUE
+    """Expand the .dup directive
 
     Args:
-        tokens (List[Token]): the list of tokens from the Lexer
+        tokens (List[Token]): the input list of tokens from the Lexer
+        symbols (SymbolTable): the symbol table
 
     Returns:
-        List[Token]: a new list of tokens to replace the DUP sequence
+        List[Token]: the new list of tokens with the '.dup' expanded
     """
     result: List[Token] = []
     i = 0
-
     while i < len(tokens):
         token = tokens[i]
 
-        # look for pattern VALUE DUP( expr )
-        if (
-            i + 3 < len(tokens)
-            and tokens[i+1].type == TokenType.IDENT
-            and tokens[i+1].value.upper() == 'DUP'
-            and tokens[i+2].type == TokenType.LPARENT
-        ):
-            # find the matching RPARENT
-            j = i + 3
-            depth = 1
-            while (j < len(tokens)) and (depth > 0):
-                if tokens[j].type == TokenType.LPARENT:
-                    depth += 1
-                if tokens[j].type == TokenType.RPARENT:
-                    depth -= 1
-                j += 1
+        if (token.type == TokenType.DIRECTIVE) and (token.value.upper() == '.DUP'):
+            # expression
+            if tokens[i+1].type == TokenType.LPARENT:
+                # find the matching pair
+                j = i+2
+                depth = 1
+                while (j < len(tokens)) and (depth > 0):
+                    if tokens[j].type == TokenType.LPARENT:
+                        depth += 1
+                    if tokens[j].type == TokenType.RPARENT:
+                        depth -= 1
+                    j += 1
 
-            if depth != 0:
-                raise SyntaxError("Unmatched parenthesis in DUP expression")
+                if depth != 0:
+                    raise SyntaxError("Error: unmatched parenthesis in .dup expression")
 
-            # retrieve all the tokens from the expression and evaluate it
-            expr = tokens[i+3:j-1]
-            count = helper.evaluate_expr(expr, symbols)
+                # compute the expression
+                expr = tokens[i+2:j-1]
+                count = helper.evaluate_expr(expr, symbols)
+
+            elif tokens[i+1].type == TokenType.NUMBER:
+                count = int(tokens[i+1].value)
+                j = i+2
+
+            else:
+                raise SyntaxError("Error: wrong expression type in .dup directive")
 
             if count < 0:
-                raise SyntaxError("DUP count must be non-negative")
+                raise SyntaxError("Error: negative count in .dup expression")
 
-            # check if the token is in the symbol table
+            # retrieve the symbol to duplicate
+            token = tokens[j]
+
+            # check the symbol table for this token
             if symbols.exists(token.value):
                 symbol = symbols.get(token.value)
                 value = Token(TokenType.NUMBER, str(symbol.value), token.row, token.col)
             else:
                 value = helper.clone_token(token)
 
-            # replace the whole expression
+            # replace the initial expression
+            comma = Token(TokenType.COMMA, ",", token.row, token.col)
             for _ in range(count):
-                result.append(value)
-                result.append(Token(TokenType.COMMA, ",", token.row, token.col))
+                result += [ value, comma ]
 
-            # move forward
-            i = j
+            i = j + 1
             continue
 
-        # keep adding normal tokens
+        # add other tokens without modifying them
         result.append(token)
         i += 1
 
