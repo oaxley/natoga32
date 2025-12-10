@@ -61,7 +61,7 @@ class SecondPass:
                 self._d_align(directive.args[0])
             case '.org':
                 self._d_org(directive.args[0])
-            case '.byte' | '.half' | '.word':
+            case '.byte' | '.half' | '.short' | '.word':
                 self._d_data(directive.name, directive.args)
             case '.asciz':
                 self._d_string(directive.args[0], True)
@@ -143,7 +143,7 @@ class SecondPass:
         match directive:
             case '.byte':
                 size = arch.config.byte
-            case '.half':
+            case '.half' | '.short':
                 size = arch.config.half
             case '.word':
                 size = arch.config.word
