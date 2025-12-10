@@ -470,9 +470,23 @@ class Riscv(Architecture):
         """Expland the pseudo-instruction into their full instructions"""
         instructions: List[ast.Instruction] = []
 
+        #--- lambdas definition
+        # create the label identifier from an operand
+        label = lambda x: ast.Identifier(cast(ast.Identifier, instr.operands[x]).name)
+
+        # create the register identifier
+        x = lambda n: ast.Identifier(f"x{n}")
+
+        # definition of the number '0'
+        zero = ast.Number(0)
+
+        # groups of aliases to expand
         instr_0arg = ['nop', 'ret']
         instr_1arg = ['call', 'j', 'jr']
         instr_2arg = ['mv', 'seqz', 'snez', 'sltz', 'sgtz']
+        branch_1 = ['beqz', 'bnez', 'blez', 'bgez', 'bltz', 'bgtz']
+        branch_2 = ['bgt', 'ble', 'bgtu', 'bleu']
+
 
         if instr.opcode == "li":
             rd, imm = instr.operands
@@ -480,7 +494,7 @@ class Riscv(Architecture):
             if isinstance(imm, ast.Number):
                 if -2048 <= imm.value <= 2047:
                     return [
-                        ast.Instruction("addi", [rd, ast.Identifier('x0'), imm])
+                        ast.Instruction("addi", [rd, x(0), imm])
                     ]
 
                 # big constant
@@ -499,28 +513,24 @@ class Riscv(Architecture):
                 ]
 
         elif instr.opcode in instr_0arg:
-            zero = ast.Identifier('zero')
             match instr.opcode:
                 case "nop":
-                    return [ ast.Instruction('addi', [zero, zero, ast.Number(0)]) ]
+                    return [ ast.Instruction('addi', [x(0), x(0), zero]) ]
                 case "ret":
-                    return [ast.Instruction("jalr", [ zero, ast.Identifier('x1'), ast.Number(0)])]
+                    return [ast.Instruction("jalr", [ x(0), x(1), zero])]
 
         elif instr.opcode in instr_1arg:
-            target = cast(ast.Identifier, instr.operands[0])
-            offset = ast.Identifier(target.name)
-            x0 = ast.Identifier('x0')
-            x1 = ast.Identifier('x1')
+            offset = label(0)
             match instr.opcode:
                 case "call":
                     return [
-                        ast.Instruction('auipc', [x1, ast.PCRelHi(offset)]),
-                        ast.Instruction('jalr', [x1, ast.PCRelLo(offset), x1])
+                        ast.Instruction('auipc', [x(1), ast.PCRelHi(offset)]),
+                        ast.Instruction('jalr', [x(1), ast.PCRelLo(offset), x(1)])
                     ]
                 case "j":
-                    return [ ast.Instruction('jal', [x0, offset]) ]
+                    return [ ast.Instruction('jal', [x(0), offset]) ]
                 case "jr":
-                    return [ ast.Instruction('jal', [x1, offset])]
+                    return [ ast.Instruction('jal', [x(1), offset])]
 
         elif instr.opcode in instr_2arg:
             rd = instr.operands[0]
@@ -528,16 +538,48 @@ class Riscv(Architecture):
 
             match instr.opcode:
                 case "mv":
-                    return [ast.Instruction('addi', [rd, rs, ast.Number(0)])]
+                    return [ast.Instruction('addi', [rd, rs, zero])]
                 case "seqz":
                     return [ast.Instruction('sltiu', [rd, rs, ast.Number(1)])]
                 case "snez":
-                    return [ast.Instruction('sltu', [rd, ast.Identifier('x0'), rs])]
+                    return [ast.Instruction('sltu', [rd, x(0), rs])]
                 case "sltz":
-                    return [ast.Instruction('slt', [rd, rs, ast.Identifier('x0')])]
+                    return [ast.Instruction('slt', [rd, rs, x(0)])]
                 case "sgtz":
-                    return [ast.Instruction('slt', [rd, ast.Identifier('x0'), rs])]
+                    return [ast.Instruction('slt', [rd, x(0), rs])]
 
+        elif instr.opcode in branch_1:
+            rs = instr.operands[0]
+            offset = label(1)
+
+            match instr.opcode:
+                case 'beqz':
+                    return [ast.Instruction('beq', [rs, x(0), offset])]
+                case 'bnez':
+                    return [ast.Instruction('bne', [rs, x(0), offset])]
+                case 'blez':
+                    return [ast.Instruction('bge', [x(0), rs, offset])]
+                case 'bgez':
+                    return [ast.Instruction('bge', [rs, x(0), offset])]
+                case 'bltz':
+                    return [ast.Instruction('blt', [rs, x(0), offset])]
+                case 'bgtz':
+                    return [ast.Instruction('blt', [x(0), rs, offset])]
+
+        elif instr.opcode in branch_2:
+            rs = instr.operands[0]
+            rt = instr.operands[1]
+            offset = label(2)
+
+            match instr.opcode:
+                case 'bgt':
+                    return [ast.Instruction('blt', [rt, rs, offset])]
+                case 'ble':
+                    return [ast.Instruction('bge', [rt, rs, offset])]
+                case 'bgtu':
+                    return [ast.Instruction('bltu', [rt, rs, offset])]
+                case 'bleu':
+                    return [ast.Instruction('bgeu', [rt, rs, offset])]
 
         else:
             instructions.append(instr)
