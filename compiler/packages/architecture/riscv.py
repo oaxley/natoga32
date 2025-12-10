@@ -487,7 +487,6 @@ class Riscv(Architecture):
         branch_1 = ['beqz', 'bnez', 'blez', 'bgez', 'bltz', 'bgtz']
         branch_2 = ['bgt', 'ble', 'bgtu', 'bleu']
 
-
         if instr.opcode == "li":
             rd, imm = instr.operands
 
@@ -588,6 +587,24 @@ class Riscv(Architecture):
                     return [ast.Instruction('bltu', [rt, rs, offset])]
                 case 'bleu':
                     return [ast.Instruction('bgeu', [rt, rs, offset])]
+
+        # misc pseudo-instruction
+        elif instr.opcode == "syscall":
+            param = instr.operands[0]
+            if isinstance(param, ast.Number):
+                return [
+                    ast.Instruction("addi", [x(1), x(0), param]),
+                    ast.Instruction("ecall", [])
+                ]
+            elif isinstance(param, ast.Identifier):
+                r, _ = self.is_register(param.name)
+                if r:
+                    return [
+                        ast.Instruction("add", [x(1), x(0), param]),
+                        ast.Instruction("ecall", [])
+                    ]
+                else:
+                    raise SyntaxError(f"Error: {param.name} is not a valid register in syscall")
 
         else:
             instructions.append(instr)
