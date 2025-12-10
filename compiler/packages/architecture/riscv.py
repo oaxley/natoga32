@@ -483,7 +483,7 @@ class Riscv(Architecture):
         # groups of aliases to expand
         instr_0arg = ['nop', 'ret']
         instr_1arg = ['call', 'j', 'jr']
-        instr_2arg = ['mv', 'seqz', 'snez', 'sltz', 'sgtz']
+        instr_2arg = ['mv', 'seqz', 'snez', 'sltz', 'sgtz', 'not', 'neg']
         branch_1 = ['beqz', 'bnez', 'blez', 'bgez', 'bltz', 'bgtz']
         branch_2 = ['bgt', 'ble', 'bgtu', 'bleu']
 
@@ -554,6 +554,10 @@ class Riscv(Architecture):
                     return [ast.Instruction('slt', [rd, rs, x(0)])]
                 case "sgtz":
                     return [ast.Instruction('slt', [rd, x(0), rs])]
+                case "not":
+                    return [ast.Instruction('xori', [rd, rs, ast.Number(-1)])]
+                case "neg":
+                    return [ast.Instruction('sub', [rd, x(0), rs])]
 
         elif instr.opcode in branch_1:
             rs = instr.operands[0]
