@@ -512,6 +512,14 @@ class Riscv(Architecture):
                     ast.Instruction("addi", [rd, rd, ast.LoRel(imm)])
                 ]
 
+        elif instr.opcode == "la":
+            rd = instr.operands[0]
+            offset = label(1)
+            return [
+                ast.Instruction('auipc', [rd, ast.PCRelHi(offset)]),
+                ast.Instruction('addi', [rd, rd, ast.PCRelLo(offset)])
+            ]
+
         elif instr.opcode in instr_0arg:
             match instr.opcode:
                 case "nop":
