@@ -22,3 +22,4 @@ from .token_type import TokenType
 from .token import Token
 
 from .lexer import re_patterns
+from .config import Config
