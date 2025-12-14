@@ -15,9 +15,7 @@
 from __future__ import annotations
 from typing import List, Union, TextIO
 
-from packages.token import Token, TokenType
-from packages.specs import RE_PATTERNS
-
+from packages.structs import Token, TokenType, re_patterns, Config
 
 #----- class
 class Lexer:
@@ -28,24 +26,27 @@ class Lexer:
         self._row: int = 0
         self._tokens: List[Token] = []
 
-    def parse(self, content: Union[str, TextIO]) -> None:
-        """Parse either from a file or a string
+    def parse(self, input: Union[str, TextIO, Config]) -> None:
+        """Parse an input (file, string) and extract tokens
 
         Args:
-            content (Union[str, TextIO]): either a string buffer or IO File
+            input (Union[str, TextIO, Config]): string, buffer or the configuration
         """
-        if isinstance(content, str):
-            # content is a string buffer
-            for line in content.splitlines():
-                self._row = self._row + 1
-                self._tokenize(line)
-        else:
-            # content is a file handler
-            for line in content:
-                self._row = self._row + 1
+        if isinstance(input, str):
+            for line in input.splitlines():
+                self._row += 1
                 self._tokenize(line)
 
-        # end of file
+        elif isinstance(input, TextIO):
+            for line in input:
+                self._row += 1
+                self._tokenize(line)
+
+        elif isinstance(input, Config):
+            with open(Config.infile, "r", encoding="utf-8") as fh:
+                self.parse(fh)
+
+        # add the end of file
         self._tokens.append(Token(TokenType.EOF, "", self._row, 0))
 
     def _tokenize(self, line: str) -> None:
@@ -59,7 +60,7 @@ class Lexer:
 
         column = 0
         need_eol = False
-        for match in RE_PATTERNS.finditer(line):
+        for match in re_patterns.finditer(line):
             kind = match.lastgroup
             value = match.group()
             column = match.start() + 1
