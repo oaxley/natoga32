@@ -21,3 +21,4 @@ from .symbol import Symbol
 from .token_type import TokenType
 from .token import Token
 
+from .lexer import re_patterns
