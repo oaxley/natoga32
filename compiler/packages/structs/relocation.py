@@ -12,9 +12,9 @@
 # @brief	Relocation dataclass
 
 #----- imports
-from typing import Any, Dict, List
 from dataclasses import dataclass
 
+from packages import ast
 
 #----- class
 @dataclass
