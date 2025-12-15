@@ -12,10 +12,9 @@
 # @brief	Handle token pasting '##'
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List
+from typing import List
 
-from packages.token import Token, TokenStream, TokenType
+from packages.structs import Token, TokenType
 
 
 #----- functions

@@ -12,17 +12,16 @@
 # @brief	Handle '.define' directive
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List
+from typing import List
 
-from packages.token import Token, TokenStream, TokenType
-from packages.symbols import SymbolTable, SymbolType
+from packages.structs import TokenType, Token, SymbolType
+from packages.classes import TokenStream, SymbolTable
 
-from . import helper
+from packages.functions import get_value, evaluate_expr
 
 
 #----- functions
-def handle_define(ts: TokenStream, symbols: SymbolTable) -> None:
+def define(ts: TokenStream, symbols: SymbolTable) -> None:
     """Handle .define directive
 
     Args:
@@ -33,7 +32,7 @@ def handle_define(ts: TokenStream, symbols: SymbolTable) -> None:
     ts.advance()        # remove the .define
 
     # retrieve the name
-    name = helper.get_value(ts, TokenType.IDENT)
+    name = get_value(ts, TokenType.IDENT)
 
     # grab all the tokens up to EOL
     tokens: List[Token] = []
@@ -47,7 +46,7 @@ def handle_define(ts: TokenStream, symbols: SymbolTable) -> None:
         ts.advance()
 
     # compute the value
-    value = helper.evaluate_expr(tokens, symbols)
+    value = evaluate_expr(tokens, symbols)
 
     # add the information to the symbol table
     symbols.define(name, value, SymbolType.DEFINE, None)
