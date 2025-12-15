@@ -34,7 +34,7 @@ class PreProcessor:
     def __init__(self, config: Config) -> None:
         """Constructor"""
         self.config = config
-        self.macros: Dict[str, MacroDefinition]
+        self.macros: Dict[str, MacroDefinition] = {}
 
 
     def process(self) -> List[Token]:
@@ -82,33 +82,32 @@ class PreProcessor:
 
                 # --- .include
                 elif token.value == '.include':
-                    included = include(ts, current_file)
-                    included = self.process(included, current_file)
+                    ts.advance()
+                    filename = ts.peek()
+                    included = include(filename.value, self.config)
+                    included = self._process_tokens(included, symbols)
                     included = apply_token_pasting(included)
-                    included = apply_dup(included, self.symbols)
                     out.extend(included)
                     continue
 
                 # --- .for
                 elif token.value == '.for':
-                    expanded = handle_for_loop(ts, self.symbols)
+                    expanded = handle_for_loop(ts, symbols)
                     expanded = apply_token_pasting(expanded)
-                    expanded = apply_dup(expanded, self.symbols)
-                    expanded = self.process(expanded, current_file)
+                    expanded = self._process_tokens(expanded, symbols)
                     out.extend(expanded)
                     continue
 
                 # --- .define
                 elif token.value in ['.define', '.equ']:
-                    define(ts, self.symbols)
+                    define(ts, symbols)
                     continue
 
                 # --- .if / .ifdef / .ifndef
                 elif token.value in [ '.if', '.ifdef', '.ifndef']:
-                    block = handle_conditionals(ts, self.symbols)
+                    block = handle_conditionals(ts, symbols)
                     block = apply_token_pasting(block)
-                    block = apply_dup(block, self.symbols)
-                    block = self.process(block, current_file)
+                    block = self._process_tokens(block, symbols)
                     out.extend(block)
                     continue
 
@@ -119,8 +118,7 @@ class PreProcessor:
                 if token.value in self.macros:
                     expanded = expand_macro(self.macros[token.value], ts)
                     expanded = apply_token_pasting(expanded)
-                    expanded = apply_dup(expanded, symbols)
-                    expanded = self.process(expanded, current_file)
+                    expanded = self._process_tokens(expanded, symbols)
                     out.extend(expanded)
                     continue
 
@@ -136,7 +134,7 @@ class PreProcessor:
 
         # apply pasting and 'dup' one last time
         out = apply_token_pasting(out)
-        # out = apply_dup(out, self.symbols)
+        out = apply_dup(out, symbols)
 
         return out
 
