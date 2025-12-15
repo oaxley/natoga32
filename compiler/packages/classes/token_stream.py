@@ -12,11 +12,9 @@
 # @brief	TokenStream class
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, Union
 
-from .token_dataclass import Token
-from .token_type import TokenType
+from packages.structs import Token, TokenType
 
 
 #----- class
@@ -28,20 +26,15 @@ class TokenStream:
         self.tokens = tokens
         self.pos = 0
 
-    def peek(self, inc: int = 0) -> Optional[Token]:
+    def peek(self) -> Optional[Token]:
         """Return the next token, without consuming it
-
-        Args:
-            inc (int): the increment to look beyond the next token (default:0)
 
         Returns:
             Optional[Token]: None if we are beyond boundaries, the next token otherwise
         """
-        idx = self.pos + inc
-        if (idx < 0) or (idx >= len(self.tokens)):
+        if self.pos >= len(self.tokens):
             return None
-
-        return self.tokens[idx]
+        return self.tokens[self.pos]
 
     def advance(self) -> Optional[Token]:
         """Return the current token and move the cursor forward to the next token
