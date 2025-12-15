@@ -16,31 +16,14 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+
+from packages.structs import CPU
 
 from packages.data_classes import EvalResult, Relocation
 from packages.ast import Instruction
 
 
 #----- classes
-@dataclass
-class CPU:
-    """CPU Configuration
-
-    Members:
-    - instr_size (int): the size of an instruction in byte
-    - xlen (int): the size of an instruction in bit
-    - byte (int): the size associated with the ".byte" directive
-    - half (int): the size associated with the ".half" directive
-    - word (int): the size associated with the ".word" directive
-    """
-    instr_size: int = 0
-    xlen: int = 0
-    byte: int = 0
-    half: int = 0
-    word: int = 0
-
-
 class Architecture(ABC):
     """Generic Architecture"""
 
