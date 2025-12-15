@@ -9,49 +9,15 @@
 # @author	Sebastien LEGRAND
 # @license	MIT License
 #
-# @brief	Symbol table management
+# @brief	SymbolTable class
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
-from dataclasses import dataclass
-from enum import IntEnum, auto
-
-from packages.token import Token
-
-#----- classes
-
-# symbol types
-class SymbolType(IntEnum):
-    LABEL = auto()
-    DEFINE = auto()
-    MACRO = auto()
-    UNKNOWN = auto()
+from packages.structs import Symbol, SymbolType
 
 
-# a single symbol
-@dataclass
-class Symbol:
-    """Symbol definition
-
-    Members:
-    - name (str): the name of the symbol
-    - value (Optional[int]): numeric value / address of the symbol
-    - type (SymbolType): the type of the symbol
-    - section (Optional[str]): the section where the symbol is defined, or None
-    - defined (bool): True if the symbol has been assigned
-    """
-    name: str
-    value: Optional[int]
-    type: SymbolType
-    section: Optional[str] = None
-    defined: bool = False
-
-    def __repr__(self) -> str:
-        return f"""name: {self.name:<10} | value: {self.value if self.value is not None else "":<8} | type: {self.type.name:<10} | section: {self.section if self.section else "":<5} | defined: {self.defined}"""
-
-
+#----- class
 class SymbolTable:
 
     def __init__(self) -> None:
