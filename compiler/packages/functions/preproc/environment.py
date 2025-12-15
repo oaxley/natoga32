@@ -9,20 +9,19 @@
 # @author	Sebastien LEGRAND
 # @license	MIT License
 #
-# @brief	Process environment variables in the source code
+# @brief	Manage environment variables during pre-processing
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List
+from typing import List
 
 import os
 
-from packages.token import Token, TokenStream, TokenType
+from packages.structs import Token, TokenType
+from packages.classes import TokenStream
 
 
 #----- functions
-
-def handle_envvar(tokens: List[Token]) -> List[Token]:
+def envvar(tokens: List[Token]) -> List[Token]:
     """Process the token list and expand the environment variables
 
     Args:
