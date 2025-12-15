@@ -32,19 +32,20 @@ class Lexer:
         Args:
             input (Union[str, TextIO, Config]): string, buffer or the configuration
         """
-        if isinstance(input, str):
+        if isinstance(input, Config):
+            with open(input.infile, "r", encoding="utf-8") as fh:
+                self.parse(fh)
+            return
+
+        elif isinstance(input, str):
             for line in input.splitlines():
                 self._row += 1
                 self._tokenize(line)
 
-        elif isinstance(input, TextIO):
+        else:
             for line in input:
                 self._row += 1
                 self._tokenize(line)
-
-        elif isinstance(input, Config):
-            with open(Config.infile, "r", encoding="utf-8") as fh:
-                self.parse(fh)
 
         # add the end of file
         self._tokens.append(Token(TokenType.EOF, "", self._row, 0))
@@ -57,7 +58,6 @@ class Lexer:
         """
         # remove the newline delimiter
         line = line.rstrip('\n')
-
         column = 0
         need_eol = False
         for match in re_patterns.finditer(line):
