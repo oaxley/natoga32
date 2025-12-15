@@ -26,25 +26,24 @@ class TokenStream:
         self.tokens = tokens
         self.pos = 0
 
-    def peek(self) -> Optional[Token]:
+    def peek(self) -> Token:
         """Return the next token, without consuming it
 
         Returns:
             Optional[Token]: None if we are beyond boundaries, the next token otherwise
         """
         if self.pos >= len(self.tokens):
-            return None
+            self.pos = len(self.tokens)
+            return Token(TokenType.EOF)
         return self.tokens[self.pos]
 
-    def advance(self) -> Optional[Token]:
+    def advance(self) -> Token:
         """Return the current token and move the cursor forward to the next token
 
         Returns:
             Optional[Token]: None if no token can be found, the current token otherwise
         """
         token = self.peek()
-        if token is None:
-            return None
         self.pos += 1
         return token
 
