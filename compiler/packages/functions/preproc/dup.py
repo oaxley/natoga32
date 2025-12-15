@@ -12,13 +12,12 @@
 # @brief	Handle .dup macro
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List
+from typing import List
 
-from packages.token import Token, TokenType
-from packages.symbols import SymbolTable
+from packages.structs import Token, TokenType
+from packages.classes import SymbolTable
 
-from . import helper
+from packages.functions import evaluate_expr, clone_token
 
 
 #----- functions
@@ -55,7 +54,7 @@ def apply_dup(tokens: List[Token], symbols: SymbolTable) -> List[Token]:
 
                 # compute the expression
                 expr = tokens[i+2:j-1]
-                count = helper.evaluate_expr(expr, symbols)
+                count = evaluate_expr(expr, symbols)
 
             elif tokens[i+1].type == TokenType.NUMBER:
                 count = int(tokens[i+1].value)
@@ -75,7 +74,7 @@ def apply_dup(tokens: List[Token], symbols: SymbolTable) -> List[Token]:
                 symbol = symbols.get(token.value)
                 value = Token(TokenType.NUMBER, str(symbol.value), token.row, token.col)
             else:
-                value = helper.clone_token(token)
+                value = clone_token(token)
 
             # replace the initial expression
             comma = Token(TokenType.COMMA, ",", token.row, token.col)

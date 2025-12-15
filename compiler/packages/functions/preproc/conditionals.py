@@ -12,13 +12,12 @@
 # @brief	Handle conditionals '.if / .ifdef / .ifndef'
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
-from packages.token import Token, TokenStream, TokenType
-from packages.symbols import SymbolTable
+from packages.structs import Token, TokenType
+from packages.classes import TokenStream, SymbolTable
 
-from . import helper
+from packages.functions import evaluate_expr
 
 
 #----- functions
@@ -56,7 +55,7 @@ def handle_conditionals(ts: TokenStream, symbols: SymbolTable) -> List[Token]:
             ts.advance()
 
         # compute the expression
-        value = helper.evaluate_expr(expr, symbols)
+        value = evaluate_expr(expr, symbols)
         condition = bool(value)
 
     elif directive in ['.ifdef', '.ifndef']:

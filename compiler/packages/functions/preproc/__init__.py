@@ -12,3 +12,11 @@
 # @brief	Pre-Processor functions initializer
 
 #----- imports
+from .conditionals import handle_conditionals
+from .define import define
+from .dup import apply_dup
+from .environment import envvar
+from .for_loops import handle_for_loop
+from .include import include
+from .macro import parse_macro_definition, expand_macro
+from .token_pasting import apply_token_pasting

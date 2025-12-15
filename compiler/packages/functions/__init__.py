@@ -12,7 +12,14 @@
 # @brief	Functions package initializer
 
 #----- imports
+# helper functions
 from .capture_body import capture_body
 from .clone_token import clone_token
 from .get_value import get_value
 from .evaluate import evaluate_expr
+
+# pre-processor functions
+from .preproc import (
+    handle_conditionals, define, apply_dup, envvar, handle_for_loop,
+    include, parse_macro_definition, expand_macro, apply_token_pasting
+)

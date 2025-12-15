@@ -12,13 +12,12 @@
 # @brief	Handle for loops
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List
+from typing import List
 
-from packages.token import Token, TokenStream, TokenType
-from packages.symbols import SymbolTable, SymbolType
+from packages.structs import Token, TokenType
+from packages.classes import TokenStream, SymbolTable
 
-from . import helper
+from packages.functions import get_value, capture_body, clone_token
 
 
 #----- functions
@@ -34,15 +33,15 @@ def handle_for_loop(ts: TokenStream, symbols: SymbolTable) -> List[Token]:
     ts.advance()    # consume .for
 
     # parse <IDENT> = <NUMBER>, <NUMBER>
-    var_name = helper.get_value(ts, TokenType.IDENT)
-    helper.get_value(ts, TokenType.ASSIGN)
+    var_name = get_value(ts, TokenType.IDENT)
+    get_value(ts, TokenType.ASSIGN)
 
     # start value
     start_value = 0
     token = ts.peek()
     if token:
         if token.type == TokenType.NUMBER:
-            start_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+            start_value = int(get_value(ts, TokenType.NUMBER), 0)
         elif token.type == TokenType.IDENT and symbols.exists(token.value):
             start_value = symbols.get(token.value).value
 
@@ -56,7 +55,7 @@ def handle_for_loop(ts: TokenStream, symbols: SymbolTable) -> List[Token]:
     token = ts.peek()
     if token:
         if token.type == TokenType.NUMBER:
-            end_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+            end_value = int(get_value(ts, TokenType.NUMBER), 0)
         elif token.type == TokenType.IDENT and symbols.exists(token.value):
             end_value = symbols.get(token.value).value
 
@@ -82,7 +81,7 @@ def handle_for_loop(ts: TokenStream, symbols: SymbolTable) -> List[Token]:
         token = ts.peek()
         if token:
             if token.type == TokenType.NUMBER:
-                step_value = int(helper.get_value(ts, TokenType.NUMBER), 0)
+                step_value = int(get_value(ts, TokenType.NUMBER), 0)
             elif token.type == TokenType.IDENT and symbols.exists(token.value):
                 step_value = symbols.get(token.value).value
 
@@ -99,7 +98,7 @@ def handle_for_loop(ts: TokenStream, symbols: SymbolTable) -> List[Token]:
     if ts.expect(TokenType.EOL): ts.advance()
 
     # --- capture body
-    body = helper.capture_body(ts, '.for', '.endf')
+    body = capture_body(ts, '.for', '.endf')
 
     # --- body expansion
     tokens: List[Token] = []
@@ -120,7 +119,7 @@ def handle_for_loop(ts: TokenStream, symbols: SymbolTable) -> List[Token]:
                 iteration_body.append(Token(TokenType.NUMBER, str(current), token.row, token.col))
             else:
                 # clone the token to avoid messing up with the loop body
-                iteration_body.append(helper.clone_token(token))
+                iteration_body.append(clone_token(token))
 
         # add those tokens to the global list
         tokens.extend(iteration_body)
