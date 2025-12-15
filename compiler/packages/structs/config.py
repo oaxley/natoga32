@@ -12,11 +12,15 @@
 # @brief	Configuration dataclass
 
 #----- imports
+from typing import List, Set
+
 import os
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from argparse import Namespace
 
+from packages.classes import SymbolTable
+from .token import Token
 
 #----- class
 @dataclass(init=False)
@@ -26,9 +30,19 @@ class Config:
     Args:
         infile (str): the input filename
         outfile (str): the output filename (default: a.out)
+        includes (Set[str]): includes stack to detect recursion
+        tokens (List[Token]): the list of tokens after the lexer pass
+        symbols (SymbolTable): the table of symbols
+        row (int): current row being processed
+        col (int): current col being processed
     """
     infile: str
     outfile: str
+    includes: Set[str]
+    tokens: List[Token] = field(default_factory=list)
+    symbols: SymbolTable
+    row: int
+    col: int
 
 
     def __init__(self, args: Namespace) -> None:
@@ -48,6 +62,11 @@ class Config:
         else:
             self.outfile = "a.out"
 
+        # initialize a new SymbolTable
+        self.symbols = SymbolTable()
+
+        # track includes to avoid infinite recursion
+        includes = set()
 
     def _is_exist(self, filename: str) -> bool:
         """Check if the file exists
