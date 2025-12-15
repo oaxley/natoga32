@@ -9,31 +9,15 @@
 # @author	Sebastien LEGRAND
 # @license	MIT License
 #
-# @brief	Handle macros in the source code
+# @brief	Manage macros during pre-processing
 
 #----- imports
-from __future__ import annotations
 from typing import Any, Dict, List
 
-from dataclasses import dataclass
+from packages.structs import MacroDefinition, Token, TokenType
+from packages.classes import TokenStream
 
-from packages.preprocessor import helper
-from packages.token import TokenStream, Token, TokenType
-
-
-#----- class
-@dataclass
-class MacroDefinition:
-    """Macro definition
-
-    Members:
-    - name (str): the name of the macro
-    - params (List[str]): the list of parameters for this macro
-    - body (List[Token]): the list of tokens representing the body of the macro
-    """
-    name: str
-    params: List[str]
-    body: List[Token]
+from packages.functions import get_value, capture_body, clone_token
 
 
 #----- functions
@@ -49,7 +33,7 @@ def parse_macro_definition(ts: TokenStream) -> MacroDefinition:
     ts.advance()    # consume .macro
 
     # retrieve the macro name
-    name = helper.get_value(ts, TokenType.IDENT)
+    name = get_value(ts, TokenType.IDENT)
 
     # parse the parameters
     params: List[str] = []
@@ -66,7 +50,7 @@ def parse_macro_definition(ts: TokenStream) -> MacroDefinition:
         ts.advance()
 
     # parse the body until we reach .endm
-    body = helper.capture_body(ts, '.macro', '.endm')
+    body = capture_body(ts, '.macro', '.endm')
 
     return MacroDefinition(name, params, body)
 
@@ -126,10 +110,10 @@ def expand_macro(macro: MacroDefinition, ts: TokenStream) -> List[Token]:
         # token is a parameter
         if bt.type == TokenType.IDENT and bt.value in mapping:
             for t in mapping[bt.value]:
-                expanded.append(helper.clone_token(t))
+                expanded.append(clone_token(t))
             continue
 
         # normal token
-        expanded.append(helper.clone_token(bt))
+        expanded.append(clone_token(bt))
 
     return expanded
