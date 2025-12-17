@@ -12,7 +12,7 @@
 # @brief	TokenStream class
 
 #----- imports
-from typing import List, Optional, Union
+from typing import List, Union
 
 from packages.structs import Token, TokenType
 
