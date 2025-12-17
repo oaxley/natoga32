@@ -12,14 +12,16 @@
 # @brief	Configuration dataclass
 
 #----- imports
-from typing import List, Set
-
 import os
 
+from typing import Dict, List, Set
 from dataclasses import dataclass, field
 from argparse import Namespace
 
-from packages.classes import SymbolTable
+from packages import ast
+from packages.structs import Section
+from packages.classes import SymbolTable, Architecture, DefaultArch
+
 from .token import Token
 
 #----- class
@@ -33,6 +35,9 @@ class Config:
         includes (Set[str]): includes stack to detect recursion
         tokens (List[Token]): the list of tokens after the lexer pass
         symbols (SymbolTable): the table of symbols
+        program (ast.Program): the AST Program node
+        sections (Dict[str, Section]): the different assembly sections
+        arch (Architecture): CPU architecture for the assembly generation code
         row (int): current row being processed
         col (int): current col being processed
     """
@@ -41,6 +46,9 @@ class Config:
     includes: Set[str]
     tokens: List[Token] = field(default_factory=list)
     symbols: SymbolTable
+    program: ast.Program
+    sections: Dict[str, Section]
+    arch: Architecture
     row: int
     col: int
 
@@ -62,11 +70,20 @@ class Config:
         else:
             self.outfile = "a.out"
 
-        # initialize a new SymbolTable
+        # initialize a new SymbolTable / ast.Program / Architecture
         self.symbols = SymbolTable()
+        self.program = ast.Program([])
+        self.arch = DefaultArch()
 
         # track includes to avoid infinite recursion
         includes = set()
+
+        # setup the assembly section
+        self.sections = {
+            ".text": Section(".text"),
+            ".bss": Section(".bss"),
+            ".data": Section(".data")
+        }
 
     def _is_exist(self, filename: str) -> bool:
         """Check if the file exists
