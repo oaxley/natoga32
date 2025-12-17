@@ -19,10 +19,11 @@ from dataclasses import dataclass, field
 from argparse import Namespace
 
 from packages import ast
-from packages.structs import Section
 from packages.classes import SymbolTable, Architecture, DefaultArch
 
 from .token import Token
+from .section import Section
+
 
 #----- class
 @dataclass(init=False)
@@ -38,6 +39,7 @@ class Config:
         program (ast.Program): the AST Program node
         sections (Dict[str, Section]): the different assembly sections
         arch (Architecture): CPU architecture for the assembly generation code
+        entrypoint (str): the program entrypoint
         row (int): current row being processed
         col (int): current col being processed
     """
@@ -49,6 +51,7 @@ class Config:
     program: ast.Program
     sections: Dict[str, Section]
     arch: Architecture
+    entrypoint: str
     row: int
     col: int
 
