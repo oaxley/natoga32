@@ -9,36 +9,28 @@
 # @author	Sebastien LEGRAND
 # @license	MIT License
 #
-# @brief	Semantic Analyzer - First pass
+# @brief	Semantic Analyzer - First Pass
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import List
 
-from packages import ast, evaluator
-from packages.symbols import SymbolType
+from packages import ast
+from packages.structs import Config, SymbolType
 from packages.architecture import Riscv, X68fp
-
-from .struct import SAData
-
+from packages.functions import evaluator
 
 #----- class
+class SAFirstPass:
+    """Semantic Analyzer First Pass"""
 
-class FirstPass:
-    """Semantic Analyzer - First Pass"""
-
-    def __init__(self, data: SAData) -> None:
-        """Constructor
-
-        Args:
-            data (dc.SAData): the semantic analyzer structure
-        """
-        self.data = data
-        self.current_section = ""
+    def __init__(self, config: Config) -> None:
+        """Constructor"""
+        self.config = config
+        self.instr_size = 0
 
     def process(self) -> None:
-        """Execute the first pass"""
-        for stmt in self.data.program.statements:
+        """Process the program and compute data offsets / size"""
+        for stmt in self.config.program.statements:
             if isinstance(stmt, ast.Directive):
                 self._directive(stmt)
             elif isinstance(stmt, ast.Label):
@@ -86,8 +78,8 @@ class FirstPass:
         Args:
             label (ast.Label): a statement representing a label
         """
-        section = self.data.sections[self.current_section]
-        self.data.symbols.define(label.name, section.offset, SymbolType.LABEL, section.name)
+        section = self.config.sections[self.current_section]
+        self.config.symbols.define(label.name, section.offset, SymbolType.LABEL, section.name)
 
     def _instruction(self, instr: ast.Instruction) -> None:
         """Process the Instruction statement
@@ -95,9 +87,9 @@ class FirstPass:
         Args:
             instr (ast.Instruction): a statement representing an instruction
         """
-        section = self.data.sections[self.current_section]
+        section = self.config.sections[self.current_section]
         instr.address = section.offset
-        section.offset += self.data.instr_size
+        section.offset += self.instr_size
 
     def _d_cpu(self, arg: ast.Node) -> None:
         """Handle the .cpu directive
@@ -108,13 +100,13 @@ class FirstPass:
         assert isinstance(arg, ast.Identifier)
         match arg.name:
             case "risc-v":
-                self.data.arch = Riscv()
+                self.config.arch = Riscv()
             case "x68fp":
-                self.data.arch = X68fp()
+                self.config.arch = X68fp()
             case _:
                 raise SyntaxError(f"Error: unknown architecture '{arg.name}'")
 
-        self.data.instr_size = self.data.arch.config.instr_size
+        self.instr_size = self.config.arch.config.instr_size
 
     def _d_skip(self, arg: ast.Node) -> None:
         """Handle the .skip directive
@@ -124,8 +116,8 @@ class FirstPass:
         """
         assert isinstance(arg, ast.Expression)
 
-        section = self.data.sections[self.current_section]
-        result, value = evaluator.const_eval(arg, self.data.symbols, section.offset)
+        section = self.config.sections[self.current_section]
+        result, value = evaluator.const_eval(arg, self.config.symbols, section.offset)
 
         if not result:
             raise SyntaxError(f"Error: .skip directive expects a full qualified expression")
@@ -140,8 +132,8 @@ class FirstPass:
         """
         assert isinstance(arg, ast.Expression)
 
-        section = self.data.sections[self.current_section]
-        result, value = evaluator.const_eval(arg, self.data.symbols, section.offset)
+        section = self.config.sections[self.current_section]
+        result, value = evaluator.const_eval(arg, self.config.symbols, section.offset)
 
         if not result:
             raise SyntaxError(f"Error: .align directive expects a full qualified expression")
@@ -160,8 +152,8 @@ class FirstPass:
         """
         assert isinstance(arg, ast.Expression)
 
-        section = self.data.sections[self.current_section]
-        result, value = evaluator.const_eval(arg, self.data.symbols, section.offset)
+        section = self.config.sections[self.current_section]
+        result, value = evaluator.const_eval(arg, self.config.symbols, section.offset)
 
         if not result:
             raise SyntaxError(f"Error: .org directive expects a full qualified expression")
@@ -179,18 +171,16 @@ class FirstPass:
             directive (str): the directive
             args (List[Node]): the arguments associated with the directive
         """
-        section = self.data.sections[self.current_section]
+        section = self.config.sections[self.current_section]
 
         # compute the size associated with the directive
-        assert self.data.arch is not None
-        arch = self.data.arch
         match directive:
             case '.byte':
-                size = arch.config.byte
+                size = self.config.arch.config.byte
             case '.half' | '.short':
-                size = arch.config.half
+                size = self.config.arch.config.half
             case '.word':
-                size = arch.config.word
+                size = self.config.arch.config.word
             case _:
                 size = 1
 
@@ -205,7 +195,7 @@ class FirstPass:
         """
         assert isinstance(arg, ast.StringLiteral)
 
-        section = self.data.sections[self.current_section]
+        section = self.config.sections[self.current_section]
         section.offset += len(arg.text)
         if is_nul:
             section.offset += 1
@@ -217,4 +207,4 @@ class FirstPass:
             arg (ast.Node): an identifier representing the entrypoint label
         """
         assert isinstance(arg, ast.Identifier)
-        self.data.entry_point = arg.name
+        self.config.entrypoint = arg.name
