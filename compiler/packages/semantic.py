@@ -16,6 +16,8 @@ from typing import Any, Dict, List
 
 from packages.structs import Config
 from packages.classes.semantic.sa_first import SAFirstPass
+from packages.classes.semantic.sa_second import SASecondPass
+
 
 #----- class
 class SemanticAnalyzer:
@@ -28,4 +30,9 @@ class SemanticAnalyzer:
     def first_pass(self) -> None:
         """Execute the semantic analysis first pass"""
         obj = SAFirstPass(self.config)
+        obj.process()
+
+    def second_pass(self) -> None:
+        """Execute the semantic analysis second pass"""
+        obj = SASecondPass(self.config)
         obj.process()
