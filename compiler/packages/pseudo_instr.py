@@ -12,11 +12,11 @@
 # @brief	Pseudo-Instruction expansion
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from packages import ast
-from packages.architecture import Architecture, Riscv, X68fp
+from packages.classes import Architecture
+from packages.architecture import Riscv, X68fp
 
 
 #----- class

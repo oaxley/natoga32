@@ -12,16 +12,14 @@
 # @brief	RISC-V architecture
 
 #----- imports
-from __future__ import annotations
-
 from dataclasses import dataclass
 from enum import IntEnum, auto
-from typing import Any, Dict, List, Tuple, cast
+from typing import Dict, List, Tuple, cast
 
 from packages import ast
-from packages.data_classes import EvalResult, Relocation
+from packages.structs import CPU, EvalResult, Relocation
+from packages.classes import Architecture
 
-from .interface import CPU, Architecture
 
 #----- globals
 

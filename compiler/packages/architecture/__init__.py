@@ -12,10 +12,6 @@
 # @brief	Encoder package
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List
-
-from .interface import Architecture
 from .riscv import Riscv
 from .x68fp import X68fp
 

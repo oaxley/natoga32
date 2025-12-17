@@ -12,13 +12,13 @@
 # @brief	X68FP Architecture
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List, Tuple
+from dataclasses import dataclass
+from enum import IntEnum, auto
+from typing import Dict, List, Tuple, cast
 
-from packages.ast import Instruction
-
-from .interface import Architecture, CPU
-from packages.data_classes import EvalResult, Relocation
+from packages import ast
+from packages.structs import CPU, EvalResult, Relocation
+from packages.classes import Architecture
 
 
 #----- classes
@@ -38,6 +38,6 @@ class X68fp(Architecture):
         """Encode the instruction with its operands"""
         return (b"\x00", [])
 
-    def expand(self, instr: Instruction) -> List[Instruction]:
+    def expand(self, instr: ast.Instruction) -> List[ast.Instruction]:
         """Expand pseudo-instructions"""
         return [instr]
