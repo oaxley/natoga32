@@ -20,4 +20,4 @@ from .number import Number
 from .stringliteral import StringLiteral
 from .unaryop import UnaryOp
 
-from .reloc import HiRel, LoRel, PCRelHi, PCRelLo
+from .reloc import RelocExpr, HiRel, LoRel, PCRelHi, PCRelLo

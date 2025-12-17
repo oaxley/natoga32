@@ -17,5 +17,5 @@ from .statement import Directive, Instruction, Label
 from .expression import (
     Identifier, Number, StringLiteral, CharLiteral,
     BinaryOp, UnaryOp, CurrentPC,
-    HiRel, LoRel, PCRelHi, PCRelLo
+    HiRel, LoRel, PCRelHi, PCRelLo, RelocExpr
 )

@@ -12,6 +12,7 @@
 # @brief	RelocExpr package initializer
 
 #----- imports
+from .reloc import RelocExpr
 from .hirel import HiRel
 from .lorel import LoRel
 from .pcrelhi import PCRelHi
