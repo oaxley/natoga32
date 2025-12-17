@@ -21,7 +21,7 @@ from packages.structs import CPU, Relocation, EvalResult
 
 #----- classes
 class Architecture(ABC):
-    """Generic Architecture"""
+    """Architecture Abstract Interface"""
 
     def __init__(self) -> None:
         self.config: CPU = CPU()
@@ -37,3 +37,17 @@ class Architecture(ABC):
     @abstractmethod
     def expand(self, instr: ast.Instruction) -> List[ast.Instruction]:
         """Expand an instruction into a list of instructions"""
+
+class DefaultArch(Architecture):
+    """Default Architecture"""
+    def __init__(self) -> None:
+        super().__init__()
+
+    def is_register(self, operand: str) -> Tuple[bool, int]:
+        return (False, 0)
+
+    def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
+        return (b"\x00", [])
+
+    def expand(self, instr: ast.Instruction) -> List[ast.Instruction]:
+        return []
