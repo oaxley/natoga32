@@ -13,9 +13,6 @@
 # @brief	Natoga32 compiler
 
 # ----- imports
-from __future__ import annotations
-from typing import Any, Dict, List
-
 import sys
 
 from argparse import ArgumentParser
@@ -23,13 +20,9 @@ from argparse import ArgumentParser
 from packages.structs import Config
 from packages.lexer import Lexer
 from packages.pre_processor import PreProcessor
-
-# from packages.parser import Parser
-# from packages.preprocessor import PreProcessor
-# from packages.symbols import SymbolTable
-# from packages.semantic import SemanticAnalyzer
-# from packages.data_classes import Section
-# from packages.pseudo_instr import PseudoInstruction
+from packages.parser import Parser
+from packages.pseudo_instr import PseudoInstruction
+from packages.semantic import SemanticAnalyzer
 
 
 # ----- begin
@@ -66,112 +59,69 @@ try:
     step += 1
     print(f"Phase {step} : Pre-processor")
     preproc = PreProcessor(config)
-    out = preproc.process()
+    config.tokens = preproc.process()
 
     if args.debug == step:
-        for i in out:
+        for i in config.tokens:
             print(i)
 
         sys.exit(0)
 
+    # Step 3: Parser
+    step += 1
+    print(f"Phase {step} : Parser")
+    parser = Parser(config.tokens)
+    config.program = parser.parse_program()
+
+    if args.debug == step:
+        config.program.debug()
+        sys.exit(0)
+
+    # Step 4: Pseudo-instructions expansion
+    step += 1
+    print(f"Phase {step} : Pseudo-instructions expansion")
+    pseudo = PseudoInstruction(config.program)
+    config.program = pseudo.process()
+
+    if args.debug == step:
+        config.program.debug()
+        sys.exit(0)
+
+    # Step 5: Semantic Analyzer first pass
+    step += 1
+    print(f"Phase {step} : Semantic Analyzer - pass 1")
+    semantic = SemanticAnalyzer(config)
+    semantic.first_pass()
+
+    if args.debug == step:
+        print("==== SECTIONS ====")
+        for v in config.sections.items():
+            print(v[0])
+            print(v[1])
+            print()
+
+        print("\n==== SYMBOLS ====")
+        for k, v in config.symbols.items:
+            print(v)
+        sys.exit(0)
+
+    # Step 6: Semantic Analyzer second pass
+    step += 1
+    print(f"Phase {step} : Semantic Analyzer - pass 2")
+    semantic.second_pass()
+
+    if args.debug == step:
+        print("==== SECTIONS ====")
+        for v in config.sections.items():
+            print(v[0])
+            print(v[1])
+            print()
+
+        print("\n==== SYMBOLS ====")
+        for k, v in config.symbols.items:
+            print(v)
+        sys.exit(0)
+
+
 except SyntaxError as e:
     print(str(e))
-
-
-# # open the file
-# fh = open(config.input_file, "r", encoding="utf-8")
-
-# try:
-#     # global symbol table
-#     symbols = SymbolTable()
-
-#     # create a new lexer
-#     step = 1
-#     print(f"Phase {step} : Lexer")
-#     lexer = Lexer()
-#     lexer.parse(fh)
-
-#     if args.debug == step:
-#         for i in lexer.tokens:
-#             print(i)
-#         sys.exit(0)
-
-#     # pre-processor
-#     step += 1
-#     print(f"Phase {step} : Pre-processor")
-#     preproc = PreProcessor(symbols)
-#     tokens = preproc.process(lexer.tokens, config.input_file)
-
-#     if args.debug == step:
-#         for i in tokens:
-#             print(i)
-#         sys.exit(0)
-
-#     # parser
-#     step += 1
-#     print(f"Phase {step} : Parser")
-#     parser = Parser(tokens)
-#     program = parser.parse_program()
-
-#     if args.debug == step:
-#         program.debug()
-#         sys.exit(0)
-
-
-#     # pseudo instruction expansion
-#     step += 1
-#     pseudo = PseudoInstruction(program)
-#     program = pseudo.process()
-
-#     if args.debug == step:
-#         program.debug()
-#         sys.exit(0)
-
-
-#     # define the assembly sections
-#     sections: Dict[str, Section] = {
-#         ".text": Section(".text"),
-#         ".data": Section(".data"),
-#         ".bss": Section(".bss")
-#     }
-
-#     # semantic analyzer
-#     step += 1
-#     print(f"Phase {step} : Semantic Analyzer - First Pass")
-#     semantic = SemanticAnalyzer(program, symbols, sections)
-#     semantic.first_pass()
-
-#     if args.debug == step:
-#         print("==== SECTIONS ====")
-#         for v in sections.items():
-#             print(v[0])
-#             print(v[1])
-#             print()
-
-#         print("\n==== SYMBOLS ====")
-#         for k, v in symbols.items:
-#             print(v)
-
-#         sys.exit(0)
-
-#     # semantic phase 2
-#     step += 1
-#     print(f"Phase {step} : Semantic Analyzer - Second Pass")
-#     semantic.second_pass()
-
-#     if args.debug == step:
-#         print("==== SECTIONS ====")
-#         for v in sections.items():
-#             print(v[0])
-#             print(v[1])
-#             print()
-
-#         print("\n==== SYMBOLS ====")
-#         for k, v in symbols.items:
-#             print(v)
-
-#         sys.exit(0)
-
-
-# except SyntaxError as e:
-#     print(str(e))
