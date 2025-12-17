@@ -61,7 +61,8 @@ def evaluate_expr(tokens: List[Token], symbols: SymbolTable) -> int:
         elif t.type in op_map:
             parts.append(op_map[t.type])
         elif t.type == TokenType.IDENT and symbols.exists(t.value):
-            parts.append(symbols.get(t.value))
+            sym = symbols.get(t.value)
+            parts.append(str(sym.value))
         else:
             # default insertion
             parts.append(t.value)
