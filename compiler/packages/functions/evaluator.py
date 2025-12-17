@@ -12,11 +12,11 @@
 # @brief	Perform expression evaluation
 
 #----- imports
-from __future__ import annotations
 from typing import Optional, Tuple
 
 from packages import ast
-from packages.symbols import SymbolTable, SymbolType
+from packages.structs import SymbolType
+from packages.classes import SymbolTable
 
 
 #----- functions
@@ -52,7 +52,6 @@ def binary_op(op: str, a: int, b: int) -> int:
             return (a ^ b)
         case _:
             raise ValueError(f"Unknown operator '{op}' for BinaryOp.")
-
 
 def const_eval(expr: ast.Expression, symbols: SymbolTable, pc: int) -> Tuple[bool, int]:
     """Evaluate an expression to an integer

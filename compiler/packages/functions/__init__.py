@@ -17,6 +17,7 @@ from .capture_body import capture_body
 from .clone_token import clone_token
 from .get_value import get_value
 from .evaluate import evaluate_expr
+from .evaluator import binary_op, const_eval
 
 # pre-processor functions
 from .preproc import (
