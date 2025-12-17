@@ -12,12 +12,15 @@
 # @brief	Semantic Analyzer - First Pass
 
 #----- imports
-from typing import List
+import os
+
+from typing import List, cast
 
 from packages import ast
 from packages.structs import Config, SymbolType
 from packages.architecture import Riscv, X68fp
 from packages.functions import evaluator
+
 
 #----- class
 class SAFirstPass:
@@ -62,7 +65,7 @@ class SAFirstPass:
                 self._d_align(directive.args[0])
             case '.org':
                 self._d_org(directive.args[0])
-            case '.byte' | '.half' | '.short' | '.word':
+            case '.byte' | '.half' | '.short' | '.word' | '.incbin':
                 self._d_data(directive.name, directive.args)
             case '.asciz':
                 self._d_string(directive.args[0], True)
@@ -173,6 +176,20 @@ class SAFirstPass:
             args (List[Node]): the arguments associated with the directive
         """
         section = self.config.sections[self.current_section]
+
+        # special case for incbin
+        if directive == '.incbin':
+            # retrieve the full path for the include
+            filename = cast(ast.StringLiteral, args[0])
+            fullpath = os.path.join(os.path.dirname(self.config.infile), filename.text)
+
+            # compute the size of the file
+            with open(fullpath, "rb") as fh:
+                size = fh.seek(0, os.SEEK_END)
+
+            # add the size to the offset
+            section.offset += size
+            return
 
         # compute the size associated with the directive
         match directive:

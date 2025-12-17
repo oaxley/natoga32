@@ -12,6 +12,8 @@
 # @brief	Semantic Analyzer - Second Pass
 
 #----- imports
+import os
+
 from typing import List, cast
 
 from packages import ast
@@ -54,7 +56,7 @@ class SASecondPass:
                 self._d_align(directive.args[0])
             case '.org':
                 self._d_org(directive.args[0])
-            case '.byte' | '.half' | '.short' | '.word':
+            case '.byte' | '.half' | '.short' | '.word' | '.incbin':
                 self._d_data(directive.name, directive.args)
             case '.asciz':
                 self._d_string(directive.args[0], True)
@@ -129,6 +131,23 @@ class SASecondPass:
         # not supported by .bss segment
         if section.name == '.bss':
             return
+
+        # specific case for .incbin
+        if directive == '.incbin':
+            # retrieve the full path for the include
+            filename = cast(ast.StringLiteral, args[0])
+            fullpath = os.path.join(os.path.dirname(self.config.infile), filename.text)
+
+            # add the data to the section
+            with open(fullpath, "rb") as fh:
+                content = fh.read()
+
+            section.data.extend(content)
+
+            # add the size to the offset
+            section.offset += len(content)
+            return
+
 
         # compute the size associated with the directive
         match directive:
