@@ -35,6 +35,9 @@ regexp_table = [
     (TokenType.M_PCREL_LO.name, r'%pcrel_lo'),
     (TokenType.M_PCREL_HI.name, r'%pcrel_hi'),
 
+    # equal
+    (TokenType.EQ.name, r'=='),
+
     # '<' '<<' operators
     (TokenType.LSHIFT.name, r'<<'),
     (TokenType.LTE.name, r'<='),
