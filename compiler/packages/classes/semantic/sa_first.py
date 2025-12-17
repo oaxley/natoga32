@@ -27,6 +27,7 @@ class SAFirstPass:
         """Constructor"""
         self.config = config
         self.instr_size = 0
+        self.current_section = ""
 
     def process(self) -> None:
         """Process the program and compute data offsets / size"""
