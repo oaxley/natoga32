@@ -14,8 +14,7 @@
 #----- imports
 from typing import List, Optional
 
-import packages.ast as ast
-
+from packages import ast
 from packages.structs import Token, TokenType
 from packages.classes import TokenStream
 
