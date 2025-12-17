@@ -57,7 +57,7 @@ class PreProcessor:
         Returns:
             List[Token]: the list of tokens expanded
         """
-        # process the environment variables expansion
+        # process the environment variables
         tmp = envvar(tokens)
 
         # create a new token stream with the result
@@ -65,64 +65,49 @@ class PreProcessor:
         out: List[Token] = []
 
         # parse all the tokens one by one
+        flag = False
         while not ts.at_end():
             token = ts.peek()
-            if not token:
+            if token.type == TokenType.EOF:
                 break
 
-            # take care of directives
+            # process directives
             if token.type == TokenType.DIRECTIVE:
 
-                # --- .macro
-                if token.value == '.macro':
+                #--- .macro definition
+                if token.value == ".macro":
                     macro = parse_macro_definition(ts)
                     self.macros[macro.name] = macro
                     symbols.define(macro.name, None, SymbolType.MACRO, None)
                     continue
 
-                # --- .include
-                elif token.value == '.include':
-                    ts.advance()
-                    filename = ts.peek()
-                    included = include(filename.value, self.config)
-                    included = self._process_tokens(included, symbols)
-                    included = apply_token_pasting(included)
-                    out.extend(included)
+                #--- .for loop
+                elif token.value == ".for":
+                    out.extend(handle_for_loop(ts, symbols))
+                    flag = True
                     continue
 
-                # --- .for
-                elif token.value == '.for':
-                    expanded = handle_for_loop(ts, symbols)
-                    expanded = apply_token_pasting(expanded)
-                    expanded = self._process_tokens(expanded, symbols)
-                    out.extend(expanded)
-                    continue
-
-                # --- .define
+                #--- .define
                 elif token.value in ['.define', '.equ']:
                     define(ts, symbols)
                     continue
 
-                # --- .if / .ifdef / .ifndef
-                elif token.value in [ '.if', '.ifdef', '.ifndef']:
-                    block = handle_conditionals(ts, symbols)
-                    block = apply_token_pasting(block)
-                    block = self._process_tokens(block, symbols)
-                    out.extend(block)
+                #--- .if / .ifdef / .ifndef
+                elif token.value in ['.if', '.ifdef', '.ifndef']:
+                    out.extend(handle_conditionals(ts, symbols))
+                    flag = True
                     continue
 
-            # identities token
-            elif token.type == TokenType.IDENT:
+            # process identifiers
+            if token.type == TokenType.IDENT:
 
-                # --- macro expansion
+                #--- macro expansion
                 if token.value in self.macros:
-                    expanded = expand_macro(self.macros[token.value], ts)
-                    expanded = apply_token_pasting(expanded)
-                    expanded = self._process_tokens(expanded, symbols)
-                    out.extend(expanded)
+                    out.extend(expand_macro(self.macros[token.value], ts))
+                    flag = True
                     continue
 
-                # --- define
+                #--- define
                 if symbols.exists(token.value):
                     out.append(self._expand_define(token))
                     ts.advance()
@@ -132,10 +117,15 @@ class PreProcessor:
             out.append(token)
             ts.advance()
 
-        # apply pasting and 'dup' one last time
+        # perform the token pasting + '.dup' expansion
         out = apply_token_pasting(out)
         out = apply_dup(out, symbols)
 
+        # recursively call the same parser, if the flag has been set
+        if flag:
+            out = self._process_tokens(out, symbols)
+
+        # return source file pre-processed
         return out
 
     def _expand_define(self, token: Token) -> Token:
