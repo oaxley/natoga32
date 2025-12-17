@@ -14,3 +14,4 @@
 #----- imports
 from .symbol_table import SymbolTable
 from .token_stream import TokenStream
+from .architecture import Architecture

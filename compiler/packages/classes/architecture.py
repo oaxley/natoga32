@@ -12,15 +12,11 @@
 # @brief	Generic Encoder Interface
 
 #----- imports
-from __future__ import annotations
-from typing import Any, Dict, List, Tuple
-
+from typing import List, Tuple
 from abc import ABC, abstractmethod
 
-from packages.structs import CPU
-
-from packages.data_classes import EvalResult, Relocation
-from packages.ast import Instruction
+from packages import ast
+from packages.structs import CPU, Relocation, EvalResult
 
 
 #----- classes
@@ -39,5 +35,5 @@ class Architecture(ABC):
         """Encode the instruction with its operands"""
 
     @abstractmethod
-    def expand(self, instr: Instruction) -> List[Instruction]:
+    def expand(self, instr: ast.Instruction) -> List[ast.Instruction]:
         """Expand an instruction into a list of instructions"""
