@@ -148,7 +148,7 @@ class Riscv(Architecture):
 
     def __init__(self) -> None:
         """Constructor"""
-        self.config: CPU = CPU(4, 32, 1, 2, 4)
+        self.cpu: CPU = CPU(4, 32, 1, 2, 4)
 
         # registers list and their aliases
         self.reg_list: List[str] = []
@@ -294,7 +294,7 @@ class Riscv(Architecture):
         """Encode type R RISC-V instructions"""
 
         # retrieve the operands
-        xlen = self.config.xlen - 1
+        xlen = self.cpu.xlen - 1
         rd = cast(int, operands[0].reg) & xlen
         rs1 = cast(int, operands[1].reg) & xlen
 

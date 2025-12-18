@@ -28,7 +28,6 @@ class SASecondPass:
     def __init__(self, config: Config) -> None:
         """Constructor"""
         self.config = config
-        self.instr_size = self.config.arch.config.instr_size
 
     def process(self) -> None:
         """Execute the second pass"""
@@ -150,11 +149,11 @@ class SASecondPass:
         # compute the size associated with the directive
         match directive:
             case '.byte':
-                size = self.config.arch.config.byte
+                size = self.config.arch.cpu.byte
             case '.half' | '.short':
-                size = self.config.arch.config.half
+                size = self.config.arch.cpu.half
             case '.word':
-                size = self.config.arch.config.word
+                size = self.config.arch.cpu.word
             case _:
                 size = 1
 

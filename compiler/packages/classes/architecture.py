@@ -24,7 +24,7 @@ class Architecture(ABC):
     """Architecture Abstract Interface"""
 
     def __init__(self) -> None:
-        self.config: CPU = CPU()
+        self.cpu: CPU = CPU()
 
     @abstractmethod
     def is_register(self, operand: str) -> Tuple[bool, int]:
