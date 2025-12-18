@@ -58,10 +58,8 @@ class SASecondPass:
                 self._d_org(directive.args[0])
             case '.byte' | '.half' | '.short' | '.word' | '.incbin':
                 self._d_data(directive.name, directive.args)
-            case '.asciz':
-                self._d_string(directive.args[0], True)
-            case '.string':
-                self._d_string(directive.args[0], False)
+            case '.asciz' | '.string':
+                self._d_string(directive.args[0])
             case _:
                 pass
 
@@ -176,21 +174,18 @@ class SASecondPass:
 
             section.offset += size
 
-    def _d_string(self, arg: ast.Node, is_nul: bool) -> None:
+    def _d_string(self, arg: ast.Node) -> None:
         """Handle .asciz / .string directives
 
         Args:
             arg (ast.Node): a string literal
-            is_nul (bool): True if the string should be terminated with '\0'
         """
         assert isinstance(arg, ast.StringLiteral)
 
         section = self.config.sections[self.current_section]
-        section.offset += len(arg.text)
         section.data.extend(arg.text.encode('utf-8'))
-        if is_nul:
-            section.offset += 1
-            section.data.extend(b"\x00")
+        section.data.extend(b"\x00")
+        section.offset += len(arg.text) + 1
 
     def _instruction(self, instr: ast.Instruction) -> None:
         """Process the instruction statement

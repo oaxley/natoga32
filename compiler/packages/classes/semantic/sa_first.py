@@ -67,10 +67,8 @@ class SAFirstPass:
                 self._d_org(directive.args[0])
             case '.byte' | '.half' | '.short' | '.word' | '.incbin':
                 self._d_data(directive.name, directive.args)
-            case '.asciz':
-                self._d_string(directive.args[0], True)
-            case '.string':
-                self._d_string(directive.args[0], False)
+            case '.asciz' | '.string':
+                self._d_string(directive.args[0])
             case '.entrypoint':
                 self._d_entry(directive.args[0])
             case _:
@@ -204,19 +202,16 @@ class SAFirstPass:
 
         section.offset += size * len(args)
 
-    def _d_string(self, arg: ast.Node, is_nul: bool) -> None:
+    def _d_string(self, arg: ast.Node) -> None:
         """Handle .asciz / .string directives
 
         Args:
             arg (ast.Node): a string literal
-            is_nul (bool): True if the string should be terminated with '\0'
         """
         assert isinstance(arg, ast.StringLiteral)
 
         section = self.config.sections[self.current_section]
-        section.offset += len(arg.text)
-        if is_nul:
-            section.offset += 1
+        section.offset += len(arg.text) + 1
 
     def _d_entry(self, arg: ast.Node) -> None:
         """Handle the .entrypoint directive
