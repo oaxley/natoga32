@@ -250,7 +250,6 @@ class SASecondPass:
 
         # relocation directives
         if isinstance(op, ast.RelocExpr):
-            print(op)
             # lookup for the symbol
             if isinstance(op.symbol, ast.Identifier):
                 name = op.symbol.name
