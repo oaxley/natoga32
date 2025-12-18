@@ -257,7 +257,7 @@ class SASecondPass:
                 if is_symbol:
                     # we are only interested by its offset
                     symbol = symbols.get(name)
-                    addend = cast(int, symbol.value)
+                    addend = 0
 
                     # for HiRel and LoRel, symbol can be anywhere
                     if isinstance(op, ast.HiRel):
