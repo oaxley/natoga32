@@ -122,6 +122,22 @@ try:
             print(v)
         sys.exit(0)
 
+    # Step 6: Semantic Analyzer second pass
+    step += 1
+    print(f"Phase {step} : Semantic Analyzer - pass 3")
+    semantic.third_pass()
+
+    if args.debug == step:
+        print("==== SECTIONS ====")
+        for v in config.sections.items():
+            print(v[0])
+            print(v[1])
+            print()
+
+        print("\n==== SYMBOLS ====")
+        for k, v in config.symbols.items:
+            print(v)
+        sys.exit(0)
 
 except SyntaxError as e:
     print(str(e))
