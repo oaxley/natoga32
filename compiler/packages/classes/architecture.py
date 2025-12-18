@@ -12,7 +12,7 @@
 # @brief	Generic Encoder Interface
 
 #----- imports
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from abc import ABC, abstractmethod
 
 from packages import ast
@@ -25,6 +25,7 @@ class Architecture(ABC):
 
     def __init__(self) -> None:
         self.cpu: CPU = CPU()
+        self.locations: Dict[str, int] = {}
 
     @abstractmethod
     def is_register(self, operand: str) -> Tuple[bool, int]:

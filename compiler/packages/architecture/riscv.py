@@ -148,7 +148,15 @@ class Riscv(Architecture):
 
     def __init__(self) -> None:
         """Constructor"""
+        # CPU definition
         self.cpu: CPU = CPU(4, 32, 1, 2, 4)
+
+        # sections location
+        self.locations = {
+            '.bss' : 0x0100_0000,
+            '.data': 0x0120_0000,
+            '.text': 0x01A0_0000
+        }
 
         # registers list and their aliases
         self.reg_list: List[str] = []
