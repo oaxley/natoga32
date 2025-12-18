@@ -220,6 +220,8 @@ class Riscv(Architecture):
         reloc: List[Relocation] = []
 
         # retrieve the operands
+        data = OPCODES_T[opcode]
+
         rd = None
         rs1 = None
         imm = 0
@@ -231,28 +233,23 @@ class Riscv(Architecture):
                     rs1 = i.reg
             else:
                 if i.value is not None:
-                    imm = i.value & 0x0FFF
-                else:
-                    assert i.reloc is not None
-                    imm = 0
+                    # immediate is signed, between -2048 ... +2047
                     if is_uimm:
-                        i.reloc.mask = 0x01F
+                        imm = (data.funct7 << 5) | (i.value & 0x01F)
                     else:
-                        i.reloc.mask = 0xFFF
+                        imm = i.value & 0xFFF
 
+                elif i.reloc is not None:
                     # add the _I marker for relocation
                     i.reloc.type += '_I'
                     reloc.append(i.reloc)
 
         # ensure all the value are not None
-        data = OPCODES_T[opcode]
+
         rd = data.rd if rd is None else rd
         rs1 = data.rs1 if rs1 is None else rs1
 
         # build the instruction
-        if is_uimm:
-            imm = (data.funct7 << 5) | (imm & 31)
-
         funct3 = data.funct3
         value = (
             (imm    << 20) |
@@ -283,7 +280,6 @@ class Riscv(Architecture):
             if r.type not in ['R_RISCV_PCREL_HI20', 'R_RISCV_HI20']:
                 raise SyntaxError(f"Error: auipc/lui support only %pcrel_hi or %hi relocations.")
 
-            r.mask = mask
             reloc.append(r)
 
         value = (
@@ -351,7 +347,6 @@ class Riscv(Architecture):
                     if r.type == 'LABEL':
                         r.type = 'R_RISCV_LO12'
 
-                    r.mask = 0x0FFF
                     r.type += '_S'
                     reloc.append(r)
 
