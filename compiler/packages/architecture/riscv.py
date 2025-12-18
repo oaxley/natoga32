@@ -187,10 +187,6 @@ class Riscv(Architecture):
     def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode the instruction with its operands"""
 
-        # operands
-        if len(operands) > 0:
-            print(operands)
-
         if opcode in OPCODES_T:
             match OPCODES_T[opcode].type:
                 case RiscVType.TYPE_I:
