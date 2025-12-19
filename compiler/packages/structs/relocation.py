@@ -12,22 +12,40 @@
 # @brief	Relocation dataclass
 
 #----- imports
+from enum import IntEnum, auto
 from dataclasses import dataclass
 
 from packages import ast
 
-#----- class
+#----- classes
+
+class RelocationType(IntEnum):
+    """Supported types for Relocation"""
+    RISCV_PCREL_HI20 = auto()
+    RISCV_PCREL_LO12 = auto()       # temporary before deciding for _I or _S
+    RISCV_PCREL_LO12_I = auto()
+    RISCV_PCREL_LO12_S = auto()
+    RISCV_HI20 = auto()
+    RISCV_LO12 = auto()             # temporary before deciding for _I or _S
+    RISCV_LO12_I = auto()
+    RISCV_LO12_S = auto()
+    RISCV_BRANCH = auto()
+    RISCV_JAL = auto()
+
+    UNKNOWN = auto()
+
+
 @dataclass
 class Relocation:
     """Class to record the relocation needed during compilation
 
     Members:
-    - type (str): the type of relocation needed
+    - type (RelocationType): the type of relocation needed
     - symbol (str): the symbol name
     - addend (int): signed addend
     - address (int): address where the relocation should take place
     """
-    type: str
+    type: RelocationType
     symbol: ast.Node
     addend: int = 0
     address: int = 0

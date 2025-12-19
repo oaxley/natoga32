@@ -17,7 +17,7 @@ from enum import IntEnum, auto
 from typing import Dict, List, Tuple, cast
 
 from packages import ast
-from packages.structs import CPU, EvalResult, Relocation
+from packages.structs import CPU, EvalResult, Relocation, RelocationType
 from packages.classes import Architecture
 
 
@@ -240,12 +240,18 @@ class Riscv(Architecture):
                         imm = i.value & 0xFFF
 
                 elif i.reloc is not None:
-                    # add the _I marker for relocation
-                    i.reloc.type += '_I'
+                    if i.reloc.type == RelocationType.RISCV_LO12:
+                        i.reloc.type = RelocationType.RISCV_LO12_I
+
+                    elif i.reloc.type == RelocationType.RISCV_PCREL_LO12:
+                        i.reloc.type = RelocationType.RISCV_PCREL_LO12_I
+
+                    else:
+                        raise SyntaxError(f"Error: unsupported relocation '{i.reloc.type.name}' for type I")
+
                     reloc.append(i.reloc)
 
         # ensure all the value are not None
-
         rd = data.rd if rd is None else rd
         rs1 = data.rs1 if rs1 is None else rs1
 
@@ -277,7 +283,7 @@ class Riscv(Architecture):
             assert operands[1].reloc is not None
             r = operands[1].reloc
 
-            if r.type not in ['R_RISCV_PCREL_HI20', 'R_RISCV_HI20']:
+            if r.type not in [RelocationType.RISCV_PCREL_HI20, RelocationType.RISCV_HI20]:
                 raise SyntaxError(f"Error: auipc/lui support only %pcrel_hi or %hi relocations.")
 
             reloc.append(r)
@@ -338,17 +344,18 @@ class Riscv(Architecture):
             else:
                 if i.value is not None:
                     imm = i.value & 0x0FFF
-                else:
-                    r = i.reloc
-                    assert r is not None
-                    imm = 0
 
-                    # rewrite the relocation type depending on the instruction
-                    if r.type == 'LABEL':
-                        r.type = 'R_RISCV_LO12'
+                elif i.reloc is not None:
+                    if i.reloc.type == RelocationType.RISCV_LO12:
+                        i.reloc.type = RelocationType.RISCV_LO12_S
 
-                    r.type += '_S'
-                    reloc.append(r)
+                    elif i.reloc.type == RelocationType.RISCV_PCREL_LO12:
+                        i.reloc.type = RelocationType.RISCV_PCREL_LO12_S
+
+                    else:
+                        raise SyntaxError(f"Error: unsupported relocation '{i.reloc.type.name}' for type S")
+
+                    reloc.append(i.reloc)
 
         # build the instruction
         data = OPCODES_T[opcode]
@@ -388,8 +395,7 @@ class Riscv(Architecture):
                 if i.value is not None:
                     imm = i.value
                 elif i.reloc is not None:
-                    imm = 0
-                    i.reloc.type = 'R_RISCV_BRANCH'
+                    i.reloc.type = RelocationType.RISCV_BRANCH
                     reloc.append(i.reloc)
 
         # build the instruction
@@ -429,6 +435,7 @@ class Riscv(Architecture):
 
         # retrieve operands
         rd = cast(int, operands[0].reg)
+        imm = 0
 
         if operands[1].value is not None:
             imm = operands[1].value
@@ -438,12 +445,10 @@ class Riscv(Architecture):
             if imm < -(1 << 20) or imm >= (1 << 20):
                 raise SyntaxError("Error: JAL offset out of range")
 
-        else:
-            imm = 0
-
-            assert operands[1].reloc is not None
+        elif operands[1].reloc is not None:
+            # set the relocation type
             r = operands[1].reloc
-            r.type = 'R_RISCV_JAL'
+            r.type = RelocationType.RISCV_JAL
             reloc.append(r)
 
         # encode the instruction

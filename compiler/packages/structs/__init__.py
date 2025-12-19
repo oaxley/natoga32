@@ -15,7 +15,7 @@
 from .cpu import CPU
 from .eval_result import EvalResult
 from .macros import MacroDefinition
-from .relocation import Relocation
+from .relocation import Relocation, RelocationType
 from .section import Section
 from .symbol_type import SymbolType
 from .symbol import Symbol

@@ -17,7 +17,7 @@ import os
 from typing import List, cast
 
 from packages import ast
-from packages.structs import Config, EvalResult, Relocation
+from packages.structs import Config, EvalResult, Relocation, RelocationType
 from packages.functions import evaluator
 
 
@@ -252,25 +252,19 @@ class SASecondPass:
         if isinstance(op, ast.RelocExpr):
             # lookup for the symbol
             if isinstance(op.symbol, ast.Identifier):
-                name = op.symbol.name
-                is_symbol = symbols.exists(name)
-                if is_symbol:
-                    # we are only interested by its offset
-                    symbol = symbols.get(name)
-                    addend = 0
-
+                if symbols.exists(op.symbol.name):
                     # for HiRel and LoRel, symbol can be anywhere
                     if isinstance(op, ast.HiRel):
-                        return EvalResult(reloc=Relocation('R_RISCV_HI20', op.symbol, addend, pc))
+                        return EvalResult(reloc=Relocation(RelocationType.RISCV_HI20, op.symbol, 0, pc))
 
                     if isinstance(op, ast.LoRel):
-                        return EvalResult(reloc=Relocation('R_RISCV_LO12', op.symbol, addend, pc))
+                        return EvalResult(reloc=Relocation(RelocationType.RISCV_LO12, op.symbol, 0, pc))
 
                     if isinstance(op, ast.PCRelHi):
-                        return EvalResult(reloc=Relocation('R_RISCV_PCREL_HI20', op.symbol, addend, pc))
+                        return EvalResult(reloc=Relocation(RelocationType.RISCV_PCREL_HI20, op.symbol, 0, pc))
 
                     if isinstance(op, ast.PCRelLo):
-                        return EvalResult(reloc=Relocation('R_RISCV_PCREL_LO12', op.symbol, addend, pc))
+                        return EvalResult(reloc=Relocation(RelocationType.RISCV_PCREL_LO12, op.symbol, 0, pc))
 
                     raise SyntaxError(f"Error: unknown relocation directive '{op}'")
 
