@@ -15,7 +15,7 @@
 from typing import Dict, cast
 
 from packages import ast
-from packages.structs import Config, Relocation
+from packages.structs import Config, Relocation, RelocationType
 
 
 #----- class
@@ -28,14 +28,13 @@ class RelocationEngine:
         Args:
             config (Config): the global config object containing the relocations
         """
-        self.section = config.sections['.text']
+        self.sections = config.sections
         self.symbols = config.symbols
-        self.address = config.arch.locations['.text']
         self.cache: Dict[str, int] = {}
 
     def process(self) -> None:
         """Compute all the relocation for the '.text' section"""
-        for rel in self.section.relocations:
+        for rel in self.sections['.text'].relocations:
             self._compute(rel)
 
     def _compute(self, rel: Relocation) -> None:
@@ -44,20 +43,75 @@ class RelocationEngine:
         Args:
             rel (Relocation): the relocation to compute
         """
+        # we work only on section '.text'
+        section = self.sections['.text']
+
         # retrieve the symbol details
         symbol = self.symbols.get(cast(ast.Label, rel.symbol).name)
+        assert symbol.value is not None
 
         # check if the symbol is already in the cache
         if symbol.name not in self.cache:
-            # compute the address
-            self.cache[symbol.name] = self.address + symbol.value   # type: ignore
+            address = self.sections[symbol.section].address     # type: ignore
+            self.cache[symbol.name] = address + symbol.value
 
-        # retrieve the symbol address & offset where relocation should happen
+        # retrieve the symbol address
         sym_addr = self.cache[symbol.name]
+
+        # compute the current PC (respective to the section starting address)
+        # and the offset, where the relocation should take place
         offset = rel.address
+        instr_pc = section.address + offset
 
         # retrieve the instruction
-        inst = int.from_bytes(self.section.data[offset:offset+4], "big")
+        inst = int.from_bytes(section.data[offset:offset+4], "big")
+
+        # process the relocation
+        match rel.type:
+            case RelocationType.RISCV_HI20:
+                hi20 = self._hi20(sym_addr + rel.addend)
+                inst = self._patch_hi20(inst, hi20)
+
+            case RelocationType.RISCV_LO12_I:
+                hi20 = self._hi20(sym_addr + rel.addend)
+                lo12 = self._lo12(sym_addr + rel.addend, hi20)
+                inst = self._patch_lo12_i(inst, lo12)
+
+            case RelocationType.RISCV_LO12_S:
+                hi20 = self._hi20(sym_addr + rel.addend)
+                lo12 = self._lo12(sym_addr + rel.addend, hi20)
+                inst = self._patch_lo12_s(inst, lo12)
+
+            case RelocationType.RISCV_PCREL_HI20:
+                delta = sym_addr + rel.addend - instr_pc
+                hi20 = self._hi20(delta)
+                inst = self._patch_hi20(inst, hi20)
+
+            case RelocationType.RISCV_PCREL_LO12_I:
+                delta = sym_addr + rel.addend - instr_pc
+                hi20 = self._hi20(delta)
+                lo12 = self._lo12(delta, hi20)
+                inst = self._patch_lo12_i(inst, lo12)
+
+            case RelocationType.RISCV_PCREL_LO12_S:
+                delta = sym_addr + rel.addend - instr_pc
+                hi20 = self._hi20(delta)
+                lo12 = self._lo12(delta, hi20)
+                inst = self._patch_lo12_s(inst, lo12)
+
+            case RelocationType.RISCV_BRANCH:
+                delta = sym_addr + rel.addend - instr_pc
+                inst = self._patch_branch(inst, delta)
+
+            case RelocationType.RISCV_JAL:
+                delta = sym_addr + rel.addend - instr_pc
+                inst = self._patch_jal(inst, delta)
+
+            case _:
+                raise NotImplementedError(rel.type)
+
+        # replace the instruction
+        section.data[offset:offset+4] = inst.to_bytes(4, "big")
 
     def _hi20(self, value: int) -> int:
         """Compute HI20 value"""
