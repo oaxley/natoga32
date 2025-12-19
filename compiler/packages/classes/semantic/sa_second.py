@@ -17,7 +17,10 @@ import os
 from typing import List, cast
 
 from packages import ast
-from packages.structs import Config, EvalResult, Relocation, RelocationType
+from packages.structs import (
+    Config, EvalResult, SymbolType,
+    Relocation, RelocationType
+)
 from packages.functions import evaluator
 
 
@@ -238,12 +241,19 @@ class SASecondPass:
                 return EvalResult(reg=value)
 
             # 2. check for a symbol in the table
-            is_symbol = symbols.exists(op.name)
-            if is_symbol:
-                # retrieve the symbol definition
+            if symbols.exists(op.name):
                 symbol = symbols.get(op.name)
-                if symbol.defined:
-                    return EvalResult(reloc=Relocation(symbol.type.name, op, 0, pc)) # type: ignore
+
+                # return its value depending on its type
+                match symbol.type:
+                    case SymbolType.LABEL:
+                        address = self.config.sections[symbol.section].address      # type: ignore
+                        sym_addr = address + symbol.value # type: ignore
+                        return EvalResult(value=sym_addr)
+                    case SymbolType.DEFINE:
+                        return EvalResult(value=symbol.value)
+                    case _:
+                        raise SyntaxError(f"Error: unable to evaluate symbol type '{symbol.type.name}'")
 
             # for now we do not support multi-file compilation :(
             raise SyntaxError(f"Error: could not find definition for '{op.name}'")
