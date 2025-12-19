@@ -17,6 +17,7 @@ from typing import cast, Dict
 from packages import ast
 from packages.structs import Config
 
+from .reloc_engine import RelocationEngine
 
 #----- class
 class SAThirdPass:
@@ -43,21 +44,21 @@ class SAThirdPass:
             sym_addr = self.cache[symbol.name]
             offset = reloc.address
 
-            # delta value
-            delta = (sym_addr + reloc.addend) - offset
-
             # current instruction
             instr = int.from_bytes(text.data[offset:offset+4], "big")
 
             if reloc.type == 'R_RISCV_PCREL_HI20':
                 # compute the upper 20-bits
+                delta = (sym_addr + reloc.addend) - offset
                 hi20 = (delta + 0x800) >> 12
 
                 # patch the instruction
-                instr = (instr & 0xFFF) | ((hi20 & 0xFFFFF) << 12)
+                instr &= 0xFFF
+                instr |= (hi20 & 0xFFFFF) << 12
                 text.data[offset:offset+4] = instr.to_bytes(4, 'big')
 
             elif reloc.type == 'R_RISCV_PCREL_LO12_I':
+                delta = (sym_addr + reloc.addend) - offset
                 lo12 = delta - ((delta + 0x800) & ~0xFFF)
 
                 # patch the instruction
@@ -66,6 +67,7 @@ class SAThirdPass:
                 text.data[offset:offset+4] = instr.to_bytes(4, 'big')
 
             elif reloc.type == 'R_RISCV_PCREL_LO12_S':
+                delta = (sym_addr + reloc.addend) - offset
                 lo12 = delta - ((delta + 0x800) & ~0xFFF)
 
                 # patch
@@ -75,16 +77,33 @@ class SAThirdPass:
                 text.data[offset:offset+4] = instr.to_bytes(4, 'big')
 
             elif reloc.type == 'R_RISCV_HI20':
-                delta = (sym_addr + 0x800) >> 12
+                hi20 = (sym_addr + 0x800) >> 12
+
                 # patch the instruction
-                instr = (instr & 0xFFF) | ((delta & 0xFFFFF) << 12)
+                instr = (instr & 0xFFF) | ((hi20 & 0xFFFFF) << 12)
                 text.data[offset:offset+4] = instr.to_bytes(4, 'big')
 
+            elif reloc.type == 'R_RISCV_LO12_I':
+                lo12 = (sym_addr + reloc.addend) - ((sym_addr + 0x800) & ~0xFFF)
+
+                # patch the instruction
+                instr &= ~(0xFFF << 20)
+                instr |= (lo12 & 0xFFF) << 20
+                text.data[offset:offset+4] = instr.to_bytes(4, 'big')
+
+            elif reloc.type == 'R_RISCV_LO12_S':
+                lo12 = (sym_addr + reloc.addend) - ((sym_addr + 0x800) & ~0xFFF)
+
+                # patch the instruction
+                instr &= ~((0x7F << 25) | (0x1F << 7))
+                instr |= ((lo12 >> 5) & 0x7F) << 25     # imm[11:5] -> bits[31:25]
+                instr |= (lo12 & 0x1F) << 7             # imm[4:0] -> bits[11:7]
+                text.data[offset:offset+4] = instr.to_bytes(4, 'big')
+
+            elif reloc.type == 'R_RISC_BRANCH':
+                pass
 
             else:
-                # R_RISCV_HI20
-                # R_RISCV_LO12_I
-                # R_RISCV_LO12_S
                 # R_RISCV_BRANCH
                 # R_RISCV_JAL
                 print(f"Error: unsupported relocation type '{reloc.type}'")
