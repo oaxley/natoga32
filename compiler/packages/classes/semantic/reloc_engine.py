@@ -15,6 +15,7 @@
 from typing import Dict, cast
 
 from packages import ast
+from packages import constants as const
 from packages.structs import Config, Relocation, RelocationType
 
 
@@ -64,7 +65,7 @@ class RelocationEngine:
         instr_pc = section.address + offset
 
         # retrieve the instruction
-        inst = int.from_bytes(section.data[offset:offset+4], "big")
+        inst = int.from_bytes(section.data[offset:offset+4], const.ENDIANESS)
 
         # process the relocation
         match rel.type:
@@ -111,7 +112,7 @@ class RelocationEngine:
                 raise NotImplementedError(rel.type)
 
         # replace the instruction
-        section.data[offset:offset+4] = inst.to_bytes(4, "big")
+        section.data[offset:offset+4] = inst.to_bytes(4, const.ENDIANESS)
 
     def _hi20(self, value: int) -> int:
         """Compute HI20 value"""

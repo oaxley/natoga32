@@ -15,3 +15,6 @@
 
 # max capture body recursion
 MAX_BODY_DEPTH = 50
+
+# endianness
+ENDIANESS = 'big'

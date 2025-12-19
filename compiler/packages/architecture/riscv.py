@@ -17,6 +17,7 @@ from enum import IntEnum, auto
 from typing import Dict, List, Tuple, cast
 
 from packages import ast
+from packages import constants as const
 from packages.structs import CPU, EvalResult, Relocation, RelocationType
 from packages.classes import Architecture
 
@@ -265,7 +266,7 @@ class Riscv(Architecture):
             data.opcode
         )
 
-        return (value.to_bytes(4, 'big'), reloc)
+        return (value.to_bytes(4, const.ENDIANESS), reloc)
 
     def _type_U(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode type U RISC-V instructions"""
@@ -294,7 +295,7 @@ class Riscv(Architecture):
             OPCODES_T[opcode].opcode
         )
 
-        return (value.to_bytes(4, 'big'), reloc)
+        return (value.to_bytes(4, const.ENDIANESS), reloc)
 
     def _type_R(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode type R RISC-V instructions"""
@@ -325,7 +326,7 @@ class Riscv(Architecture):
             OPCODES_T[opcode].opcode
         )
 
-        return (value.to_bytes(4, 'big'), [])
+        return (value.to_bytes(4, const.ENDIANESS), [])
 
     def _type_S(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode type S RISC-V instructions"""
@@ -375,7 +376,7 @@ class Riscv(Architecture):
             data.opcode
         )
 
-        return (value.to_bytes(4, 'big'), reloc)
+        return (value.to_bytes(4, const.ENDIANESS), reloc)
 
     def _type_B(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode type B RISC-V instructions"""
@@ -427,7 +428,7 @@ class Riscv(Architecture):
             data.opcode
         )
 
-        return (value.to_bytes(4, 'big'), reloc)
+        return (value.to_bytes(4, const.ENDIANESS), reloc)
 
     def _type_J(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode type J RISC-V instructions"""
@@ -466,7 +467,7 @@ class Riscv(Architecture):
             OPCODES_T[opcode].opcode
         )
 
-        return (value.to_bytes(4, 'big'), reloc)
+        return (value.to_bytes(4, const.ENDIANESS), reloc)
 
     def expand(self, instr: ast.Instruction) -> List[ast.Instruction]:
         """Expland the pseudo-instruction into their full instructions"""

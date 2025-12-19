@@ -17,6 +17,7 @@ import os
 from typing import List, cast
 
 from packages import ast
+from packages import constants as const
 from packages.structs import (
     Config, EvalResult, SymbolType,
     Relocation, RelocationType
@@ -170,9 +171,9 @@ class SASecondPass:
                 raise SyntaxError(f"Error: unable to process '{node.debug()}' as data.")
 
             if value < 0:
-                section.data.extend(value.to_bytes(size, 'big', signed=True))
+                section.data.extend(value.to_bytes(size, const.ENDIANESS, signed=True))
             else:
-                section.data.extend(value.to_bytes(size, 'big', signed=False))
+                section.data.extend(value.to_bytes(size, const.ENDIANESS, signed=False))
 
             section.size += size
 
