@@ -28,13 +28,12 @@ class Section:
     - data (bytearray): the data to store in this section
     - relocations (list): the relocation list
     - offset (int): the current write cursor
-    - start (int): the starting address for the section
+    - address (int): section start address
     """
     name: str
     data: bytearray = field(default_factory=bytearray)
     relocations: List[Relocation] = field(default_factory=list)
     offset: int = 0
-    align: int = 1
     address: int = 0
 
     def __repr__(self) -> str:
