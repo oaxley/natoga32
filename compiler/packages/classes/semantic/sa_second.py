@@ -45,7 +45,7 @@ class SASecondPass:
         """
         if directive.name in ['.text', '.data', '.bss']:
             self.current_section = directive.name
-            self.config.sections[self.current_section].offset = 0
+            self.config.sections[self.current_section].size = 0
             return
 
         match directive.name:
@@ -72,8 +72,8 @@ class SASecondPass:
 
         section = self.config.sections[self.current_section]
 
-        _, value = evaluator.const_eval(arg, self.config.symbols, section.offset)
-        section.offset += value
+        _, value = evaluator.const_eval(arg, self.config.symbols, section.size)
+        section.size += value
 
         if section.name in ['.text', '.data']:
             section.data.extend(b"\x00" * value)
@@ -88,11 +88,11 @@ class SASecondPass:
 
         section = self.config.sections[self.current_section]
 
-        _, value = evaluator.const_eval(arg, self.config.symbols, section.offset)
-        delta = section.offset % value
+        _, value = evaluator.const_eval(arg, self.config.symbols, section.size)
+        delta = section.size % value
         if delta != 0:
             padding = value - delta
-            section.offset += padding
+            section.size += padding
             if section.name in ['.text', '.data']:
                 section.data.extend(b"\x00" * padding)
 
@@ -105,13 +105,13 @@ class SASecondPass:
         assert isinstance(arg, ast.Expression)
 
         section = self.config.sections[self.current_section]
-        _, value = evaluator.const_eval(arg, self.config.symbols, section.offset)
+        _, value = evaluator.const_eval(arg, self.config.symbols, section.size)
 
-        if value < section.offset:
-            raise SyntaxError(f"Error: .org offset {value} is below current offset {section.offset}!")
+        if value < section.size:
+            raise SyntaxError(f"Error: .org offset {value} is below current offset {section.size}!")
 
-        padding = value - section.offset
-        section.offset = value
+        padding = value - section.size
+        section.size = value
 
         if section.name in ['.text', '.data']:
             section.data.extend(b"\x00" * padding)
@@ -142,7 +142,7 @@ class SASecondPass:
             section.data.extend(content)
 
             # add the size to the offset
-            section.offset += len(content)
+            section.size += len(content)
             return
 
 
@@ -161,7 +161,7 @@ class SASecondPass:
         symbols = self.config.symbols
         for node in args:
             assert isinstance(node, ast.Expression)
-            result, value = evaluator.const_eval(node, symbols, section.offset)
+            result, value = evaluator.const_eval(node, symbols, section.size)
 
             if not result:
                 raise SyntaxError(f"Error: unable to process '{node.debug()}' as data.")
@@ -171,7 +171,7 @@ class SASecondPass:
             else:
                 section.data.extend(value.to_bytes(size, 'big', signed=False))
 
-            section.offset += size
+            section.size += size
 
     def _d_string(self, arg: ast.Node) -> None:
         """Handle .asciz / .string directives
@@ -184,7 +184,7 @@ class SASecondPass:
         section = self.config.sections[self.current_section]
         section.data.extend(arg.text.encode('utf-8'))
         section.data.extend(b"\x00")
-        section.offset += len(arg.text) + 1
+        section.size += len(arg.text) + 1
 
     def _instruction(self, instr: ast.Instruction) -> None:
         """Process the instruction statement
@@ -207,7 +207,7 @@ class SASecondPass:
                 section.relocations.append(i)
 
         section.data.extend(bincode)
-        section.offset += len(bincode)
+        section.size += len(bincode)
 
     def _op_eval(self, op: ast.Expression, pc: int) -> EvalResult:
         """Evaluate an operand from an opcode

@@ -80,7 +80,7 @@ class SAFirstPass:
             label (ast.Label): a statement representing a label
         """
         section = self.config.sections[self.current_section]
-        self.config.symbols.define(label.name, section.offset, SymbolType.LABEL, section.name)
+        self.config.symbols.define(label.name, section.size, SymbolType.LABEL, section.name)
 
     def _instruction(self, instr: ast.Instruction) -> None:
         """Process the Instruction statement
@@ -89,8 +89,8 @@ class SAFirstPass:
             instr (ast.Instruction): a statement representing an instruction
         """
         section = self.config.sections[self.current_section]
-        instr.address = section.offset
-        section.offset += self.config.arch.cpu.instr_size
+        instr.address = section.size
+        section.size += self.config.arch.cpu.instr_size
 
     def _d_cpu(self, arg: ast.Node) -> None:
         """Handle the .cpu directive
@@ -120,12 +120,12 @@ class SAFirstPass:
         assert isinstance(arg, ast.Expression)
 
         section = self.config.sections[self.current_section]
-        result, value = evaluator.const_eval(arg, self.config.symbols, section.offset)
+        result, value = evaluator.const_eval(arg, self.config.symbols, section.size)
 
         if not result:
             raise SyntaxError(f"Error: .skip directive expects a full qualified expression")
 
-        section.offset += value
+        section.size += value
 
     def _d_align(self, arg: ast.Node) -> None:
         """Handle the .align directive
@@ -136,16 +136,16 @@ class SAFirstPass:
         assert isinstance(arg, ast.Expression)
 
         section = self.config.sections[self.current_section]
-        result, value = evaluator.const_eval(arg, self.config.symbols, section.offset)
+        result, value = evaluator.const_eval(arg, self.config.symbols, section.size)
 
         if not result:
             raise SyntaxError(f"Error: .align directive expects a full qualified expression")
 
         # compute the alignment
-        delta = section.offset % value
+        delta = section.size % value
         if delta != 0:
             padding = value - delta
-            section.offset += padding
+            section.size += padding
 
     def _d_org(self, arg: ast.Node) -> None:
         """Handle the .org directive
@@ -156,16 +156,16 @@ class SAFirstPass:
         assert isinstance(arg, ast.Expression)
 
         section = self.config.sections[self.current_section]
-        result, value = evaluator.const_eval(arg, self.config.symbols, section.offset)
+        result, value = evaluator.const_eval(arg, self.config.symbols, section.size)
 
         if not result:
             raise SyntaxError(f"Error: .org directive expects a full qualified expression")
 
         # compute the alignment
-        if value < section.offset:
-            raise SyntaxError(f"Error: .org offset {value} is below current offset {section.offset}!")
+        if value < section.size:
+            raise SyntaxError(f"Error: .org offset {value} is below current offset {section.size}!")
 
-        section.offset = value
+        section.size = value
 
     def _d_data(self, directive: str, args: List[ast.Node]) -> None:
         """Handle directives .byte, .word, .half
@@ -187,7 +187,7 @@ class SAFirstPass:
                 size = fh.seek(0, os.SEEK_END)
 
             # add the size to the offset
-            section.offset += size
+            section.size += size
             return
 
         # compute the size associated with the directive
@@ -201,7 +201,7 @@ class SAFirstPass:
             case _:
                 size = 1
 
-        section.offset += size * len(args)
+        section.size += size * len(args)
 
     def _d_string(self, arg: ast.Node) -> None:
         """Handle .asciz / .string directives
@@ -212,7 +212,7 @@ class SAFirstPass:
         assert isinstance(arg, ast.StringLiteral)
 
         section = self.config.sections[self.current_section]
-        section.offset += len(arg.text) + 1
+        section.size += len(arg.text) + 1
 
     def _d_entry(self, arg: ast.Node) -> None:
         """Handle the .entrypoint directive
