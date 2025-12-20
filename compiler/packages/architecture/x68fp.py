@@ -30,10 +30,6 @@ class X68fp(Architecture):
         """Constructor"""
         self.cpu: CPU = CPU(2, 16, 1, 1, 2)
 
-    def is_register(self, operand: str) -> Tuple[bool, int]:
-        """Check if operand is a register"""
-        return (False, 0)
-
     def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode the instruction with its operands"""
         return (b"\x00", [])

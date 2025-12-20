@@ -25,11 +25,7 @@ class Architecture(ABC):
 
     def __init__(self) -> None:
         self.cpu: CPU = CPU()
-        self.locations: Dict[str, int] = {}
-
-    @abstractmethod
-    def is_register(self, operand: str) -> Tuple[bool, int]:
-        """Check if operand is a register"""
+        self.mmap: Dict[str, int] = {}
 
     @abstractmethod
     def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
@@ -43,9 +39,6 @@ class DefaultArch(Architecture):
     """Default Architecture"""
     def __init__(self) -> None:
         super().__init__()
-
-    def is_register(self, operand: str) -> Tuple[bool, int]:
-        return (False, 0)
 
     def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         return (b"\x00", [])
