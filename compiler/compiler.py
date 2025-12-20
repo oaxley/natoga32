@@ -23,6 +23,7 @@ from packages.pre_processor import PreProcessor
 from packages.parser import Parser
 from packages.pseudo_instr import PseudoInstruction
 from packages.semantic import SemanticAnalyzer
+from packages.obj_writer import ObjWriter
 
 
 # ----- begin
@@ -138,6 +139,12 @@ try:
         for k, v in config.symbols.items:
             print(v)
         sys.exit(0)
+
+    # Step 7 : Write the file to disk
+    step += 1
+    print(f"Phase {step} : Write Object to disk")
+    writer = ObjWriter(config)
+    writer.write()
 
 except SyntaxError as e:
     print(str(e))
