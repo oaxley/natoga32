@@ -98,6 +98,12 @@ class PreProcessor:
                     flag = True
                     continue
 
+                #--- .include
+                elif token.value == ".include":
+                    out.extend(include(ts, self.config))
+                    flag = True
+                    continue
+
             # process identifiers
             if token.type == TokenType.IDENT:
 
