@@ -16,44 +16,47 @@ from typing import Dict, cast
 
 from packages import ast
 from packages import constants as const
-from packages.structs import Config, Relocation, RelocationType
+from packages.structs import Relocation, RelocationType, Section
+from packages.classes import RelocationEngine, SymbolTable
+
+
+#----- global
+Sections = Dict[str, Section]
 
 
 #----- class
-class RelocationEngine:
+class RiscvRelocEngine(RelocationEngine):
     """Perform the relocation patching of Risc-V instructions"""
 
-    def __init__(self, config: Config) -> None:
-        """Constructor
+    def __init__(self) -> None:
+        """Constructor"""
+        super().__init__()
 
+    def process(self, sections: Sections, symbols: SymbolTable) -> None:
+        """Compute all the relocation for the '.text' section
         Args:
-            config (Config): the global config object containing the relocations
+            sections (Dict[str, Section]): the assembly sections
+            symbols (SymbolTable): the symbol table
         """
-        self.sections = config.sections
-        self.symbols = config.symbols
-        self.cache: Dict[str, int] = {}
+        for rel in sections['.text'].relocations:
+            self._compute(rel, sections, symbols)
 
-    def process(self) -> None:
-        """Compute all the relocation for the '.text' section"""
-        for rel in self.sections['.text'].relocations:
-            self._compute(rel)
-
-    def _compute(self, rel: Relocation) -> None:
+    def _compute(self, rel: Relocation, sections: Sections, symbols: SymbolTable) -> None:
         """Compute the relocation
 
         Args:
             rel (Relocation): the relocation to compute
         """
         # we work only on section '.text'
-        section = self.sections['.text']
+        section = sections['.text']
 
         # retrieve the symbol details
-        symbol = self.symbols.get(cast(ast.Label, rel.symbol).name)
+        symbol = symbols.get(cast(ast.Label, rel.symbol).name)
         assert symbol.value is not None
 
         # check if the symbol is already in the cache
         if symbol.name not in self.cache:
-            address = self.sections[symbol.section].address     # type: ignore
+            address = sections[symbol.section].address     # type: ignore
             self.cache[symbol.name] = address + symbol.value
 
         # retrieve the symbol address

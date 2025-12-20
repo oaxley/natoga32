@@ -17,7 +17,6 @@ from typing import cast, Dict
 from packages import ast
 from packages.structs import Config
 
-from .reloc_engine import RelocationEngine
 
 #----- class
 class SAThirdPass:
@@ -29,5 +28,5 @@ class SAThirdPass:
 
     def process(self) -> None:
         """Process the relocations from the .text section"""
-        reloc = RelocationEngine(self.config)
-        reloc.process()
+        engine = self.config.arch.reloc_engine
+        engine.process(self.config.sections, self.config.symbols)

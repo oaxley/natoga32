@@ -18,6 +18,8 @@ from abc import ABC, abstractmethod
 from packages import ast
 from packages.structs import CPU, Relocation, EvalResult
 
+from .reloc_engine import RelocationEngine, DefaultRelocEngine
+
 
 #----- classes
 class Architecture(ABC):
@@ -26,6 +28,7 @@ class Architecture(ABC):
     def __init__(self) -> None:
         self.cpu: CPU = CPU()
         self.mmap: Dict[str, int] = {}
+        self.reloc_engine: RelocationEngine = DefaultRelocEngine()
 
     @abstractmethod
     def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:

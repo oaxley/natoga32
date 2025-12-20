@@ -29,6 +29,7 @@ from .encoder import (
     type_R_encoder, type_S_encoder, type_U_encoder
 )
 
+from .reloc_engine import RiscvRelocEngine
 
 #----- class
 class Riscv(Architecture):
@@ -46,6 +47,9 @@ class Riscv(Architecture):
             '.data': 0x0120_0000,
             '.text': 0x01A0_0000
         }
+
+        # relocation engine
+        self.reloc_engine  = RiscvRelocEngine()
 
     def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode the instruction with its operands"""
