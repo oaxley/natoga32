@@ -32,6 +32,10 @@ class RelocationType(IntEnum):
     RISCV_BRANCH = auto()
     RISCV_JAL = auto()
 
+    CODE_LABEL = auto()             # label in the .text section
+    DATA_LABEL = auto()             # label in the .data section
+    BSS_LABEL = auto()              # label in the .bss section
+
     UNKNOWN = auto()
 
 

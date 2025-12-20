@@ -210,6 +210,7 @@ class SASecondPass:
             result = self._op_eval(cast(ast.Expression, op), pc)
             operands.append(result)
 
+        print(operands)
         bincode, reloc = self.config.arch.encode(instr.opcode, operands)
         if len(reloc) > 0:
             for i in reloc:
@@ -249,15 +250,21 @@ class SASecondPass:
             # 2. check for a symbol in the table
             if symbols.exists(op.name):
                 symbol = symbols.get(op.name)
+                print(f"-X-> {symbol}")
 
-                # return its value depending on its type
                 match symbol.type:
-                    case SymbolType.LABEL:
-                        address = self.config.sections[symbol.section].address      # type: ignore
-                        sym_addr = address + symbol.value # type: ignore
-                        return EvalResult(value=sym_addr)
-                    case SymbolType.DEFINE:
+                    case SymbolType.DEFINE:     # after pre-processing, this should not be triggered...
                         return EvalResult(value=symbol.value)
+
+                    case SymbolType.LABEL:
+                        match symbol.section:
+                            case ".text":
+                                return EvalResult(reloc=Relocation(RelocationType.CODE_LABEL, op, 0, pc))
+                            case ".data":
+                                return EvalResult(reloc=Relocation(RelocationType.DATA_LABEL, op, 0, pc))
+                            case ".bss":
+                                return EvalResult(reloc=Relocation(RelocationType.BSS_LABEL, op, 0, pc))
+
                     case _:
                         raise SyntaxError(f"Error: unable to evaluate symbol type '{symbol.type.name}'")
 
