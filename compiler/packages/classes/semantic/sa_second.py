@@ -237,8 +237,8 @@ class SASecondPass:
         if isinstance(op, ast.Identifier):
 
             # 1. check for a register
-            is_register, value = self.config.arch.is_register(op.name)
-            if is_register:
+            if op.name in self.config.arch.cpu.registers:
+                value = self.config.arch.cpu.get(op.name)
                 return EvalResult(reg=value)
 
             # 2. check for a symbol in the table

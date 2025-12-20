@@ -108,8 +108,8 @@ class SAFirstPass:
                 raise SyntaxError(f"Error: unknown architecture '{arg.name}'")
 
         # set the starting values in the respective section
-        for name in self.config.arch.locations:
-            self.config.sections[name].address = self.config.arch.locations[name]
+        for name in self.config.arch.mmap:
+            self.config.sections[name].address = self.config.arch.mmap[name]
 
     def _d_skip(self, arg: ast.Node) -> None:
         """Handle the .skip directive
