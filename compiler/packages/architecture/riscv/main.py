@@ -38,7 +38,7 @@ class Riscv(Architecture):
     def __init__(self) -> None:
         """Constructor"""
         # CPU definition
-        self.cpu: CPU = CPU(4, 32, 1, 2, 4)
+        self.cpu: CPU = CPU(4, 32, 1, 2, 4, "risc-v")
         define_registers(self.cpu)
 
         # memory map

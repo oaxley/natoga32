@@ -27,6 +27,7 @@ class CPU:
     - byte (int): the size associated with the ".byte" directive
     - half (int): the size associated with the ".half" directive
     - word (int): the size associated with the ".word" directive
+    - name (str): name of the CPU
     - registers (Dict[str, Union[str,int]]): list of the registers and their aliases
     """
     instr_size: int = 0
@@ -34,7 +35,7 @@ class CPU:
     byte: int = 0
     half: int = 0
     word: int = 0
-
+    name: str = ""
     registers: Dict[str, Union[str,int]] = field(default_factory=dict)
 
     def get(self, name: str) -> int:

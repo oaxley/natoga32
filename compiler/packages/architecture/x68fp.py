@@ -28,7 +28,7 @@ class X68fp(Architecture):
 
     def __init__(self) -> None:
         """Constructor"""
-        self.cpu: CPU = CPU(2, 16, 1, 1, 2)
+        self.cpu: CPU = CPU(2, 16, 1, 1, 2, "x68fp")
 
     def encode(self, opcode: str, operands: List[EvalResult]) -> Tuple[bytes, List[Relocation]]:
         """Encode the instruction with its operands"""
