@@ -52,8 +52,8 @@ class Config:
     sections: Dict[str, Section]
     arch: Architecture
     entrypoint: str
-    row: int
-    col: int
+    # row: int
+    # col: int
 
 
     def __init__(self, args: Namespace) -> None:
@@ -79,7 +79,7 @@ class Config:
         self.arch = DefaultArch()
 
         # track includes to avoid infinite recursion
-        includes = set()
+        self.includes = set()
 
         # setup the assembly section
         self.sections = {
