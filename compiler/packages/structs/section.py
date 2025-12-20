@@ -33,7 +33,7 @@ class Section:
     name: str
     data: bytearray = field(default_factory=bytearray)
     relocations: List[Relocation] = field(default_factory=list)
-    size: int = 0
+    size: int = -1
     address: int = 0
 
     def __repr__(self) -> str:

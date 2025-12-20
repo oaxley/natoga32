@@ -33,6 +33,10 @@ class SASecondPass:
         """Constructor"""
         self.config = config
 
+        # reset the section size / pointer
+        for s in ['.text', '.data', '.bss']:
+            self.config.sections[s].size = -1
+
     def process(self) -> None:
         """Execute the second pass"""
         for stmt in self.config.program.statements:
@@ -49,7 +53,8 @@ class SASecondPass:
         """
         if directive.name in ['.text', '.data', '.bss']:
             self.current_section = directive.name
-            self.config.sections[self.current_section].size = 0
+            if self.config.sections[self.current_section].size == -1:
+                self.config.sections[self.current_section].size = 0
             return
 
         match directive.name:

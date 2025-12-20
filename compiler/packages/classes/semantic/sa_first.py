@@ -52,6 +52,8 @@ class SAFirstPass:
         # select the proper section
         if directive.name in ['.text', '.data', '.bss']:
             self.current_section = directive.name
+            if self.config.sections[self.current_section].size == -1:
+                self.config.sections[self.current_section].size = 0
             return
 
         # handle each directives
