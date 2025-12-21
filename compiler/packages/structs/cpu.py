@@ -12,7 +12,7 @@
 # @brief	CPU dataclass
 
 #----- imports
-from typing import Dict, Union
+from typing import Dict
 from dataclasses import dataclass, field
 
 
@@ -28,7 +28,7 @@ class CPU:
     - half (int): the size associated with the ".half" directive
     - word (int): the size associated with the ".word" directive
     - name (str): name of the CPU
-    - registers (Dict[str, Union[str,int]]): list of the registers and their aliases
+    - registers (Dict[str, int]): list of the registers and their aliases
     """
     instr_size: int = 0
     xlen: int = 0
@@ -36,13 +36,9 @@ class CPU:
     half: int = 0
     word: int = 0
     name: str = ""
-    registers: Dict[str, Union[str,int]] = field(default_factory=dict)
+    registers: Dict[str, int] = field(default_factory=dict)
 
     def get(self, name: str) -> int:
         if name not in self.registers:
             raise KeyError(name)
-        if isinstance(self.registers[name], str):
-            alias = self.registers[name]
-            return self.registers[alias]    # type: ignore
-        else:
-            return self.registers[name]     # type: ignore
+        return self.registers[name]
