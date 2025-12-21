@@ -60,7 +60,7 @@ class SAFirstPass:
         match directive.name:
             case '.cpu':
                 self._d_cpu(directive.args[0])
-            case '.skip':
+            case '.skip' | '.space':
                 self._d_skip(directive.args[0])
             case '.align':
                 self._d_align(directive.args[0])

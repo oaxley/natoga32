@@ -58,7 +58,7 @@ class SASecondPass:
             return
 
         match directive.name:
-            case '.skip':
+            case '.skip' | '.space':
                 self._d_skip(directive.args[0])
             case '.align':
                 self._d_align(directive.args[0])
