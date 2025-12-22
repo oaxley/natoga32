@@ -155,8 +155,8 @@ Formula: final = A * FG + B * BG
   - alpha 25/75 (001): sprite 25% / framebuffer 75% 
   - alpha 50/50 (010)
   - alpha 75/25 (011)
-  - additive (100): max(sprite+framebuffer, 255)
-  - subtractive (101): min(sprite-framebuffer, 0)
+  - additive (100): min(Cfb + Csp, 255)
+  - subtractive (101): max(Cfb-Csp, 0)
   - unused (110)
   - unused (111)
 
