@@ -5,35 +5,32 @@
 
 ```
           ┌──────────────────────┐            |─────────...──────────|
-0000 0000 │   ROM / Boot Loader  │  0025 3000 |      Audio RAM       |
-001F FFFF │         2MiB         │  002F 2FFF │        640KiB        │
+0000 0000 │   ROM / Boot Loader  │  0026 0000 |        S-RAM         |
+001F FFFF │         2MiB         │  002D FFFF │        512KiB        │
           |──────────────────────|            |──────────────────────|
-001F 0000 │        Unused        │  002F 3000 |        Unused        |
-0020 01FF │         512B         │  002F AFFF │        32KiB         │
+0020 0000 |  Interrupts Vector   |  002E 0000 |      Audio RAM       |
+0020 007F │        32x4B         │  0035 FFFF │        512KiB        │
           |──────────────────────|            |──────────────────────|
-0020 0200 |  Interrupts Vector   |  002F B000 |      Video RAM       |
-0020 023F │        16x4B         │  006F AFFF │        4MiB          │
+0020 0080 |        Unused        |  0036 0000 |        Unused        |
+0020 0FFF │     3KiB+768+128     │  0037 FFFF │        128KiB        │
           |──────────────────────|            |──────────────────────|
-0020 0240 |        Unused        |  006F B000 |        Unused        |
-0020 02FF │         192B         │  006F FFFF │        20KiB         │
-          |──────────────────────|            |──────────────────────|
-0020 0300 | Control Status Regs  |  0070 0000 |        S-RAM         | 
-0020 42FF │       4096x4B        │  0077 FFFF │       512KiB         │ 
+0020 1000 |    CSR Registers     |  0038 0000 |      Video RAM       | 
+0020 4FFF │       4096x4B        │  0077 FFFF │         4MiB         │ 
           |──────────────────────|            |──────────────────────| 
-0020 4300 |        Unused        |  0078 0000 |    Threads Stack     |
-0024 22FF │        248KiB        │  007F FFFF │      64KiBx8T        │
+0020 5000 |    Registers Save    |  0078 0000 |         Heap         |
+0020 53FF │       32x4Bx8T       │  007F FFFF │         8MiB         │
           |──────────────────────|            |──────────────────────|
-0024 2300 |    Registers Save    |  0080 0000 |         Heap         |
-0024 26FF │       32x4Bx8T       │  00FF FFFF │         8MiB         │
+0020 5400 |        Unused        |  0080 0000 |        Stack         |
+0020 5FFF │         3KiB         │  00FF FFFF │       64KiBx8T       │
           |──────────────────────|            |──────────────────────|
-0024 2700 |        Unused        |  0100 0000 |         .bss         |
-0024 27FF │         256B         │  011F FFFF │         2MiB         │
+0020 6000 |   Threads Metadata   |  0100 0000 |         .bss         |
+0020 67FF │       64x4bx8T       │  011F FFFF │         2MiB         │
           |──────────────────────|            |──────────────────────|
-0024 2800 |   Threads Metadata   |  0120 0000 |         .data        |
-0024 2FFF │       64x4Bx8T       │  019F FFFF │         8MiB         │
+0020 6800 |        Unused        |  0120 0000 |         .data        |
+0021 FFFF │        102KiB        │  019F FFFF │         8MiB         │
           |──────────────────────|            |──────────────────────|
-0024 3000 |        Unused        |  01A0 0000 |         .text        |
-0025 2FFF │        64KiB         │  01FF FFFF │         6MiB         │
+0022 0000 |     Cartridge IO     |  01A0 0000 |         .text        |
+0025 FFFF │        256KiB        │  01FF FFFF │         6MiB         │
           |─────────...──────────|            └──────────────────────┘
                     
 ```
