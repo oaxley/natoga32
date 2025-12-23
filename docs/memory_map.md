@@ -37,9 +37,33 @@
 
 ## x68FP
 
-_To be defined_
+```
+          ┌──────────────────────┐
+0000 0000 │   ROM / Boot Loader  │
+0000 07FF │         2KiB         │
+          |──────────────────────|
+0000 0800 |         LUT          |
+0000 13FF │         3KiB         │
+          |──────────────────────|
+0000 1400 |    CSR Registers     |
+0000 17FF │        256x4B        │
+          |──────────────────────|
+0000 1800 |         S-RAM        |
+0000 5FFF │         32KiB        │
+          |──────────────────────|
+0000 9800 |         P-RAM        |
+0000 B7FF │         8KiB         │
+          |──────────────────────|
+0000 B800 |         D-RAM        |
+0000 F7FF │         16KiB        │
+          |──────────────────────|
+0000 F800 |         Stack        |
+0000 FFFF │         2KiB         │
+          └──────────────────────┘               
+```
 
-- S-RAM shared with host (512KiB)
-- P-RAM (program)
-- D-RAM (data)
-- ROM with LUT tables
+S-RAM : 
+- 32KiB
+- Bank Switching to access the 512KiB of the Host
+- 16 banks
+
