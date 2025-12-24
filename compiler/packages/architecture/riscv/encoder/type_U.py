@@ -37,7 +37,7 @@ def type_U_encoder(opcode: str, operands: List[EvalResult], cpu: CPU) -> Tuple[b
         rd = cast(int, operands[0].reg)
 
         if operands[1].value is not None:
-            imm = (operands[1].value >> 12) & 0xFFFFF
+            imm = operands[1].value & 0xFFFFF
         else:
             imm = 0
 
