@@ -210,7 +210,6 @@ class SASecondPass:
             result = self._op_eval(cast(ast.Expression, op), pc)
             operands.append(result)
 
-        print(operands)
         bincode, reloc = self.config.arch.encode(instr.opcode, operands)
         if len(reloc) > 0:
             for i in reloc:
