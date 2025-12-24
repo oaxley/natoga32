@@ -123,7 +123,7 @@ try:
             print(v)
         sys.exit(0)
 
-    # Step 6: Semantic Analyzer second pass
+    # Step 7: Semantic Analyzer second pass
     step += 1
     print(f"Phase {step} : Semantic Analyzer - pass 3")
     semantic.third_pass()
@@ -140,7 +140,7 @@ try:
             print(v)
         sys.exit(0)
 
-    # Step 7 : Write the file to disk
+    # Step 8: Write the file to disk
     step += 1
     print(f"Phase {step} : Write Object to disk")
     writer = ObjWriter(config)
