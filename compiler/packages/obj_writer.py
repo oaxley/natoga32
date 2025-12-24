@@ -119,7 +119,7 @@ class ObjWriter:
                 data.extend(s.name.encode())
 
             # add the variable value
-            data.extend(s.value.to_bytes(4, "big"))  # type: ignore
+            data.extend(s.value.to_bytes(4, const.ENDIANESS))  # type: ignore
 
         # compute the overall size
         size = (len(data) -1).bit_length()
