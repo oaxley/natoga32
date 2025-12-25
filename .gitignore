@@ -3,3 +3,6 @@ tmp/**
 .venv
 .DS_Store
 a.out
+
+build/**
+!build/.gitkeep
