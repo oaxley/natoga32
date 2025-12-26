@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 # library name
-set(VC_NAME "natoga")
+set(VC_NAME "vc")
 
 # source files
 set(VC_SOURCES

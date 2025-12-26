@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # build options
+option(VC_BUILD_DEBUGGER "Build debugger" ON)
 option(VC_BUILD_TESTS "Build tests" ON)
 option(VC_BUILD_HOST "Build host runtime" ON)
 option(VC_BUILD_SHARED "Build shared library" OFF)
@@ -21,6 +22,10 @@ endif()
 
 # Subdirectories
 add_subdirectory(console)
+
+if(VC_BUILD_DEBUGGER)
+    add_subdirectory(debugger)
+endif()
 
 if(VC_BUILD_HOST)
     add_subdirectory(host)

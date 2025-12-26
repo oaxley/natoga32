@@ -4,8 +4,8 @@ cmake_minimum_required(VERSION 3.25)
 find_package(SDL2 REQUIRED)
 
 # library / exexcutable name
-set(VCLIB_NAME "natoga")
-set(VCRE_NAME "nare")
+set(VCLIB_NAME "vc")
+set(VCRE_NAME "vchost")
 
 # source files
 set(HOST_SOURCES

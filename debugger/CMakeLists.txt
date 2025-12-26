@@ -22,5 +22,5 @@ add_executable(vcdebug ${DEBUGGER_SOURCES})
 target_link_libraries(vcdebug
     PRIVATE
         imgui
-        natoga
+        vc
 )
