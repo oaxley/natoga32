@@ -1,10 +1,51 @@
-add_library(natoga STATIC
+cmake_minimum_required(VERSION 3.25)
+
+# library name
+set(VC_NAME "natoga")
+
+# source files
+set(VC_SOURCES
     src/main.cpp
 )
 
-target_include_directories(natoga
-    PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+set(VC_HEADERS
 )
 
-target_compile_features(natoga PUBLIC cxx_std_20)
+# library target
+if(VC_BUILD_SHARED)
+    add_library(${VC_NAME} SHARED ${VC_SOURCES} ${VC_HEADERS})
+else()
+    add_library(${VC_NAME} STATIC ${VC_SOURCES} ${VC_HEADERS})
+endif()
+
+
+target_include_directories(${VC_NAME}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+# enable position-independent code for shared library
+set_target_properties(${VC_NAME} PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
+
+# Tests
+if(VC_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
+
+# Installation
+install(TARGETS ${VC_NAME}
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/${VC_NAME}
+    DESTINATION include
+)

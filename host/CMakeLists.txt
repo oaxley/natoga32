@@ -1,12 +1,31 @@
-add_executable(nare
+cmake_minimum_required(VERSION 3.25)
+
+# find SDL2
+#find_package(SDL2 required)
+
+# library / exexcutable name
+set(VCLIB_NAME "natoga")
+set(VCRE_NAME "nare")
+
+# source files
+set(HOST_SOURCES
     src/main.cpp
 )
 
-target_include_directories(nare
-    PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+add_executable(${VCRE_NAME} ${HOST_SOURCES})
+
+target_link_libraries(${VCRE_NAME}
+    PRIVATE
+        ${VCLIB_NAME}
+        #SDL2::SDL2
 )
 
-target_link_libraries(nare PRIVATE natoga)
+target_include_directories(${VCRE_NAME}
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
-target_compile_features(nare PRIVATE cxx_std_20)
+# Install
+install(TARGETS ${VCRE_NAME}
+    RUNTIME DESTINATION bin
+)
