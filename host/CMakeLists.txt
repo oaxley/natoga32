@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 # find SDL2
-#find_package(SDL2 required)
+find_package(SDL2 REQUIRED)
 
 # library / exexcutable name
 set(VCLIB_NAME "natoga")
@@ -17,7 +17,7 @@ add_executable(${VCRE_NAME} ${HOST_SOURCES})
 target_link_libraries(${VCRE_NAME}
     PRIVATE
         ${VCLIB_NAME}
-        #SDL2::SDL2
+        SDL2::SDL2
 )
 
 target_include_directories(${VCRE_NAME}
