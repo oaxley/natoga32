@@ -19,6 +19,8 @@ else()
     add_compile_options(-Wall -Wextra -pedantic)
 endif()
 
+# Add third-party libraries
+add_subdirectory(third_party)
 
 # Subdirectories
 add_subdirectory(console)

@@ -17,6 +17,7 @@ add_executable(${VCRE_NAME} ${HOST_SOURCES})
 target_link_libraries(${VCRE_NAME}
     PRIVATE
         ${VCLIB_NAME}
+        argparse
         SDL2::SDL2
 )
 
