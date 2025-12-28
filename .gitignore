@@ -2,6 +2,7 @@ tmp/**
 **/*.pyc
 .venv
 .DS_Store
+.vscode/**
 a.out
 
 build/**
