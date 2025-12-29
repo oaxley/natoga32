@@ -30,8 +30,4 @@ using i16 = int16_t;
 using i32 = int32_t;
 using i64 = int64_t;
 
-// memory size constants
-constexpr size_t RAM_SIZE = 32 * 1024 * 1024;       // 32 MiB
-constexpr size_t DSP_RAM_SIZE = 64 * 1024;          // 64 KiB
-
 } // namespace vc
