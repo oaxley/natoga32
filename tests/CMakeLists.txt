@@ -12,10 +12,11 @@ FetchContent_MakeAvailable(Catch2)
 # create the Virtual Console tests binary
 add_executable(vctests
     memory/memmap_test.cpp
+    memory/memory_test.cpp
 )
 
 # link targets
-target_link_libraries(vctests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(vctests PRIVATE vc Catch2::Catch2WithMain)
 
 # include directories
 target_include_directories(vctests
