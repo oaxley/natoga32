@@ -5,11 +5,12 @@ set(VC_NAME "vc")
 
 # source files
 set(VC_SOURCES
-    src/main.cpp
+    src/core/memory.cpp
 )
 
 set(VC_HEADERS
     src/core/memory_map.h
+    src/core/memory.h
 )
 
 # library target
