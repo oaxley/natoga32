@@ -8,6 +8,7 @@ else
     BUILD_TYPE="Release"
 fi
 
+mkdir -p build
 
 # build the library and host
 cmake -B build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} "$@"
