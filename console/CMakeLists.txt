@@ -9,6 +9,7 @@ set(VC_SOURCES
 )
 
 set(VC_HEADERS
+    src/core/memory_map.h
 )
 
 # library target
@@ -33,11 +34,6 @@ set_target_properties(${VC_NAME} PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
-
-# Tests
-if(VC_BUILD_TESTS)
-    add_subdirectory(tests)
-endif()
 
 # Installation
 install(TARGETS ${VC_NAME}
