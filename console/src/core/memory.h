@@ -15,6 +15,7 @@
 
 // standard library headers
 #include <vector>
+#include <span>
 #include <memory>
 
 // program-specific headers
@@ -28,6 +29,8 @@ class Memory
 public:
     Memory();
 
+    void reset();
+
     // read operations
     u8  read_u8(u32 addr) const;
     u16 read_u16(u32 addr) const;
@@ -38,16 +41,14 @@ public:
     void write_u16(u32 addr, u16 value);
     void write_u32(u32 addr, u32 value);
 
-    // direct access (for DMA, ...)
-    u8* get_ram_ptr() { return ram_.data(); }
-
-    void reset();
+    // return a RW view on a specific memory area
+    template<typename T>
+    std::span<T> memview(size_t offset, size_t count) {
+        return { reinterpret_cast<T*>(ram_.data() + offset), count };
+    }
 
 private:
     std::vector<u8> ram_;
-
-    // memory map
-    static constexpr u32 RAM_BASE = 0x0000'0000;
 };
 
 } // namespace vc

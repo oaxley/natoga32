@@ -17,12 +17,13 @@
 
 // program-specific headers
 #include "memory.h"
+#include "memory_map.h"
 
 
 namespace vc {
 
 Memory::Memory() :
-    ram_(8*1024*1024) {
+    ram_(RAM_SIZE) {
     reset();
 }
 
@@ -31,11 +32,9 @@ void Memory::reset() {
 }
 
 u8 Memory::read_u8(u32 addr) const {
-    if (addr < RAM_BASE + ram_.size()) {
-        return ram_[addr - RAM_BASE];
+    if (addr < ram_.size()) {
+        return ram_[addr];
     }
-    // TODO: Memory Map I/O
-
     return 0;
 }
 
@@ -48,6 +47,26 @@ u32 Memory::read_u32(u32 addr) const {
            (read_u8(addr + 1) << 8) |
            (read_u8(addr + 2) << 16) |
            (read_u8(addr + 3) << 24);
+}
+
+void Memory::write_u8(u32 addr, u8 value) {
+    // ensure ROM remains RO
+    if (addr < ROM_BOOT_LOADER + ROM_SIZE - 1) {
+        return;
+    }
+    ram_[addr] = value;
+}
+
+void Memory::write_u16(u32 addr, u16 value) {
+    write_u8(addr, value & 0xFF);
+    write_u8(addr + 1, (value >> 8) & 0xFF);
+}
+
+void Memory::write_u32(u32 addr, u32 value) {
+    write_u8(addr, value & 0xFF);
+    write_u8(addr+1, (value >> 8) & 0xFF);
+    write_u8(addr+2, (value >> 16) & 0xFF);
+    write_u8(addr+3, (value >> 24) & 0xFF);
 }
 
 } // namespace vc
