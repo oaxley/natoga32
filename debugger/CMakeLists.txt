@@ -1,26 +1,33 @@
 cmake_minimum_required(VERSION 3.25)
 
+# SDL2 required for imgui
 find_package(SDL2 REQUIRED)
 
-# Dear ImGui as submodule
+# CMake fetch argparse library
+include(FetchContent)
+FetchContent_Declare(
+    argparse
+    GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+)
+FetchContent_MakeAvailable(argparse)
 
-add_library(imgui STATIC
-    #${CMAKE_CURRENT_SOURCE_DIR}/../third_party/imgui/
+# create the Virtual Console debugger binary
+add_executable(vcdebug
+    src/main.cpp
 )
 
-target_include_directories(imgui PUBLIC
-    #${CMAKE_CURRENT_SOURCE_DIR}/../third_party/imgui/
-)
-
-target_link_libraries(imgui PUBLIC SDL2::SDL2)
-
-set(DEBUGGER_SOURCES
-)
-
-add_executable(vcdebug ${DEBUGGER_SOURCES})
-
-target_link_libraries(vcdebug
+# include directory
+target_include_directories(vcdebug
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+# link targets
+target_link_libraries(vcdebug
+    PUBLIC
+        SDL2::SDL2
+    PRIVATE
+        argparse
         imgui
         vc
 )
