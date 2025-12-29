@@ -1,32 +1,32 @@
 cmake_minimum_required(VERSION 3.25)
 
-# find SDL2
+# SDL2 required for the host
 find_package(SDL2 REQUIRED)
 
-# library / exexcutable name
-set(VCLIB_NAME "vc")
-set(VCRE_NAME "vchost")
+# CMake fetch argparse library
+include(FetchContent)
+FetchContent_Declare(
+    argparse
+    GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+)
+FetchContent_MakeAvailable(argparse)
 
-# source files
-set(HOST_SOURCES
+# create the Virtual Console host binary
+add_executable(vchost
     src/main.cpp
 )
 
-add_executable(${VCRE_NAME} ${HOST_SOURCES})
-
-target_link_libraries(${VCRE_NAME}
-    PRIVATE
-        ${VCLIB_NAME}
-        argparse
-        SDL2::SDL2
-)
-
-target_include_directories(${VCRE_NAME}
+# include directories
+target_include_directories(vchost
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-# Install
-install(TARGETS ${VCRE_NAME}
-    RUNTIME DESTINATION bin
+# link targets
+target_link_libraries(vchost
+    PUBLIC
+        SDL2::SDL2
+    PRIVATE
+        argparse
+        vc
 )
