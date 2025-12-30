@@ -11,8 +11,8 @@ FetchContent_MakeAvailable(Catch2)
 
 # create the Virtual Console tests binary
 add_executable(vctests
-    memory/memmap_test.cpp
-    memory/memory_test.cpp
+    libvc/test_memmap.cpp
+    libvc/test_memory.cpp
 )
 
 # link targets
