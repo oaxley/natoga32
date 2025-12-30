@@ -62,5 +62,7 @@ constexpr size_t MMAP_RAM_SIZE       = 32 * 1024 * 1024;
 constexpr int THREADS_COUNT = 8;
 constexpr int THREADS_REGISTERS = 32;
 
+// stack canary value
+constexpr u32 STACK_CANARY_VALUE = 0xBAADF00D;
 
 } // namespace vc
