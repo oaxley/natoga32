@@ -1,12 +1,12 @@
 #include <catch2/catch_all.hpp>
 
+#include "core/constants.h"
 #include "core/memory.h"
-#include "core/memory_map.h"
 
 using namespace vc;
 
-constexpr u32 MEM_1 = INTERRUPT_VECTOR;
-constexpr u32 MEM_2 = VIDEO_RAM;
+constexpr u32 MEM_1 = MMAP_INTERRUPT_VECTOR;
+constexpr u32 MEM_2 = MMAP_VIDEO_RAM;
 
 TEST_CASE("Memory Initialization", "[memory]") {
     Memory mem;

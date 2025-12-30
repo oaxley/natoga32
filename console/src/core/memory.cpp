@@ -16,14 +16,14 @@
 #include <stdexcept>
 
 // program-specific headers
+#include "constants.h"
 #include "memory.h"
-#include "memory_map.h"
 
 
 namespace vc {
 
 Memory::Memory() :
-    ram_(RAM_SIZE) {
+    ram_(MMAP_RAM_SIZE) {
     reset();
 }
 
@@ -51,7 +51,7 @@ u32 Memory::read_u32(u32 addr) const {
 
 void Memory::write_u8(u32 addr, u8 value) {
     // ensure ROM remains RO
-    if (addr < ROM_BOOT_LOADER + ROM_SIZE - 1) {
+    if (addr < MMAP_ROM_BOOT_LOADER + MMAP_ROM_SIZE - 1) {
         return;
     }
     ram_[addr] = value;
