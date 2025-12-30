@@ -14,12 +14,19 @@
 
 // standard library headers
 #include <cstring>
+#include <array>
+#include <span>
 
 // program-specific headers
-#include "cpu.h"
+#include "constants.h"
 #include "memory.h"
+#include "decoders.h"
+#include "cpu.h"
+
 
 namespace vc {
+
+//----- constants
 
 // RISC-V Opcodes
 constexpr u32 OP_LOAD   = 0b000'0011;       // 0x03
@@ -34,130 +41,114 @@ constexpr u32 OP_JAL    = 0b110'1111;       // 0x6F
 constexpr u32 OP_OP_IMM = 0b001'0011;       // 0x13
 constexpr u32 OP_OP     = 0b011'0011;       // 0x33
 
-// extended opcodes (csr, ecal, mret, ...)
 constexpr u32 OP_EXT    = 0b111'0011;       // 0x73
-
-// custom opcodes for thread management
 constexpr u32 OP_CUSTOM = 0b000'1011;       // 0x0B
 
+// Specific Registers
+constexpr int SP_REG = 2;
+constexpr int TP_REG = 4;
 
-CPU::CPU() {
+
+//----- Enums
+enum class ThreadState : u8 {
+    Free = 0,
+    Ready = 1,
+    Running = 2,
+    Sleeping = 4,
+    Dead = 8
+};
+
+struct ThreadContext {
+    u32 pc = 0;                                 //< Program Counter
+    u32 sp = 0;                                 //< Stack Pointer
+    u32 tp = 0;                                 //< Thread Pointer
+    ThreadState state = ThreadState::Free;      //< Thread State
+    u32 sp_base = 0;                            //< Stack base address
+    u32 canary_addr = 0;                        //< Stack Canary address
+    u32 waitkey = 0;                            //< Waitkey value
+    u64 sleep_until = 0;                        //< Time wait value
+    std::span<u32> registers = {};              //< RISC-V registers
+};
+
+//----- Opaque Data definition
+struct CPU::OpaqueData {
+    Memory& mem;
+    std::array<ThreadContext, THREADS_COUNT> threads_;
+    int current_thread;
+
+    OpaqueData(Memory& memref);
+    void reset();
+    void init_thread(int tid);
+};
+
+CPU::OpaqueData::OpaqueData(Memory& memref) :
+    mem(memref)
+{
     reset();
 }
 
-void CPU::reset() {
-    for (auto& thread : threads_) {
-        thread.regs.fill(0);
-        thread.pc = 0;
-        thread.state = ThreadState::Unused;
-        thread.sleep_until = 0;
+void CPU::OpaqueData::reset() {
+    // init threads
+    for (int tid = 0; tid < THREADS_COUNT; tid++) {
+        init_thread(tid);
     }
 
     // Thread 0 is the main thread
-    current_thread_ = 0;
+    current_thread = 0;
     threads_[0].state = ThreadState::Running;
-    interrupt_pending_ = false;
+    threads_[0].pc = 0;
 }
 
-int CPU::step(Memory& mem, u64 current_cycle) {
-    // check for sleeping threads that should wake up
-    for (size_t i = 0; i < threads_.size(); i++) {
-        if (threads_[i].state == ThreadState::Sleeping && threads_[i].sleep_until <= current_cycle) {
-            threads_[i].state = ThreadState::Running;
-        }
+// initialize a thread
+void CPU::OpaqueData::init_thread(int tid) {
+    if ((tid < 0) || (tid >= THREADS_COUNT))
+        return;
+
+    // stack
+    threads_[tid].sp_base = MMAP_STACK_BASE + ((tid + 1) * MMAP_STACK_SIZE) - 1;
+    threads_[tid].sp = threads_[tid].sp_base;
+
+    // set the canary for the stack
+    threads_[tid].canary_addr = MMAP_STACK_BASE + tid * MMAP_STACK_SIZE;
+    mem.write_u32(threads_[tid].canary_addr, STACK_CANARY_VALUE);
+
+    // thread local storage
+    threads_[tid].tp = MMAP_THREADS_TLS_BASE + tid * MMAP_TTLS_SIZE;
+
+    // thread initial state
+    threads_[tid].state = ThreadState::Free;
+
+    // events reset
+    threads_[tid].waitkey = 0;
+    threads_[tid].sleep_until = 0;
+
+    // set registers
+    int regsize = THREADS_REGISTERS * sizeof(u32);
+    threads_[tid].registers = mem.memview<u32>(MMAP_THREADS_REG_BASE + tid * regsize, THREADS_REGISTERS);
+    for (auto& reg : threads_[tid].registers) {
+        reg = 0;
     }
 
-    // get the current thread
-    auto& thread = threads_[current_thread_];
+    // program counter
+    threads_[tid].pc = 0;
 
-    // if the current thread is not running, switch to the next one
-    if (thread.state != ThreadState::Running) {
-        switch_thread();
-        thread = threads_[current_thread_];
-
-        // no thread running at the moment
-        if (thread.state != ThreadState::Running) {
-            return 1;       // return only 1 cycle burned
-        }
-    }
-
-    // fetch a new instruction
-    u32 instruction = mem.read_u32(thread.pc);
-
-    // decode / execute
-    execute_instruction(instruction, mem);
-
-    // ensure x0 remains at 0
-    thread.regs[0] = 0;
-
-    // 1 instruction = 1 cycle
-    return 1;
+    // ensure sp and tp are mirror properly in the registers
+    threads_[tid].registers[SP_REG] = threads_[tid].sp;
+    threads_[tid].registers[TP_REG] = threads_[tid].tp;
 }
 
-void CPU::execute_instruction(u32 instr, Memory& mem) {
+//----- CPU class definition
 
+CPU::CPU(Memory& mem) :
+    data_(new (std::nothrow) OpaqueData(mem))
+{ }
+
+void CPU::reset() {
+    data_.reset();
 }
 
-void CPU::switch_thread() {
-    // round robin scheduling
-    int start_thread = current_thread_;
-
-    do {
-        // next thread
-        current_thread_ = (current_thread_ + 1) % NUM_THREADS;
-
-        // is this thread able to run?
-        if (threads_[current_thread_].state == ThreadState::Running) {
-            return;
-        }
-
-        // did we wrap around?
-        if (current_thread_ == start_thread) {
-            break;
-        }
-    } while (true);
-}
-
-void CPU::wake_thread(int thread_id) {
-    if (thread_id >= 0 && thread_id < NUM_THREADS) {
-        threads_[thread_id].state = ThreadState::Running;
-    }
-}
-
-void CPU::sleep_thread(int thread_id, u64 cycles) {
-    if (thread_id >= 0 && thread_id < NUM_THREADS) {
-        threads_[thread_id].state = ThreadState::Sleeping;
-        threads_[thread_id].sleep_until = cycles;
-    }
-}
-
-i32 CPU::decode_i_immediate(u32 instr) const {
-    return static_cast<i32>((instr & 0xFFF0'0000) >> 20);
-}
-
-i32 CPU::decode_s_immediate(u32 instr) const {
-    u32 imm = ((instr >> 7) & 0x1F) | ((instr >> 25) << 5);
-    return static_cast<i32>((imm << 20) >> 20);     // sign extended
-}
-
-i32 CPU::decode_b_immediate(u32 instr) const {
-    u32 imm = ((instr >>  8) & 0x0F) <<  1 |
-              ((instr >> 25) & 0x3F) <<  5 |
-              ((instr >>  7) & 0x01) << 11 |
-              ((instr >> 31) & 0x01) << 12;
-    return static_cast<i32>((imm << 19) >> 19);     // sign extended
-}
-
-i32 CPU::decode_u_immediate(u32 instr) const {
-    return static_cast<i32>(instr & 0xFFFFF000);    // no shift, value is imm[32:12]
-}
-
-i32 CPU::decode_j_immediate(u32 instr) const {
-    u32 imm = ((instr >> 21) & 0x3FF) <<  1 |
-              ((instr >> 20) &   0x1) << 11 |
-              ((instr >> 12) &  0xFF) << 12 |
-              ((instr >> 31) &   0x1) << 20;
-    return static_cast<i32>((imm << 11) >> 11);     // sign extendee
+int CPU::step() {
+    // TODO
 }
 
 } // namespace vc
