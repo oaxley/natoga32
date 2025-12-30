@@ -110,7 +110,7 @@ OPCODES_T: Dict[str, InstrOpcode] = {
     'new.t'  : InstrOpcode(InstrType.TYPE_R, 0b000_1011, 0, 0b000, 0, 0, 0),
     'yield.t': InstrOpcode(InstrType.TYPE_I, 0b000_1011, 0, 0b001, 0, 0, 0),
     'id.t'   : InstrOpcode(InstrType.TYPE_I, 0b000_1011, 0, 0b010, 0, 0, 0),
-    'sleep.t': InstrOpcode(InstrType.TYPE_I, 0b000_1011, 0, 0b100, 0, 0, 0),
-    'wake.t' : InstrOpcode(InstrType.TYPE_I, 0b000_1011, 0, 0b101, 0, 0, 0),
+    'sleep.t': InstrOpcode(InstrType.TYPE_R, 0b000_1011, 0, 0b100, 0, 0, 0),
+    'wake.t' : InstrOpcode(InstrType.TYPE_R, 0b000_1011, 0, 0b101, 0, 0, 0),
     'end.t'  : InstrOpcode(InstrType.TYPE_I, 0b000_1011, 0, 0b111, 0, 0, 0),
 }
