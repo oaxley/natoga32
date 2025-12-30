@@ -13,6 +13,7 @@ FetchContent_MakeAvailable(Catch2)
 add_executable(vctests
     libvc/test_memmap.cpp
     libvc/test_memory.cpp
+    libvc/test_decoder.cpp
 )
 
 # link targets
