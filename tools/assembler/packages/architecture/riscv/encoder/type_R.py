@@ -31,23 +31,31 @@ def type_R_encoder(opcode: str, operands: List[EvalResult], cpu: CPU) -> Tuple[b
         Returns:
             Tuple[bytes, List[Relocation]]: the encoded instruction and the list of relocations created during encoding
         """
-        data = OPCODES_T[opcode]
-
-        # retrieve the operands
         xlen = cpu.xlen - 1
-        rd = cast(int, operands[0].reg) & xlen
-        rs1 = cast(int, operands[1].reg) & xlen
+        data = OPCODES_T[opcode]
+        rd = data.rd
+        rs1 = data.rs1
+        rs2 = data.rs2
 
-        if len(operands) == 3:
-            if operands[2].reg is not None:
-                rs2 = operands[2].reg & xlen
-            elif operands[2].value is not None:
-                rs2 = operands[2].value & xlen
-            else:
-                raise SyntaxError("Error: Type R instruction does not support relocation")
+        # specific case for custom thread opcodes sleep & wake
+        if opcode in [ 'sleep.t', 'wake.t' ]:
+            rs1 = cast(int, operands[0].reg) & xlen
+            if len(operands) == 2:
+                rs2 = cast(int, operands[1].reg) & xlen
         else:
-            rs2 = data.rs2
+            # retrieve the operands
+            rd = cast(int, operands[0].reg) & xlen
+            rs1 = cast(int, operands[1].reg) & xlen
 
+            if len(operands) == 3:
+                if operands[2].reg is not None:
+                    rs2 = operands[2].reg & xlen
+                elif operands[2].value is not None:
+                    rs2 = operands[2].value & xlen
+                else:
+                    raise SyntaxError("Error: Type R instruction does not support relocation")
+
+        # encode the instruction
         funct3 = data.funct3
         funct7 = data.funct7
         value = (
