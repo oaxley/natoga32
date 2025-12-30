@@ -9,7 +9,7 @@ set(VC_SOURCES
 )
 
 set(VC_HEADERS
-    src/core/memory_map.h
+    src/core/constants.h
     src/core/memory.h
 )
 
