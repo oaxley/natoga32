@@ -78,7 +78,7 @@ struct CPU::OpaqueData {
 
     OpaqueData(Memory& memref);
     void reset();
-    void init_thread(int tid, u32 entrypoint = 0);
+    void initThread(int tid, u32 entrypoint = 0);
 };
 
 CPU::OpaqueData::OpaqueData(Memory& memref) :
@@ -90,7 +90,7 @@ CPU::OpaqueData::OpaqueData(Memory& memref) :
 void CPU::OpaqueData::reset() {
     // init threads
     for (int tid = 0; tid < THREADS_COUNT; tid++) {
-        init_thread(tid);
+        initThread(tid);
     }
 
     // Thread 0 is the main thread
@@ -100,7 +100,7 @@ void CPU::OpaqueData::reset() {
 }
 
 // initialize a thread
-void CPU::OpaqueData::init_thread(int tid, u32 entrypoint = 0) {
+void CPU::OpaqueData::initThread(int tid, u32 entrypoint = 0) {
     if ((tid < 0) || (tid >= THREADS_COUNT))
         return;
 
