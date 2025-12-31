@@ -42,16 +42,16 @@ u32 funct7(u32 instr) {
     return (instr >> 25) & 0x7F;
 }
 
-i32 i_immediate(u32 instr) {
+i32 immTypeI(u32 instr) {
     return static_cast<i32>(instr & 0xFFF0'0000) >> 20;
 }
 
-i32 s_immediate(u32 instr) {
+i32 immTypeS(u32 instr) {
     u32 imm = ((instr >> 7) & 0x1F) | ((instr >> 25) << 5);
     return static_cast<i32>(imm << 20) >> 20;     // sign extended
 }
 
-i32 b_immediate(u32 instr) {
+i32 immTypeB(u32 instr) {
     u32 imm = ((instr >>  8) & 0x0F) <<  1 |
               ((instr >> 25) & 0x3F) <<  5 |
               ((instr >>  7) & 0x01) << 11 |
@@ -59,11 +59,11 @@ i32 b_immediate(u32 instr) {
     return static_cast<i32>(imm << 19) >> 19;     // sign extended
 }
 
-i32 u_immediate(u32 instr) {
+i32 immTypeU(u32 instr) {
     return static_cast<i32>(instr & 0xFFFF'F000);    // no shift, value is imm[32:12]
 }
 
-i32 j_immediate(u32 instr) {
+i32 immTypeJ(u32 instr) {
     u32 imm = ((instr >> 21) & 0x3FF) <<  1 |
               ((instr >> 20) &   0x1) << 11 |
               ((instr >> 12) &  0xFF) << 12 |
