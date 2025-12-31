@@ -32,14 +32,14 @@ public:
     void reset();
 
     // read operations
-    u8  read_u8(u32 addr) const;
-    u16 read_u16(u32 addr) const;
-    u32 read_u32(u32 addr) const;
+    u8  read8(u32 addr) const;
+    u16 read16(u32 addr) const;
+    u32 read32(u32 addr) const;
 
     // write operations
-    void write_u8(u32 addr, u8 value);
-    void write_u16(u32 addr, u16 value);
-    void write_u32(u32 addr, u32 value);
+    void write8(u32 addr, u8 value);
+    void write16(u32 addr, u16 value);
+    void write32(u32 addr, u32 value);
 
     // return a RW view on a specific memory area
     template<typename T>
