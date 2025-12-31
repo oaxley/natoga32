@@ -66,9 +66,10 @@ struct ThreadContext {
     u32 sp_base = 0;                            //< Stack base address
     u32 canary_addr = 0;                        //< Stack Canary address
     u32 waitkey = 0;                            //< Waitkey value
-    u64 sleep_until = 0;                        //< Time wait value
+    u32 sleep_until = 0;                        //< Time wait value
     std::span<u32> registers = {};              //< RISC-V registers
-    u8 id;                                      //< Thread ID
+    u8 id = 0xFF;                               //< Thread ID
+    u64 total_cycles = 0;                       //< Total Cycles
 };
 
 //----- Opaque Data definition
@@ -83,6 +84,14 @@ struct CPU::OpaqueData {
 
     // thread management
     void initThread(int tid, u32 entrypoint = 0);
+    void setThreadPC(int tid, u32 entrypoint);
+    void yieldThread();
+    void sleepThread(u32 rs1Val, u32 rs2Val);
+    void wakeThread(u32 rs1Val);
+    void endThread();
+    void newThread(u8 rdVal, u32 rs1Val);
+
+    void triggerException(u32 exception);
 };
 
 CPU::OpaqueData::OpaqueData(Memory& memref) :
@@ -97,7 +106,7 @@ void CPU::OpaqueData::reset() {
         initThread(tid);
     }
 
-    // reset the cycle counter
+    // reset the global cycle counter
     total_cycles = 0;
 
     // Thread 0 is the main thread
@@ -111,8 +120,9 @@ void CPU::OpaqueData::initThread(int tid, u32 entrypoint = 0) {
     if ((tid < 0) || (tid >= THREADS_COUNT))
         return;
 
-    // thread id
+    // thread id / cycles counter
     threads_[tid].id = tid;
+    threads_[tid].total_cycles = 0;
 
     // stack
     threads_[tid].sp_base = MMAP_STACK_BASE + ((tid + 1) * MMAP_STACK_SIZE) - 1;
@@ -146,6 +156,79 @@ void CPU::OpaqueData::initThread(int tid, u32 entrypoint = 0) {
     threads_[tid].registers[SP_REG] = threads_[tid].sp;
     threads_[tid].registers[TP_REG] = threads_[tid].tp;
 }
+
+void CPU::OpaqueData::setThreadPC(int tid, u32 entrypoint) {
+    if ((tid < 0) || (tid >= THREADS_COUNT))
+        return;
+
+    threads_[tid].pc = entrypoint;
+}
+
+void CPU::OpaqueData::yieldThread() {
+    // current thread: RUNNING -> READY
+    threads_[current_thread].state = ThreadState::Ready;
+
+    // Find the next READY thread
+    int start = current_thread;
+    do {
+        current_thread = (current_thread + 1) % THREADS_COUNT;
+        if (threads_[current_thread].state == ThreadState::Ready) {
+            threads_[current_thread].state == ThreadState::Running;
+            break;
+        }
+    } while (current_thread != start);
+}
+
+void CPU::OpaqueData::sleepThread(u32 rs1Val, u32 rs2Val) {
+    if (rs1Val == 0 && rs2Val == 0) {
+        // invalid -> need exception
+        return;
+    }
+
+    // record the information
+    ThreadContext& t = threads_[current_thread];
+    t.state = ThreadState::Sleeping;
+
+    if (rs1Val > 0) t.waitkey = rs1Val;
+    if (rs2Val > 0) t.sleep_until = rs2Val;
+}
+
+void CPU::OpaqueData::wakeThread(u32 rs1Val) {
+
+}
+
+void CPU::OpaqueData::endThread() {
+    if (current_thread == 0) {
+        triggerException(0);
+        return;
+    }
+
+    threads_[current_thread].state = ThreadState::Dead;
+    yieldThread();
+}
+
+void CPU::OpaqueData::newThread(u8 rdVal, u32 rs1Val) {
+    for (int i = 0; i < THREADS_COUNT; i++) {
+        if (threads_[i].state == ThreadState::Free) {
+            initThread(i, rs1Val);
+            threads_[i].state = ThreadState::Ready;
+
+            threads_[current_thread].registers[rdVal] = i;
+            return;
+        }
+    }
+
+    // no free slot
+    triggerException(0);
+}
+
+void CPU::OpaqueData::triggerException([[maybe_unused]] u32 value) {
+    return ;
+}
+
+
+
+
 
 //----- CPU class definition
 
