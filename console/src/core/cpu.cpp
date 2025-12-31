@@ -95,8 +95,8 @@ void CPU::OpaqueData::reset() {
 
     // Thread 0 is the main thread
     current_thread = 0;
-    threads_[0].state = ThreadState::Running;
-    threads_[0].pc = 0;
+    threads_[0].state = ThreadState::Ready;
+    threads_[0].pc = 0x100;
 }
 
 // initialize a thread
