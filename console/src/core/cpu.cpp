@@ -76,9 +76,12 @@ struct CPU::OpaqueData {
     Memory& mem;
     std::array<ThreadContext, THREADS_COUNT> threads_;
     int current_thread;
+    u64 total_cycles;
 
     OpaqueData(Memory& memref);
     void reset();
+
+    // thread management
     void initThread(int tid, u32 entrypoint = 0);
 };
 
@@ -93,6 +96,9 @@ void CPU::OpaqueData::reset() {
     for (int tid = 0; tid < THREADS_COUNT; tid++) {
         initThread(tid);
     }
+
+    // reset the cycle counter
+    total_cycles = 0;
 
     // Thread 0 is the main thread
     current_thread = 0;
