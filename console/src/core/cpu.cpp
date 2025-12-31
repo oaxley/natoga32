@@ -78,7 +78,7 @@ struct CPU::OpaqueData {
 
     OpaqueData(Memory& memref);
     void reset();
-    void init_thread(int tid);
+    void init_thread(int tid, u32 entrypoint = 0);
 };
 
 CPU::OpaqueData::OpaqueData(Memory& memref) :
@@ -100,7 +100,7 @@ void CPU::OpaqueData::reset() {
 }
 
 // initialize a thread
-void CPU::OpaqueData::init_thread(int tid) {
+void CPU::OpaqueData::init_thread(int tid, u32 entrypoint = 0) {
     if ((tid < 0) || (tid >= THREADS_COUNT))
         return;
 
@@ -110,7 +110,7 @@ void CPU::OpaqueData::init_thread(int tid) {
 
     // set the canary for the stack
     threads_[tid].canary_addr = MMAP_STACK_BASE + tid * MMAP_STACK_SIZE;
-    mem.write_u32(threads_[tid].canary_addr, STACK_CANARY_VALUE);
+    mem.write32(threads_[tid].canary_addr, STACK_CANARY_VALUE);
 
     // thread local storage
     threads_[tid].tp = MMAP_THREADS_TLS_BASE + tid * MMAP_TTLS_SIZE;
@@ -130,7 +130,7 @@ void CPU::OpaqueData::init_thread(int tid) {
     }
 
     // program counter
-    threads_[tid].pc = 0;
+    threads_[tid].pc = entrypoint;
 
     // ensure sp and tp are mirror properly in the registers
     threads_[tid].registers[SP_REG] = threads_[tid].sp;
