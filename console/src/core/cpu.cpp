@@ -68,6 +68,7 @@ struct ThreadContext {
     u32 waitkey = 0;                            //< Waitkey value
     u64 sleep_until = 0;                        //< Time wait value
     std::span<u32> registers = {};              //< RISC-V registers
+    u8 id;                                      //< Thread ID
 };
 
 //----- Opaque Data definition
@@ -103,6 +104,9 @@ void CPU::OpaqueData::reset() {
 void CPU::OpaqueData::initThread(int tid, u32 entrypoint = 0) {
     if ((tid < 0) || (tid >= THREADS_COUNT))
         return;
+
+    // thread id
+    threads_[tid].id = tid;
 
     // stack
     threads_[tid].sp_base = MMAP_STACK_BASE + ((tid + 1) * MMAP_STACK_SIZE) - 1;
