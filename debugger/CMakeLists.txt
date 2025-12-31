@@ -18,6 +18,8 @@ add_executable(vcdebug
 
 # include directory
 target_include_directories(vcdebug
+    PUBLIC
+        ${SDL2_INCLUDE_DIRS}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -25,7 +27,7 @@ target_include_directories(vcdebug
 # link targets
 target_link_libraries(vcdebug
     PUBLIC
-        SDL2::SDL2
+        ${SDL2_LIBRARIES}
     PRIVATE
         argparse
         imgui

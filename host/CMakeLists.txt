@@ -18,6 +18,8 @@ add_executable(vchost
 
 # include directories
 target_include_directories(vchost
+    PUBLIC
+        ${SDL2_INCLUDE_DIRS}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -25,7 +27,7 @@ target_include_directories(vchost
 # link targets
 target_link_libraries(vchost
     PUBLIC
-        SDL2::SDL2
+        ${SDL2_LIBRARIES}
     PRIVATE
         argparse
         vc
