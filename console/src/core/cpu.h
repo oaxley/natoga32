@@ -14,6 +14,7 @@
 #pragma once
 
 // standard library headers
+#include <array>
 #include <memory>
 
 // program-specific headers
@@ -21,8 +22,11 @@
 
 namespace vc {
 
-class Memory;       // forward declaration
+// forward declarations
+class Memory;
+struct ThreadContext;
 
+// CPU class definition
 class CPU
 {
 public:
@@ -31,9 +35,30 @@ public:
     void reset();
     int step();
 
+    void wakeThreadOnEvent(u32 event);
+
 private:
-    struct OpaqueData;
-    std::unique_ptr<OpaqueData> data_{nullptr};
+    //----- private members
+    std::array<ThreadContext, THREADS_COUNT> threads_;
+    int current_thread_ = 0;
+    u64 total_cycles_ = 0;
+
+    Memory& mem_;
+
+
+    //----- private methods
+    // threads methods
+    void initT(int tid, u32 entrypoint = 0);
+    void setTPC(int tid, u32 entrypoint);
+    void yieldT();
+    void sleepT(u32 rs1, u32 rs2);
+    void wakeT(u32 rs1);
+    void endT();
+    void newT(u32 rd, u32 rs1);
+
+    // exception triggering
+    void triggerException(u32 value);
+
 };
 
 
