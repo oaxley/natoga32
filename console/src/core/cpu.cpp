@@ -55,10 +55,10 @@ struct ThreadContext
     u32 sp_base = 0;                            //< Stack base address
     u32 canary_addr = 0;                        //< Stack Canary address
     u32 waitkey = 0;                            //< Waitkey value
-    u32 sleep_until = 0;                        //< Time wait value
+    u64 sleep_until = 0;                        //< Time wait value
     std::span<u32> registers = {};              //< RISC-V registers
     u8 id = 0xFF;                               //< Thread ID
-    u64 total_cycles = 0;                       //< Total Cycles
+    u64 total_cycles = 0;                       //< Thread Total Cycles
 };
 
 
@@ -173,7 +173,11 @@ void CPU::yieldT()
     // step 2 : update cycle-based sleepers
     for (auto& t : threads_) {
         if (t.state == ThreadState::Sleeping && t.sleep_until > 0) {
-            // to rework
+            if (total_cycles_ >= t.sleep_until) {
+                t.state = ThreadState::Ready;
+                t.sleep_until = 0;
+                t.waitkey = 0;
+            }
         }
     }
 
@@ -226,17 +230,18 @@ void CPU::sleepT(u32 rs1, u32 rs2)
     // waitkey
     if (rs1 > 0) {
         t.waitkey = rs1;
-        t.state = ThreadState::Sleeping;
     }
 
     // sleep until
     if (rs2 > 0) {
-        t.sleep_until = rs2;
-        t.state = ThreadState::Sleeping;
+        t.sleep_until = total_cycles_ + static_cast<u64>(rs2);
     }
 
     // switch to next thread
-    yieldT();
+    if (rs1 > 0 || rs2 > 0) {
+        t.state = ThreadState::Sleeping;
+        yieldT();
+    }
 }
 
 // wake all the threads that match the waitkey value in RS1
