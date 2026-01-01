@@ -22,6 +22,14 @@
 
 namespace vc {
 
+// enum
+enum class CPUState
+{
+    Running,        // CPU is actively executing instructions
+    Idle,           // All threads sleeping on events/timers
+    Halted          // Exception occured, stopped permanently
+};
+
 // forward declarations
 class Memory;
 struct ThreadContext;
@@ -44,6 +52,7 @@ private:
     u64 total_cycles_ = 0;
 
     Memory& mem_;
+    CPUState cpu_state_;
 
 
     //----- private methods

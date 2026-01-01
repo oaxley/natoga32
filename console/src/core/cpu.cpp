@@ -65,7 +65,7 @@ struct ThreadContext
 //----- CPU class definition
 
 CPU::CPU(Memory& mem) :
-    mem_{mem}
+    mem_{mem}, cpu_state_{CPUState::Idle}
 {
     reset();
 }
@@ -82,8 +82,11 @@ void CPU::reset()
 
     // Thread 0 is the main thread
     current_thread_ = 0;
-    threads_[current_thread_].state = ThreadState::Ready;
+    threads_[current_thread_].state = ThreadState::Running;
     threads_[current_thread_].pc = RESET_DEFAULT_ADDR;
+
+    // CPU is running
+    cpu_state_ = CPUState::Running;
 }
 
 int CPU::step()
@@ -165,9 +168,9 @@ void CPU::yieldT()
         if (value != STACK_CANARY_VALUE) {
             // stack overflow detected
             triggerException(CPU_THREAD_STACK_OVERFLOW_ERROR);
-        } else {
-            current.state = ThreadState::Ready;
+            return;
         }
+        current.state = ThreadState::Ready;
     }
 
     // step 2 : update cycle-based sleepers
@@ -187,21 +190,16 @@ void CPU::yieldT()
         current_thread_ = (current_thread_ + 1) % THREADS_COUNT;
         if (threads_[current_thread_].state == ThreadState::Ready) {
             threads_[current_thread_].state = ThreadState::Running;
+            cpu_state_ = CPUState::Running;
             return;
         }
     } while (current_thread_ != start);
 
     // step 4 : no READY threads - check for deadlocks
-    bool has_runnable_threads = false;
     bool has_hardware_waiters = false;
     bool has_cycle_waiters = false;
 
     for (const auto& t : threads_) {
-        if (t.state == ThreadState::Running || t.state == ThreadState::Ready) {
-            has_runnable_threads = true;
-            break;
-        }
-
         if (t.state == ThreadState::Sleeping) {
             if (isHardwareEvent(t.waitkey)) {
                 has_hardware_waiters = true;
@@ -212,13 +210,12 @@ void CPU::yieldT()
         }
     }
 
-    if (!has_runnable_threads) {
-        if (has_hardware_waiters || has_cycle_waiters) {
-            // valid idle state - waiting for hardware or timers
-        } else {
-            // we are in deadlock
-            triggerException(CPU_THREAD_DEADLOCK);
-        }
+    if (has_hardware_waiters || has_cycle_waiters) {
+        // CPU idle - waiting for external events
+        cpu_state_ = CPUState::Idle;
+    } else {
+        // deadlock situation
+        triggerException(CPU_THREAD_DEADLOCK);
     }
 }
 
