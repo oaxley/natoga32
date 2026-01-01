@@ -58,11 +58,31 @@ constexpr size_t MMAP_UNUSED_SIZE    = 1024 * (3 + 102 + 128) + 3968;
 // total ram size
 constexpr size_t MMAP_RAM_SIZE       = 32 * 1024 * 1024;
 
+// console default address on reset
+constexpr u32 RESET_DEFAULT_ADDR     = MMAP_ROM_BOOT_LOADER + 0x100;
+
 // threads count + number of registers
 constexpr int THREADS_COUNT = 8;
 constexpr int THREADS_REGISTERS = 32;
 
 // stack canary value
 constexpr u32 STACK_CANARY_VALUE = 0xBAADF00D;
+
+// RISC-V Opcodes
+constexpr u32 OP_LOAD   = 0b000'0011;       // 0x03
+constexpr u32 OP_STORE  = 0b010'0011;       // 0x23
+constexpr u32 OP_BRANCH = 0b110'0011;       // 0x63
+
+constexpr u32 OP_AUIPC  = 0b001'0111;       // 0x17
+constexpr u32 OP_LUI    = 0b011'0111;       // 0x37
+constexpr u32 OP_JALR   = 0b110'0111;       // 0x67
+constexpr u32 OP_JAL    = 0b110'1111;       // 0x6F
+
+constexpr u32 OP_OP_IMM = 0b001'0011;       // 0x13
+constexpr u32 OP_OP     = 0b011'0011;       // 0x33
+
+constexpr u32 OP_EXT    = 0b111'0011;       // 0x73
+constexpr u32 OP_CUSTOM = 0b000'1011;       // 0x0B
+
 
 } // namespace vc
