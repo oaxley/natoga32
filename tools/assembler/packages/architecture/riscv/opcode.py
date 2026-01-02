@@ -34,12 +34,12 @@ OPCODES_T: Dict[str, InstrOpcode] = {
     'andi'  : InstrOpcode(InstrType.TYPE_I ,0b001_0011, 0, 0b111, 0, 0, 0          ),
     'jalr'  : InstrOpcode(InstrType.TYPE_I ,0b110_0111, 0, 0b000, 0, 0, 0          ),
 
-    'csrrw' : InstrOpcode(InstrType.TYPE_I ,0b111_0111, 0, 0b001, 0, 0, 0          ),
-    'csrrs' : InstrOpcode(InstrType.TYPE_I ,0b111_0111, 0, 0b010, 0, 0, 0          ),
-    'csrrc' : InstrOpcode(InstrType.TYPE_I ,0b111_0111, 0, 0b011, 0, 0, 0          ),
-    'csrrwi': InstrOpcode(InstrType.TYPE_I ,0b111_0111, 0, 0b101, 0, 0, 0          ),
-    'csrrsi': InstrOpcode(InstrType.TYPE_I ,0b111_0111, 0, 0b110, 0, 0, 0          ),
-    'csrrci': InstrOpcode(InstrType.TYPE_I ,0b111_0111, 0, 0b111, 0, 0, 0          ),
+    'csrrw' : InstrOpcode(InstrType.TYPE_I ,0b111_0011, 0, 0b001, 0, 0, 0          ),
+    'csrrs' : InstrOpcode(InstrType.TYPE_I ,0b111_0011, 0, 0b010, 0, 0, 0          ),
+    'csrrc' : InstrOpcode(InstrType.TYPE_I ,0b111_0011, 0, 0b011, 0, 0, 0          ),
+    'csrrwi': InstrOpcode(InstrType.TYPE_I ,0b111_0011, 0, 0b101, 0, 0, 0          ),
+    'csrrsi': InstrOpcode(InstrType.TYPE_I ,0b111_0011, 0, 0b110, 0, 0, 0          ),
+    'csrrci': InstrOpcode(InstrType.TYPE_I ,0b111_0011, 0, 0b111, 0, 0, 0          ),
 
     'auipc' : InstrOpcode(InstrType.TYPE_U ,0b001_0111, 0, 0b000, 0 ,0, 0          ),
     'lui'   : InstrOpcode(InstrType.TYPE_U ,0b011_0111, 0, 0b000, 0 ,0, 0          ),

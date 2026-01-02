@@ -12,7 +12,7 @@
 # @brief	Type I instruction encoder
 
 #----- imports
-from typing import List, Tuple
+from typing import List, Tuple, cast
 
 from packages import constants as const
 from packages.structs import EvalResult, Relocation, RelocationType, CPU
@@ -35,35 +35,45 @@ def type_I_encoder(opcode: str, operands: List[EvalResult], cpu: CPU, is_uimm: b
         reloc: List[Relocation] = []
         data = OPCODES_T[opcode]
 
-        # retrieve the operands
-        rd = None
-        rs1 = None
-        imm = 0
-        for i in operands:
-            if i.reg is not None:
-                if rd is None:
-                    rd = i.reg
-                else:
-                    rs1 = i.reg
+        # special case for CSR encoding
+        if opcode.startswith('csr'):
+            rd = cast(int, operands[0].reg)
+            imm = cast(int, operands[1].value) & 0xFFF
+            if opcode.endswith('i'):
+                rs1 = cast(int, operands[2].value)
             else:
-                if i.value is not None:
-                    # immediate is signed, between -2048 ... +2047
-                    if is_uimm:
-                        imm = (data.funct7 << 5) | (i.value & 0x01F)
+                rs1 = cast(int, operands[2].reg)
+
+        else:
+            # retrieve the operands
+            rd = None
+            rs1 = None
+            imm = 0
+            for i in operands:
+                if i.reg is not None:
+                    if rd is None:
+                        rd = i.reg
                     else:
-                        imm = i.value & 0xFFF
+                        rs1 = i.reg
+                else:
+                    if i.value is not None:
+                        # immediate is signed, between -2048 ... +2047
+                        if is_uimm:
+                            imm = (data.funct7 << 5) | (i.value & 0x01F)
+                        else:
+                            imm = i.value & 0xFFF
 
-                elif i.reloc is not None:
-                    if i.reloc.type == RelocationType.RISCV_LO12:
-                        i.reloc.type = RelocationType.RISCV_LO12_I
+                    elif i.reloc is not None:
+                        if i.reloc.type == RelocationType.RISCV_LO12:
+                            i.reloc.type = RelocationType.RISCV_LO12_I
 
-                    elif i.reloc.type == RelocationType.RISCV_PCREL_LO12:
-                        i.reloc.type = RelocationType.RISCV_PCREL_LO12_I
+                        elif i.reloc.type == RelocationType.RISCV_PCREL_LO12:
+                            i.reloc.type = RelocationType.RISCV_PCREL_LO12_I
 
-                    else:
-                        raise SyntaxError(f"Error: unsupported relocation '{i.reloc.type.name}' for type I")
+                        else:
+                            raise SyntaxError(f"Error: unsupported relocation '{i.reloc.type.name}' for type I")
 
-                    reloc.append(i.reloc)
+                        reloc.append(i.reloc)
 
         # ensure all the value are not None
         rd = data.rd if rd is None else rd

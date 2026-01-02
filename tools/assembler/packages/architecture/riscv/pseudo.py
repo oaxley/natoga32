@@ -78,6 +78,30 @@ def instr_expand(cpu: CPU, instr: ast.Instruction) -> List[ast.Instruction]:
             ast.Instruction('addi', [rd, rd, ast.PCRelLo(offset)])
         ]
 
+    elif instr.opcode.startswith("csr"):
+        match instr.opcode:
+            case "csrr":
+                rd, csr = instr.operands
+                return [ ast.Instruction('csrrs', [rd, csr, x(0)])]
+            case "csrw":
+                csr, rs1 = instr.operands
+                return [ ast.Instruction('csrrw', [x(0), csr, rs1])]
+            case "csrs":
+                csr, rs1 = instr.operands
+                return [ ast.Instruction('csrrs', [x(0), csr, rs1])]
+            case "csrc":
+                csr, rs1 = instr.operands
+                return [ ast.Instruction('csrrc', [x(0), csr, rs1])]
+            case "csrwi":
+                csr, imm = instr.operands
+                return [ ast.Instruction('csrrwi', [x(0), csr, imm])]
+            case "csrsi":
+                csr, imm = instr.operands
+                return [ ast.Instruction('csrrsi', [x(0), csr, imm])]
+            case "csrci":
+                csr, imm = instr.operands
+                return [ ast.Instruction('csrrci', [x(0), csr, imm])]
+
     elif instr.opcode in instr_0arg:
         match instr.opcode:
             case "nop":
