@@ -27,4 +27,6 @@ constexpr u32 CPU_THREAD_SPAWN_ERROR                = 0x00010102;
 constexpr u32 CPU_THREAD_STACK_OVERFLOW_ERROR       = 0x00010103;
 constexpr u32 CPU_THREAD_DEADLOCK                   = 0x00010104;
 
+constexpr u32 CPU_MAIN_ILLEGAL_INSTRUCTION          = 0x00010201;
+
 } // namespace vc
