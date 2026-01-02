@@ -16,6 +16,7 @@
 // standard library headers
 #include <array>
 #include <memory>
+#include <tuple>
 
 // program-specific headers
 #include "vc/types.h"
@@ -41,9 +42,14 @@ public:
     CPU(Memory& mem);
 
     void reset();
-    int step();
+    int tick();
 
     void wakeThreadOnEvent(u32 event);
+
+    // accessors
+    CPUState getState() const;
+    int getThreadId() const;
+    std::tuple<u32, u32> getLastException() const;
 
 private:
     //----- private members
@@ -54,6 +60,9 @@ private:
     Memory& mem_;
     CPUState cpu_state_;
 
+    // error management
+    u32 exception_id_ = 0;
+    u32 exception_pc_ = 0;
 
     //----- private methods
     // threads methods
@@ -68,6 +77,8 @@ private:
     // exception triggering
     void triggerException(u32 value);
 
+    // instruction executor
+    void execute_instruction();
 };
 
 

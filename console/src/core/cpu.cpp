@@ -89,16 +89,41 @@ void CPU::reset()
     cpu_state_ = CPUState::Running;
 }
 
-int CPU::step()
+int CPU::tick()
 {
+    if (cpu_state_ != CPUState::Running) {
+        return;
+    }
 
+    // execute one instruction
+    execute_instruction();
 
+    // increment the global instructions/thread counters
+    total_cycles_++;
+    threads_[current_thread_].total_cycles++;
 }
 
 // wake any threads waiting for this event
 void CPU::wakeThreadOnEvent(u32 event)
 {
     wakeT(event);
+}
+
+// retrieve the current CPU state
+CPUState CPU::getState() const
+{
+    return cpu_state_;
+}
+
+// retrieve the current thread ID
+int CPU::getThreadId() const
+{
+    return current_thread_;
+}
+
+std::tuple<u32, u32> CPU::getLastException() const
+{
+    return std::make_tuple(exception_id_, exception_pc_);
 }
 
 
@@ -288,8 +313,16 @@ void CPU::newT(u32 rd, u32 rs1)
 
 void CPU::triggerException(u32 value)
 {
+    // CPU is halted
+    cpu_state_ = CPUState::Halted;
 
+    // record the exception and the current PC
+    exception_id_ = value;
+    exception_pc_ = threads_[current_thread_].pc;
 }
 
+void CPU::execute_instruction()
+{
+}
 
 } // namespace vc
