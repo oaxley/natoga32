@@ -50,7 +50,7 @@ class ObjWriter:
                     # compute the closest power of 2 to fit the section size
                     size = (section.size - 1).bit_length()
                     byte = (stype << 7) | (sarch << 5) | size
-                    fh.write(byte.to_bytes(1) + b"\x00\x00\x00")
+                    fh.write(byte.to_bytes(4, const.ENDIANESS))
 
                     # compute the entrypoint location
                     entrypoint = self.config.symbols.get(self.config.entrypoint)
@@ -79,7 +79,7 @@ class ObjWriter:
                     # compute the closest power of 2 to fit the section size
                     size = (section.size - 1).bit_length()
                     byte = (stype << 7) | (skind << 5) | size
-                    fh.write(byte.to_bytes(1) + b"\x00\x00\x00")
+                    fh.write(byte.to_bytes(4, const.ENDIANESS))
 
                     # write the data
                     fh.write(section.data)
@@ -126,8 +126,7 @@ class ObjWriter:
 
         # write the header
         header = (7 << 5) | size
-        fh.write(header.to_bytes(1))
-        fh.write(b"\x00\x00\x00")
+        fh.write(header.to_bytes(4, const.ENDIANESS))
 
         # write the data
         fh.write(data)
