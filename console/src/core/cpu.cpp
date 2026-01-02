@@ -297,6 +297,301 @@ void CPU::triggerException(u32 value)
 
 void CPU::execute_instruction()
 {
+    // thread accessor
+    auto& thread  = threads_[current_thread_];
+
+    // fetch the instruction
+    u32 instruction = mem_.read32(thread.pc);
+    u32 opcode = decoder::opcode(instruction);
+
+    switch(opcode)
+    {
+        case OP_LUI:        // load upper immediate
+        {
+            u32 rd = decoder::rd(instruction);
+            i32 imm = decoder::immTypeU(instruction);
+            thread.registers[rd] = imm;
+            thread.pc += 4;
+            break;
+        }
+
+        case OP_AUIPC:      // add upper immediate to PC
+        {
+            u32 rd = decoder::rd(instruction);
+            i32 imm = decoder::immTypeU(instruction);
+            thread.registers[rd] = thread.pc + imm;
+            thread.pc += 4;
+            break;
+        }
+
+        case OP_JAL:        // jump and link
+        {
+            u32 rd = decoder::rd(instruction);
+            i32 imm = decoder::immTypeJ(instruction);
+            thread.registers[rd] = thread.pc + 4;
+            thread.pc += imm;
+            break;
+        }
+
+        case OP_JALR:       // jump and link register
+        {
+            u32 rd = decoder::rd(instruction);
+            u32 rs1 = decoder::rs1(instruction);
+            i32 imm = decoder::immTypeI(instruction);
+            u32 target = (thread.registers[rs1] + imm) & ~1;
+            thread.registers[rd] = thread.pc + 4;
+            thread.pc = target;
+            break;
+        }
+
+        case OP_BRANCH:     // branches
+        {
+            u32 rs1 = decoder::rs1(instruction);
+            u32 rs2 = decoder::rs2(instruction);
+            i32 imm = decoder::immTypeB(instruction);
+            u32 funct3 = decoder::funct3(instruction);
+
+            bool take_branch = false;
+            i32 val1 = thread.registers[rs1];
+            i32 val2 = thread.registers[rs2];
+
+            switch(funct3)
+            {
+                case 0b000: // BEQ
+                    take_branch = (val1 == val2);
+                    break;
+                case 0b001: // BNE
+                    take_branch = (val1 != val2);
+                    break;
+                case 0b100: // BLT
+                    take_branch = (val1 < val2);
+                    break;
+                case 0b101: // BGE
+                    take_branch = (val1 >= val2);
+                    break;
+                case 0b110: // BLTU
+                    take_branch = ((u32)val1 < (u32)val2);
+                    break;
+                case 0b111: // BGEU
+                    take_branch = ((u32)val1 >= (u32)val2);
+                    break;
+            }
+
+            if (take_branch) {
+                thread.pc += imm;
+            } else {
+                thread.pc += 4;
+            }
+            break;
+        }
+
+        case OP_LOAD:       // load
+        {
+            u32 rd = decoder::rd(instruction);
+            u32 rs1 = decoder::rs1(instruction);
+            i32 imm = decoder::immTypeI(instruction);
+            u32 funct3 = decoder::funct3(instruction);
+
+            u32 addr = thread.registers[rs1] + imm;
+
+            switch(funct3)
+            {
+                case 0b000:     // LB
+                    thread.registers[rd] = static_cast<i32>(static_cast<i8>(mem_.read8(addr)));
+                    break;
+                case 0b001:     // LH
+                    thread.registers[rd] = static_cast<i32>(static_cast<i16>(mem_.read16(addr)));
+                    break;
+                case 0b010:     // LW
+                    thread.registers[rd] = mem_.read32(addr);
+                    break;
+                case 0b100:     // LBU
+                    thread.registers[rd] = mem_.read8(addr);
+                    break;
+                case 0b101:     // LWU
+                    thread.registers[rd] = mem_.read16(addr);
+                    break;
+            }
+            thread.pc += 4;
+            break;
+        }
+
+        case OP_STORE:      // store
+        {
+            u32 rs1 = decoder::rs1(instruction);
+            u32 rs2 = decoder::rs2(instruction);
+            i32 imm = decoder::immTypeS(instruction);
+            u32 funct3 = decoder::funct3(instruction);
+
+            u32 addr = thread.registers[rs1] + imm;
+
+            switch(funct3)
+            {
+                case 0b000:     // SB
+                    mem_.write8(addr, thread.registers[rs2]);
+                    break;
+                case 0b001:     // SH
+                    mem_.write16(addr, thread.registers[rs2]);
+                    break;
+                case 0b010:     // SW
+                    mem_.write32(addr, thread.registers[rs2]);
+                    break;
+            }
+            thread.pc += 4;
+            break;
+        }
+
+        case OP_OP_IMM:     // Integer operations with Immediate
+        {
+            u32 rd = decoder::rd(instruction);
+            u32 rs1 = decoder::rs1(instruction);
+            i32 imm = decoder::immTypeI(instruction);
+            u32 funct3 = decoder::funct3(instruction);
+
+            switch(funct3)
+            {
+                case 0b000:     // ADDI
+                    thread.registers[rd] = thread.registers[rs1] + imm;
+                    break;
+                case 0b010:     // SLTI
+                    thread.registers[rd] = ((i32)thread.registers[rs1] < imm) ? 1 : 0;
+                    break;
+                case 0b011:     // SLTIU
+                    thread.registers[rd] = (thread.registers[rs1] < (u32)imm) ? 1 : 0;
+                    break;
+                case 0b100:     // XORI
+                    thread.registers[rd] = thread.registers[rs1] ^ imm;
+                    break;
+                case 0b110:     // ORI
+                    thread.registers[rd] = thread.registers[rs1] | imm;
+                    break;
+                case 0b111:     // ANDI
+                    thread.registers[rd] = thread.registers[rs1] & imm;
+                    break;
+                case 0b001:     // SLLI
+                    thread.registers[rd] = thread.registers[rs1] << (imm & 0x1F);
+                    break;
+                case 0b101:
+                {
+                    if ((instruction >> 30) & 1) {
+                        // SRAI (arithmetic shift)
+                        thread.registers[rd] = (i32)thread.registers[rs1] >> (imm & 0x1F);
+                    } else {
+                        // SRLI (logical shift)
+                        thread.registers[rd] = thread.registers[rs1] >> (imm & 0x1F);
+                    }
+                    break;
+                }
+            }
+            thread.pc += 4;
+            break;
+        }
+
+        case OP_OP:         // register-register operations
+        {
+            u32 rd = decoder::rd(instruction);
+            u32 rs1 = decoder::rs1(instruction);
+            u32 rs2 = decoder::rs2(instruction);
+
+            u32 funct3 = decoder::funct3(instruction);
+            u32 funct7 = decoder::funct7(instruction);
+
+            switch(funct3)
+            {
+                case 0b000:
+                {
+                    if (funct7 = 0b000'0000) {
+                        // ADD
+                        thread.registers[rd] = thread.registers[rs1] + thread.registers[rs2];
+                    } else {
+                        // SUB
+                        thread.registers[rd] = thread.registers[rs1] - thread.registers[rs2];
+                    }
+                    break;
+                }
+                case 0b001:     // SLL
+                    thread.registers[rd] = thread.registers[rs1] << (thread.registers[rs2] & 0x1F);
+                    break;
+                case 0b010:     // SLT
+                    thread.registers[rd] = ((i32)thread.registers[rs1] < (i32)thread.registers[rs2]) ? 1 : 0;
+                    break;
+                case 0b011:     // SLTU
+                    thread.registers[rd] = (thread.registers[rs1] < thread.registers[rs2]) ? 1 : 0;
+                    break;
+                case 0b100:     // XOR
+                    thread.registers[rd] = thread.registers[rs1] ^ thread.registers[rs2];
+                    break;
+                case 0b101:
+                    if (funct7 == 0b0000000) {
+                        // SRL
+                        thread.registers[rd] = thread.registers[rs1] >> (thread.registers[rs2] & 0x1F);
+                    } else {
+                        // SRA
+                        thread.registers[rd] = (i32)thread.registers[rs1] >> (thread.registers[rs2] & 0x1F);
+                    }
+                    break;
+                case 0b110:     // OR
+                    thread.registers[rd] = thread.registers[rs1] | thread.registers[rs2];
+                    break;
+                case 0b111:     // AND
+                    thread.registers[rd] = thread.registers[rs1] & thread.registers[rs2];
+                    break;
+            }
+            thread.pc += 4;
+            break;
+        }
+
+        case OP_CUSTOM:     // custom instruction
+        {
+            u32 funct3 = decoder::funct3(instruction);
+
+            switch (funct3)
+            {
+                case 0b000:     // new.t rd, rs1
+                {
+                    u32 rd = decoder::rd(instruction);
+                    u32 rs1 = decoder::rs1(instruction);
+                    newT(rd, rs1);
+                    break;
+                }
+                case 0b001:     // yield.t
+                {
+                    yieldT();
+                    break;
+                }
+                case 0b010:     // id.t rd
+                {
+                    u32 rd = decoder::rd(instruction);
+                    thread.registers[rd] = static_cast<u32>(getThreadId());
+                    break;
+                }
+                case 0b100:     // sleep.t rs1, rs2
+                {
+                    u32 rs1 = decoder::rs1(instruction);
+                    u32 rs2 = decoder::rs2(instruction);
+                    sleepT(rs1, rs2);
+                    break;
+                }
+                case 0b101:     // wake.t rs1
+                {
+                    u32 rs1 = decoder::rs1(instruction);
+                    wakeT(rs1);
+                    break;
+                }
+                case 0b111:     // end.t
+                {
+                    endT();
+                    break;
+                }
+            }
+            thread.pc += 4;
+            break;
+        }
+
+        default:            // unknown instruction
+            triggerException(CPU_MAIN_ILLEGAL_INSTRUCTION);
+            break;
+    }
 }
 
 } // namespace vc
