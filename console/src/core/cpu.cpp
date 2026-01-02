@@ -770,8 +770,6 @@ void CPU::execute_instruction()
 
         case OP_CUSTOM:     // custom instruction
         {
-            u32 funct3 = decoder::funct3(instruction);
-
             switch (funct3)
             {
                 case 0b000:     // new.t rd, rs1
@@ -801,6 +799,32 @@ void CPU::execute_instruction()
             triggerException(CPU_MAIN_ILLEGAL_INSTRUCTION);
             break;
     }
+}
+
+// CSR read/write
+u32 CPU::readCSR(u16 csr)
+{
+    if (csr >= 4096) {
+        triggerException(CPU_MAIN_ILLEGAL_INSTRUCTION);
+        return;
+    }
+
+    // handle dynamic CSRs
+    switch (csr)
+    {
+        case 0xC00: // cycle (low 32 bits)
+            return static_cast<u32>(total_cycles_);
+        case 0xC80: // cycleh (high 32 bits)
+            return static_cast<u32>(total_cycles_ >> 32);
+        default:
+            return mem_.read32(MMAP_CSR_REGISTERS + csr * sizeof(u32));
+    }
+}
+
+void CPU::writeCSR(u16 csr, u32 value)
+{
+    // TODO: check for RO registers
+    mem_.write32(MMAP_CSR_REGISTERS + csr * sizeof(u32), value);
 }
 
 } // namespace vc

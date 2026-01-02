@@ -106,6 +106,10 @@ private:
 
     // instruction executor
     void execute_instruction();
+
+    // CSR read/write
+    u32 readCSR(u16 csr);
+    void writeCSR(u16 csr, u32 value);
 };
 
 
