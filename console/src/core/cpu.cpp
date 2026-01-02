@@ -568,6 +568,7 @@ void CPU::execute_instruction()
                             thread.registers[rd] = rs1 + rs2;
                             break;
                         case 0b000'0001:    // MUL
+                            thread.registers[rd] = rs1 * rs2;
                             break;
                         case 0b010'0000:    // SUB
                             thread.registers[rd] = rs1 - rs2;
@@ -583,7 +584,13 @@ void CPU::execute_instruction()
                             thread.registers[rd] = rs1 << shamt;
                             break;
                         case 0b000'0001:    // MULH
+                        {
+                            i64 a = static_cast<i64>(static_cast<i32>(rs1));
+                            i64 b = static_cast<i64>(static_cast<i32>(rs2));
+                            i64 result = a * b;
+                            thread.registers[rd] = static_cast<u32>(result >> 32);
                             break;
+                        }
                         case 0b001'0100:    // BSET
                             thread.registers[rd] = rs1 | (1u << shamt);
                             break;
@@ -607,7 +614,13 @@ void CPU::execute_instruction()
                             thread.registers[rd] = ((i32)rs1 < (i32)rs2) ? 1 : 0;
                             break;
                         case 0b000'0001:    // MULHSU
+                        {
+                            i64 a = static_cast<i64>(static_cast<i32>(rs1));
+                            i64 b = static_cast<i64>(rs2);
+                            i64 result = a * b;
+                            thread.registers[rd] = static_cast<u32>(result >> 32);
                             break;
+                        }
                     }
                     break;
                 }
@@ -619,7 +632,13 @@ void CPU::execute_instruction()
                             thread.registers[rd] = (rs1 < rs2) ? 1 : 0;
                             break;
                         case 0b000'0001:    // MULHU
+                        {
+                            u64 a = static_cast<u64>(rs1);
+                            u64 b = static_cast<u64>(rs2);
+                            u64 result = a * b;
+                            thread.registers[rd] = static_cast<u32>(result >> 32);
                             break;
+                        }
                     }
                     break;
                 }
@@ -631,7 +650,19 @@ void CPU::execute_instruction()
                             thread.registers[rd] = rs1 ^ rs2;
                             break;
                         case 0b000'0001:     // DIV
+                        {
+                            i32 dividend = static_cast<i32>(rs1);
+                            i32 divisor = static_cast<i32>(rs2);
+
+                            if (divisor == 0) {
+                                thread.registers[rd] = 0xFFFF'FFFF;     // -1
+                            } else if (dividend == INT32_MIN && divisor == -1) {
+                                thread.registers[rd] = static_cast<u32>(INT32_MIN);     // overflow
+                            } else {
+                                thread.registers[rd] = static_cast<u32>(dividend / divisor);
+                            }
                             break;
+                        }
                         case 0b000'0100:    // ZEXT.H & PACK
                         {
                             if (rs2 == 0) {
@@ -661,7 +692,14 @@ void CPU::execute_instruction()
                             thread.registers[rd] = rs1 >> shamt;
                             break;
                         case 0b000'0001:    // DIVU
+                        {
+                            if (rs2 == 0) {
+                                thread.registers[rd] = 0xFFFF'FFFF; // max unsigned
+                            } else {
+                                thread.registers[rd] = rs1 / rs2;
+                            }
                             break;
+                        }
                         case 0b000'0101:    // MINU
                             thread.registers[rd] = std::min(rs1, rs2);
                             break;
@@ -688,7 +726,19 @@ void CPU::execute_instruction()
                             thread.registers[rd] = rs1 | rs2;
                             break;
                         case 0b000'0001:    // REM
+                        {
+                            i32 dividend = static_cast<i32>(rs1);
+                            i32 divisor = static_cast<i32>(rs2);
+
+                            if (divisor == 0) {
+                                thread.registers[rd] = rs1;
+                            } else if (dividend == INT32_MIN && divisor == -1) {
+                                thread.registers[rd] = 0;     // overflow
+                            } else {
+                                thread.registers[rd] = static_cast<u32>(dividend % divisor);
+                            }
                             break;
+                        }
                         case 0b000'0101:    // MAX
                         {
                             i32 a = static_cast<i32>(rs1);
@@ -707,7 +757,14 @@ void CPU::execute_instruction()
                             thread.registers[rd] = rs1 & rs2;
                             break;
                         case 0b000'0001:    // REMU
+                        {
+                            if (rs2 == 0) {
+                                thread.registers[rd] = rs1;
+                            } else {
+                                thread.registers[rd] = rs1 % rs2;
+                            }
                             break;
+                        }
                         case 0b000'0100:    // PACKH
                             thread.registers[rd] = (rs1 & 0xFF) | ((rs2 & 0xFF) << 8);
                             break;
