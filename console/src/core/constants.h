@@ -81,7 +81,7 @@ constexpr u32 OP_JAL    = 0b110'1111;       // 0x6F
 constexpr u32 OP_OP_IMM = 0b001'0011;       // 0x13
 constexpr u32 OP_OP     = 0b011'0011;       // 0x33
 
-constexpr u32 OP_EXT    = 0b111'0011;       // 0x73
+constexpr u32 OP_SYSTEM = 0b111'0011;       // 0x73
 constexpr u32 OP_CUSTOM = 0b000'1011;       // 0x0B
 
 
