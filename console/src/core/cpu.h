@@ -21,9 +21,13 @@
 // program-specific headers
 #include "vc/types.h"
 
-namespace vc {
+namespace vc
+{
+// forward declarations
+class Memory;
 
-// enum
+
+//----- enums
 enum class CPUState
 {
     Running,        // CPU is actively executing instructions
@@ -31,11 +35,34 @@ enum class CPUState
     Halted          // Exception occured, stopped permanently
 };
 
-// forward declarations
-class Memory;
-struct ThreadContext;
+enum class ThreadState : u8
+{
+    Free = 0,
+    Ready = 1,
+    Running = 2,
+    Sleeping = 4,
+    Dead = 8
+};
 
-// CPU class definition
+
+//----- structs
+struct ThreadContext
+{
+    u32 pc = 0;                                 //< Program Counter
+    u32 sp = 0;                                 //< Stack Pointer
+    u32 tp = 0;                                 //< Thread Pointer
+    ThreadState state = ThreadState::Free;      //< Thread State
+    u32 sp_base = 0;                            //< Stack base address
+    u32 canary_addr = 0;                        //< Stack Canary address
+    u32 waitkey = 0;                            //< Waitkey value
+    u64 sleep_until = 0;                        //< Time wait value
+    std::span<u32> registers = {};              //< RISC-V registers
+    u8 id = 0xFF;                               //< Thread ID
+    u64 total_cycles = 0;                       //< Thread Total Cycles
+};
+
+
+//----- class
 class CPU
 {
 public:
