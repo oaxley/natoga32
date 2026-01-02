@@ -795,6 +795,65 @@ void CPU::execute_instruction()
             break;
         }
 
+        case OP_SYSTEM:     // system instructions
+        {
+            u32 csr = (instruction >> 20) & 0xFFF;
+            u32 csr_val = readCSR(csr);
+
+            switch (funct3)
+            {
+                case 0b000:     // ecall, mret, wfi ...
+                    break;
+                case 0b001:     // CSRRW
+                {
+                    writeCSR(csr, urs1);
+                    thread.registers[rd] = csr_val;
+                    break;
+                }
+                case 0b010:     // CSRRS
+                {
+                    if (rs1 != 0) {
+                        writeCSR(csr, csr_val | urs1);
+                    }
+                    thread.registers[rd] = csr_val;
+                    break;
+                }
+                case 0b011:     // CSRRC
+                {
+                    if (rs1 != 0) {
+                        writeCSR(csr, csr_val & ~urs1);
+                    }
+                    thread.registers[rd] = csr_val;
+                    break;
+                }
+                case 0b101:     // CSRRWI
+                {
+                    // rs1 holds the 5-bit immediate
+                    writeCSR(csr, rs1);
+                    thread.registers[rd] = csr_val;
+                    break;
+                }
+                case 0b110:     // CSRRSI
+                {
+                    if (rs1 != 0) {
+                        writeCSR(csr, csr_val | rs1);
+                    }
+                    thread.registers[rd] = csr_val;
+                    break;
+                }
+                case 0b111:     // CSRRCI
+                {
+                    if (rs1 != 0) {
+                        writeCSR(csr, csr_val & ~rs1);
+                    }
+                    thread.registers[rd] = csr_val;
+                    break;
+                }
+            }
+            thread.pc += 4;
+            break;
+        }
+
         default:            // unknown instruction
             triggerException(CPU_MAIN_ILLEGAL_INSTRUCTION);
             break;
