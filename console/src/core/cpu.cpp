@@ -80,7 +80,13 @@ int CPU::tick()
 // wake any threads waiting for this event
 void CPU::wakeThreadOnEvent(u32 event)
 {
-    wakeT(event);
+    for (auto& t : threads_) {
+        if (t.state == ThreadState::Sleeping && t.waitkey == event) {
+            t.state = ThreadState::Ready;
+            t.waitkey = 0;
+            t.sleep_until = 0;
+        }
+    }
 }
 
 // retrieve the current CPU state
@@ -219,34 +225,38 @@ void CPU::yieldT()
 }
 
 // move the current thread to Sleeping status
-void CPU::sleepT(u32 rs1, u32 rs2)
+void CPU::sleepT(u8 rs1, u8 rs2)
 {
     ThreadContext& t = threads_[current_thread_];
+    bool yield = false;
 
     // waitkey
-    if (rs1 > 0) {
-        t.waitkey = rs1;
+    if (t.registers[rs1] > 0) {
+        t.waitkey = t.registers[rs1];
+        yield = true;
     }
 
     // sleep until
-    if (rs2 > 0) {
-        t.sleep_until = total_cycles_ + static_cast<u64>(rs2);
+    if (t.registers[rs2] > 0) {
+        t.sleep_until = total_cycles_ + static_cast<u64>(t.registers[rs2]);
+        yield = true;
     }
 
     // switch to next thread
-    if (rs1 > 0 || rs2 > 0) {
+    if (yield) {
         t.state = ThreadState::Sleeping;
         yieldT();
     }
 }
 
 // wake all the threads that match the waitkey value in RS1
-void CPU::wakeT(u32 rs1)
+void CPU::wakeT(u8 rs1)
 {
     for (auto& t : threads_) {
-        if (t.state == ThreadState::Sleeping && t.waitkey == rs1) {
+        if (t.state == ThreadState::Sleeping && t.waitkey == t.registers[rs1]) {
             t.state = ThreadState::Ready;
             t.waitkey = 0;
+            t.sleep_until = 0;
         }
     }
 }
@@ -266,14 +276,16 @@ void CPU::endT()
 }
 
 // create a new thread
-void CPU::newT(u32 rd, u32 rs1)
+void CPU::newT(u8 rd, u8 rs1)
 {
     // find a free slot
     for (int tid = 0; tid < THREADS_COUNT; tid++) {
-        if (threads_[tid].state == ThreadState::Free) {
+        auto& t = threads_[tid];
+
+        if (t.state == ThreadState::Free) {
             // initialize this thread with the user parameters
-            initT(tid, rs1);
-            threads_[tid].state = ThreadState::Ready;
+            initT(tid, t.registers[rs1]);
+            t.state = ThreadState::Ready;
 
             // return its id
             threads_[current_thread_].registers[rd] = tid;

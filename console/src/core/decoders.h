@@ -18,27 +18,27 @@
 
 namespace vc::decoder {
 
-u32 opcode(u32 instr) {
+u8 opcode(u32 instr) {
     return instr & 0x7f;
 }
 
-u32 rd(u32 instr) {
+u8 rd(u32 instr) {
     return (instr >> 7) & 0x1F;
 }
 
-u32 rs1(u32 instr) {
+u8 rs1(u32 instr) {
     return (instr >> 15) & 0x1F;
 }
 
-u32 rs2(u32 instr) {
+u8 rs2(u32 instr) {
     return (instr >> 20) & 0x1F;
 }
 
-u32 funct3(u32 instr) {
+u8 funct3(u32 instr) {
     return (instr >> 12) & 0x7;
 }
 
-u32 funct7(u32 instr) {
+u8 funct7(u32 instr) {
     return (instr >> 25) & 0x7F;
 }
 

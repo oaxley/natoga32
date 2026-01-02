@@ -96,10 +96,10 @@ private:
     void initT(int tid, u32 entrypoint = 0);
     void setTPC(int tid, u32 entrypoint);
     void yieldT();
-    void sleepT(u32 rs1, u32 rs2);
-    void wakeT(u32 rs1);
+    void sleepT(u8 rs1, u8 rs2);
+    void wakeT(u8 rs1);
     void endT();
-    void newT(u32 rd, u32 rs1);
+    void newT(u8 rd, u8 rs1);
 
     // exception triggering
     void triggerException(u32 value);
