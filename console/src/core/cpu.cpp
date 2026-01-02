@@ -509,6 +509,15 @@ void CPU::execute_instruction()
                         case 0b010'0000:    // SRAI
                             thread.registers[rd] = static_cast<i32>(thread.registers[rs1]) >> shamt;
                             break;
+                        case 0b011'0100:    // REV8
+                        {
+                            u32 value = thread.registers[rs1];
+                            thread.registers[rd] = ((value >> 24) & 0xFF)
+                                                 | ((value >> 8 ) & 0xFF00)
+                                                 | ((value << 8) & 0xFF0000)
+                                                 | ((value << 24) & 0xFF000000);
+                            break;
+                        }
                     }
                     break;
                 }
