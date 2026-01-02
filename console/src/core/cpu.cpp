@@ -314,43 +314,47 @@ void CPU::execute_instruction()
 
     // fetch the instruction
     u32 instruction = mem_.read32(thread.pc);
-    u32 opcode = decoder::opcode(instruction);
 
+    // decode all the parts
+    u8 opcode = decoder::opcode(instruction);
+    u8 rd = decoder::rd(instruction);
+    u8 rs1 = decoder::rs1(instruction);
+    u8 rs2 = decoder::rs2(instruction);
+    u8 funct3 = decoder::funct3(instruction);
+    u8 funct7 = decoder::funct7(instruction);
+
+    // retrieve the value for RS1 and RS2
+    u32 urs1 = thread.registers[rs1];
+    u32 urs2 = thread.registers[rs2];
+
+    // Very BIG switch/case
     switch(opcode)
     {
         case OP_LUI:        // load upper immediate
         {
-            u32 rd = decoder::rd(instruction);
-            i32 imm = decoder::immTypeU(instruction);
-            thread.registers[rd] = imm;
+            thread.registers[rd] = decoder::immTypeU(instruction);
             thread.pc += 4;
             break;
         }
 
         case OP_AUIPC:      // add upper immediate to PC
         {
-            u32 rd = decoder::rd(instruction);
-            i32 imm = decoder::immTypeU(instruction);
-            thread.registers[rd] = thread.pc + imm;
+            thread.registers[rd] = thread.pc + decoder::immTypeU(instruction);
             thread.pc += 4;
             break;
         }
 
         case OP_JAL:        // jump and link
         {
-            u32 rd = decoder::rd(instruction);
-            i32 imm = decoder::immTypeJ(instruction);
             thread.registers[rd] = thread.pc + 4;
-            thread.pc += imm;
+            thread.pc += decoder::immTypeJ(instruction);;
             break;
         }
 
         case OP_JALR:       // jump and link register
         {
-            u32 rd = decoder::rd(instruction);
-            u32 rs1 = decoder::rs1(instruction);
             i32 imm = decoder::immTypeI(instruction);
-            u32 target = (thread.registers[rs1] + imm) & ~1;
+            u32 target = (urs1 + imm) & ~1;
             thread.registers[rd] = thread.pc + 4;
             thread.pc = target;
             break;
@@ -358,34 +362,30 @@ void CPU::execute_instruction()
 
         case OP_BRANCH:     // branches
         {
-            u32 rs1 = decoder::rs1(instruction);
-            u32 rs2 = decoder::rs2(instruction);
-            i32 imm = decoder::immTypeB(instruction);
-            u32 funct3 = decoder::funct3(instruction);
-
             bool take_branch = false;
-            i32 val1 = thread.registers[rs1];
-            i32 val2 = thread.registers[rs2];
+            i32 irs1 = static_cast<i32>(urs1);
+            i32 irs2 = static_cast<i32>(urs2);
+            i32 imm = decoder::immTypeB(instruction);
 
             switch(funct3)
             {
                 case 0b000: // BEQ
-                    take_branch = (val1 == val2);
+                    take_branch = (irs1 == irs2);
                     break;
                 case 0b001: // BNE
-                    take_branch = (val1 != val2);
+                    take_branch = (irs1 != irs2);
                     break;
                 case 0b100: // BLT
-                    take_branch = (val1 < val2);
+                    take_branch = (irs1 < irs2);
                     break;
                 case 0b101: // BGE
-                    take_branch = (val1 >= val2);
+                    take_branch = (irs1 >= irs2);
                     break;
                 case 0b110: // BLTU
-                    take_branch = ((u32)val1 < (u32)val2);
+                    take_branch = (urs1 < urs2);
                     break;
                 case 0b111: // BGEU
-                    take_branch = ((u32)val1 >= (u32)val2);
+                    take_branch = (urs1 >= urs2);
                     break;
             }
 
@@ -399,12 +399,8 @@ void CPU::execute_instruction()
 
         case OP_LOAD:       // load
         {
-            u32 rd = decoder::rd(instruction);
-            u32 rs1 = decoder::rs1(instruction);
             i32 imm = decoder::immTypeI(instruction);
-            u32 funct3 = decoder::funct3(instruction);
-
-            u32 addr = thread.registers[rs1] + imm;
+            u32 addr = urs1 + imm;
 
             switch(funct3)
             {
@@ -430,23 +426,19 @@ void CPU::execute_instruction()
 
         case OP_STORE:      // store
         {
-            u32 rs1 = decoder::rs1(instruction);
-            u32 rs2 = decoder::rs2(instruction);
             i32 imm = decoder::immTypeS(instruction);
-            u32 funct3 = decoder::funct3(instruction);
-
-            u32 addr = thread.registers[rs1] + imm;
+            u32 addr = urs1 + imm;
 
             switch(funct3)
             {
                 case 0b000:     // SB
-                    mem_.write8(addr, thread.registers[rs2]);
+                    mem_.write8(addr, urs2);
                     break;
                 case 0b001:     // SH
-                    mem_.write16(addr, thread.registers[rs2]);
+                    mem_.write16(addr, urs2);
                     break;
                 case 0b010:     // SW
-                    mem_.write32(addr, thread.registers[rs2]);
+                    mem_.write32(addr, urs2);
                     break;
             }
             thread.pc += 4;
@@ -455,102 +447,99 @@ void CPU::execute_instruction()
 
         case OP_OP_IMM:     // Integer operations with Immediate
         {
-            u32 rd = decoder::rd(instruction);
-            u32 rs1 = thread.registers[decoder::rs1(instruction)];
             i32 imm = decoder::immTypeI(instruction);
-
-            u32 funct3 = decoder::funct3(instruction);
-            u32 funct7 = decoder::funct7(instruction);
             u32 shamt = decoder::rs2(instruction) & 0x1F;
+            i32 irs1 = static_cast<i32>(urs1);
+            i32 irs2 = static_cast<i32>(urs2);
 
             switch(funct3)
             {
                 case 0b000:     // ADDI
-                    thread.registers[rd] = rs1 + imm;
+                    thread.registers[rd] = urs1 + imm;
                     break;
                 case 0b001:     // SLLI or Zbb instruction
                 {
                     switch (funct7)
                     {
                         case 0b000'0000:    // SLLI
-                            thread.registers[rd] = rs1 << shamt;
+                            thread.registers[rd] = urs1 << shamt;
                             break;
                         case 0b001'0100:    // BSETI
-                            thread.registers[rd] = rs1 | (1u << shamt);
+                            thread.registers[rd] = urs1 | (1u << shamt);
                             break;
                         case 0b010'0100:    // BCLRI
-                            thread.registers[rd] = rs1 & ~(1u << shamt);
+                            thread.registers[rd] = urs1 & ~(1u << shamt);
                             break;
                         case 0b011'0000:    // SEXT.[H,B] / CLZ / CTZ / CPOP
                         {
                             switch (shamt)
                             {
                                 case 0b00000:       // CLZ
-                                    thread.registers[rd] = std::countl_zero(rs1);
+                                    thread.registers[rd] = std::countl_zero(urs1);
                                     break;
                                 case 0b00001:       // CTZ
-                                    thread.registers[rd] = std::countr_zero(rs1);
+                                    thread.registers[rd] = std::countr_zero(urs1);
                                     break;
                                 case 0b00010:       // CPOP
-                                    thread.registers[rd] = std::popcount(rs1);
+                                    thread.registers[rd] = std::popcount(urs1);
                                     break;
                                 case 0b00100:       // SEXT.B
-                                    thread.registers[rd] = static_cast<u32>(static_cast<i8>(rs1));
+                                    thread.registers[rd] = static_cast<u32>(static_cast<i8>(urs1));
                                     break;
                                 case 0b00101:       // SEXT.H
-                                    thread.registers[rd] = static_cast<u32>(static_cast<i16>(rs1));
+                                    thread.registers[rd] = static_cast<u32>(static_cast<i16>(urs1));
                                     break;
                             }
                             break;
                         }
                         case 0b011'0100:    // BINVI
-                                thread.registers[rd] = rs1 ^ (1u << shamt);
+                                thread.registers[rd] = urs1 ^ (1u << shamt);
                             break;
 
                     }
                     break;
                 }
                 case 0b010:     // SLTI
-                    thread.registers[rd] = ((i32)rs1 < imm) ? 1 : 0;
+                    thread.registers[rd] = (irs1 < imm) ? 1 : 0;
                     break;
                 case 0b011:     // SLTIU
-                    thread.registers[rd] = (rs1 < (u32)imm) ? 1 : 0;
+                    thread.registers[rd] = (urs1 < static_cast<u32>(imm)) ? 1 : 0;
                     break;
                 case 0b100:     // XORI
-                    thread.registers[rd] = rs1 ^ imm;
+                    thread.registers[rd] = urs1 ^ imm;
                     break;
                 case 0b101:
                 {
                     switch (funct7)
                     {
                         case 0b000'0000:    // SRLI
-                            thread.registers[rd] = rs1 >> shamt;
+                            thread.registers[rd] = urs1 >> shamt;
                             break;
                         case 0b010'0000:    // SRAI
-                            thread.registers[rd] = static_cast<i32>(rs1) >> shamt;
+                            thread.registers[rd] = irs1 >> shamt;
                             break;
                         case 0b010'0100:    // BEXTI
-                            thread.registers[rd] = (rs1 >> shamt) & 1u;
+                            thread.registers[rd] = (urs1 >> shamt) & 1u;
                             break;
                         case 0b011'0000:    // RORI
-                            thread.registers[rd] = std::rotr(rs1, shamt);
+                            thread.registers[rd] = std::rotr(urs1, shamt);
                             break;
                         case 0b011'0100:    // REV8
                         {
-                            thread.registers[rd] = ((rs1 >> 24) & 0xFF)
-                                                 | ((rs1 >> 8 ) & 0xFF00)
-                                                 | ((rs1 << 8) & 0xFF0000)
-                                                 | ((rs1 << 24) & 0xFF000000);
+                            thread.registers[rd] = ((urs1 >> 24) & 0xFF)
+                                                 | ((urs1 >> 8 ) & 0xFF00)
+                                                 | ((urs1 << 8) & 0xFF0000)
+                                                 | ((urs1 << 24) & 0xFF000000);
                             break;
                         }
                     }
                     break;
                 }
                 case 0b110:     // ORI
-                    thread.registers[rd] = rs1 | imm;
+                    thread.registers[rd] = urs1 | imm;
                     break;
                 case 0b111:     // ANDI
-                    thread.registers[rd] = rs1 & imm;
+                    thread.registers[rd] = urs1 & imm;
                     break;
             }
             thread.pc += 4;
@@ -559,16 +548,9 @@ void CPU::execute_instruction()
 
         case OP_OP:         // register-register operations
         {
-            u32 rd = decoder::rd(instruction);
-
-            u32 rs1 = thread.registers[decoder::rs1(instruction)];
-            u32 rs2 = thread.registers[decoder::rs2(instruction)];
-
-            u32 funct3 = decoder::funct3(instruction);
-            u32 funct7 = decoder::funct7(instruction);
-
             u32 shamt = rs2 & 0x1F;
-
+            i32 irs1 = static_cast<i32>(urs1);
+            i32 irs2 = static_cast<i32>(urs2);
 
             switch(funct3)
             {
@@ -577,13 +559,13 @@ void CPU::execute_instruction()
                     switch (funct7)
                     {
                         case 0b000'0000:    // ADD
-                            thread.registers[rd] = rs1 + rs2;
+                            thread.registers[rd] = urs1 + urs2;
                             break;
                         case 0b000'0001:    // MUL
-                            thread.registers[rd] = rs1 * rs2;
+                            thread.registers[rd] = urs1 * urs2;
                             break;
                         case 0b010'0000:    // SUB
-                            thread.registers[rd] = rs1 - rs2;
+                            thread.registers[rd] = urs1 - urs2;
                             break;
                     }
                     break;
@@ -593,27 +575,27 @@ void CPU::execute_instruction()
                     switch (funct7)
                     {
                         case 0b000'0000:    // SLL
-                            thread.registers[rd] = rs1 << shamt;
+                            thread.registers[rd] = urs1 << shamt;
                             break;
                         case 0b000'0001:    // MULH
                         {
-                            i64 a = static_cast<i64>(static_cast<i32>(rs1));
-                            i64 b = static_cast<i64>(static_cast<i32>(rs2));
+                            i64 a = static_cast<i64>(irs1);
+                            i64 b = static_cast<i64>(irs2);
                             i64 result = a * b;
                             thread.registers[rd] = static_cast<u32>(result >> 32);
                             break;
                         }
                         case 0b001'0100:    // BSET
-                            thread.registers[rd] = rs1 | (1u << shamt);
+                            thread.registers[rd] = urs1 | (1u << shamt);
                             break;
                         case 0b010'0100:    // BCLR
-                            thread.registers[rd] = rs1 & ~(1u << shamt);
+                            thread.registers[rd] = urs1 & ~(1u << shamt);
                             break;
                         case 0b011'0000:    // ROL
-                            thread.registers[rd] = std::rotl(rs1, shamt);
+                            thread.registers[rd] = std::rotl(urs1, shamt);
                             break;
                         case 0b011'0100:    // BINV
-                            thread.registers[rd] = rs1 ^ (1u << shamt);
+                            thread.registers[rd] = urs1 ^ (1u << shamt);
                             break;
                     }
                     break;
@@ -623,11 +605,11 @@ void CPU::execute_instruction()
                     switch (funct7)
                     {
                         case 0b000'0000:    // SLT
-                            thread.registers[rd] = ((i32)rs1 < (i32)rs2) ? 1 : 0;
+                            thread.registers[rd] = (irs1 < irs2) ? 1 : 0;
                             break;
                         case 0b000'0001:    // MULHSU
                         {
-                            i64 a = static_cast<i64>(static_cast<i32>(rs1));
+                            i64 a = static_cast<i64>(irs1);
                             i64 b = static_cast<i64>(rs2);
                             i64 result = a * b;
                             thread.registers[rd] = static_cast<u32>(result >> 32);
@@ -641,12 +623,12 @@ void CPU::execute_instruction()
                     switch (funct7)
                     {
                         case 0b000'0000:    // SLTU
-                            thread.registers[rd] = (rs1 < rs2) ? 1 : 0;
+                            thread.registers[rd] = (urs1 < urs2) ? 1 : 0;
                             break;
                         case 0b000'0001:    // MULHU
                         {
-                            u64 a = static_cast<u64>(rs1);
-                            u64 b = static_cast<u64>(rs2);
+                            u64 a = static_cast<u64>(urs1);
+                            u64 b = static_cast<u64>(urs2);
                             u64 result = a * b;
                             thread.registers[rd] = static_cast<u32>(result >> 32);
                             break;
@@ -659,12 +641,12 @@ void CPU::execute_instruction()
                     switch (funct7)
                     {
                         case 0b000'0000:    // XOR
-                            thread.registers[rd] = rs1 ^ rs2;
+                            thread.registers[rd] = urs1 ^ urs2;
                             break;
                         case 0b000'0001:     // DIV
                         {
-                            i32 dividend = static_cast<i32>(rs1);
-                            i32 divisor = static_cast<i32>(rs2);
+                            i32 dividend = irs1;
+                            i32 divisor = irs2;
 
                             if (divisor == 0) {
                                 thread.registers[rd] = 0xFFFF'FFFF;     // -1
@@ -677,22 +659,18 @@ void CPU::execute_instruction()
                         }
                         case 0b000'0100:    // ZEXT.H & PACK
                         {
-                            if (rs2 == 0) {
+                            if (rs2 == 0) {         //< we need the register to be 0 (not its value)
                                 // ZEXT.H
-                                thread.registers[rd] = rs1 & 0xFFFF;
+                                thread.registers[rd] = urs1 & 0xFFFF;
                             } else {
                                 // PACK
-                                thread.registers[rd] = (rs1 & 0xFFFF) | (rs2 << 16);
+                                thread.registers[rd] = (urs1 & 0xFFFF) | (urs2 << 16);
                             }
                             break;
                         }
                         case 0b000'0101:    // MIN
-                        {
-                            i32 a = static_cast<i32>(rs1);
-                            i32 b = static_cast<i32>(rs2);
-                            thread.registers[rd] = static_cast<u32>(std::min(a, b));
+                            thread.registers[rd] = static_cast<u32>(std::min(irs1, irs2));
                             break;
-                        }
                     }
                     break;
                 }
@@ -701,31 +679,31 @@ void CPU::execute_instruction()
                     switch (funct7)
                     {
                         case 0b000'0000:    // SRL
-                            thread.registers[rd] = rs1 >> shamt;
+                            thread.registers[rd] = urs1 >> shamt;
                             break;
                         case 0b000'0001:    // DIVU
                         {
-                            if (rs2 == 0) {
+                            if (urs2 == 0) {
                                 thread.registers[rd] = 0xFFFF'FFFF; // max unsigned
                             } else {
-                                thread.registers[rd] = rs1 / rs2;
+                                thread.registers[rd] = urs1 / urs2;
                             }
                             break;
                         }
                         case 0b000'0101:    // MINU
-                            thread.registers[rd] = std::min(rs1, rs2);
+                            thread.registers[rd] = std::min(urs1, urs2);
                             break;
                         case 0b000'0111:    // CZERO.EQZ
-                            thread.registers[rd] = (rs2 == 0) ? 0 : rs1;
+                            thread.registers[rd] = (urs2 == 0) ? 0 : urs1;
                             break;
                         case 0b010'0000:    // SRA
-                            thread.registers[rd] = static_cast<u32>(static_cast<i32>(rs1) >> shamt);
+                            thread.registers[rd] = static_cast<u32>(irs1 >> shamt);
                             break;
                         case 0b010'0100:    // BEXT
-                            thread.registers[rd] = (rs1 >> shamt) & 1u;
+                            thread.registers[rd] = (urs1 >> shamt) & 1u;
                             break;
                         case 0b011'0000:    // ROR
-                            thread.registers[rd] = std::rotr(rs1, shamt);
+                            thread.registers[rd] = std::rotr(urs1, shamt);
                             break;
                     }
                     break;
@@ -735,15 +713,15 @@ void CPU::execute_instruction()
                     switch (funct7)
                     {
                         case 0b000'0000:    // OR
-                            thread.registers[rd] = rs1 | rs2;
+                            thread.registers[rd] = urs1 | urs2;
                             break;
                         case 0b000'0001:    // REM
                         {
-                            i32 dividend = static_cast<i32>(rs1);
-                            i32 divisor = static_cast<i32>(rs2);
+                            i32 dividend = irs1;
+                            i32 divisor = irs2;
 
                             if (divisor == 0) {
-                                thread.registers[rd] = rs1;
+                                thread.registers[rd] = urs1;
                             } else if (dividend == INT32_MIN && divisor == -1) {
                                 thread.registers[rd] = 0;     // overflow
                             } else {
@@ -752,12 +730,8 @@ void CPU::execute_instruction()
                             break;
                         }
                         case 0b000'0101:    // MAX
-                        {
-                            i32 a = static_cast<i32>(rs1);
-                            i32 b = static_cast<i32>(rs2);
-                            thread.registers[rd] = static_cast<u32>(std::max(a, b));
+                            thread.registers[rd] = static_cast<u32>(std::max(irs1, irs2));
                             break;
-                        }
                     }
                     break;
                 }
@@ -766,25 +740,25 @@ void CPU::execute_instruction()
                     switch (funct7)
                     {
                         case 0b000'0000:    // AND
-                            thread.registers[rd] = rs1 & rs2;
+                            thread.registers[rd] = urs1 & urs2;
                             break;
                         case 0b000'0001:    // REMU
                         {
-                            if (rs2 == 0) {
-                                thread.registers[rd] = rs1;
+                            if (urs2 == 0) {
+                                thread.registers[rd] = urs1;
                             } else {
-                                thread.registers[rd] = rs1 % rs2;
+                                thread.registers[rd] = urs1 % urs2;
                             }
                             break;
                         }
                         case 0b000'0100:    // PACKH
-                            thread.registers[rd] = (rs1 & 0xFF) | ((rs2 & 0xFF) << 8);
+                            thread.registers[rd] = (urs1 & 0xFF) | ((urs2 & 0xFF) << 8);
                             break;
                         case 0b000'0101:    // MAXU
-                            thread.registers[rd] = std::max(rs1, rs2);
+                            thread.registers[rd] = std::max(urs1, urs2);
                             break;
                         case 0b000'0111:    // CZERO.NEZ
-                            thread.registers[rd] = (rs2 != 0) ? 0 : rs1;
+                            thread.registers[rd] = (urs2 != 0) ? 0 : urs1;
                             break;
                     }
                     break;
@@ -801,41 +775,23 @@ void CPU::execute_instruction()
             switch (funct3)
             {
                 case 0b000:     // new.t rd, rs1
-                {
-                    u32 rd = decoder::rd(instruction);
-                    u32 rs1 = decoder::rs1(instruction);
                     newT(rd, rs1);
                     break;
-                }
                 case 0b001:     // yield.t
-                {
                     yieldT();
                     break;
-                }
                 case 0b010:     // id.t rd
-                {
-                    u32 rd = decoder::rd(instruction);
                     thread.registers[rd] = static_cast<u32>(getThreadId());
                     break;
-                }
                 case 0b100:     // sleep.t rs1, rs2
-                {
-                    u32 rs1 = decoder::rs1(instruction);
-                    u32 rs2 = decoder::rs2(instruction);
                     sleepT(rs1, rs2);
                     break;
-                }
                 case 0b101:     // wake.t rs1
-                {
-                    u32 rs1 = decoder::rs1(instruction);
                     wakeT(rs1);
                     break;
-                }
                 case 0b111:     // end.t
-                {
                     endT();
                     break;
-                }
             }
             thread.pc += 4;
             break;
