@@ -446,7 +446,10 @@ void CPU::execute_instruction()
             u32 rd = decoder::rd(instruction);
             u32 rs1 = decoder::rs1(instruction);
             i32 imm = decoder::immTypeI(instruction);
+
             u32 funct3 = decoder::funct3(instruction);
+            u32 funct7 = decoder::funct7(instruction);
+            u32 shamt = decoder::rs2(instruction);
 
             switch(funct3)
             {
@@ -468,17 +471,44 @@ void CPU::execute_instruction()
                 case 0b111:     // ANDI
                     thread.registers[rd] = thread.registers[rs1] & imm;
                     break;
-                case 0b001:     // SLLI
-                    thread.registers[rd] = thread.registers[rs1] << (imm & 0x1F);
+                case 0b001:     // SLLI or Zbb instruction
+                {
+                    if (funct7 == 0b011'0000) {
+                        switch (shamt)
+                        {
+                            case 0b00000:       // CLZ
+                                thread.registers[rd] = std::countl_zero(thread.registers[rs1]);
+                                break;
+                            case 0b00001:       // CTZ
+                                thread.registers[rd] = std::countr_zero(thread.registers[rs1]);
+                                break;
+                            case 0b00010:       // CPOP
+                                thread.registers[rd] = std::popcount(thread.registers[rs1]);
+                                break;
+                            case 0b00100:       // SEXT.B
+                                thread.registers[rd] = static_cast<u32>(static_cast<i8>(thread.registers[rs1]));
+                                break;
+                            case 0b00101:       // SEXT.H
+                                thread.registers[rd] = static_cast<u32>(static_cast<i16>(thread.registers[rs1]));
+                                break;
+                        }
+                    } else {
+                        // SLLI
+                        thread.registers[rd] = thread.registers[rs1] << shamt;
+                    }
+
                     break;
+                }
                 case 0b101:
                 {
-                    if ((instruction >> 30) & 1) {
-                        // SRAI (arithmetic shift)
-                        thread.registers[rd] = (i32)thread.registers[rs1] >> (imm & 0x1F);
-                    } else {
-                        // SRLI (logical shift)
-                        thread.registers[rd] = thread.registers[rs1] >> (imm & 0x1F);
+                    switch (funct7)
+                    {
+                        case 0b000'0000:    // SRLI
+                            thread.registers[rd] = thread.registers[rs1] >> shamt;
+                            break;
+                        case 0b010'0000:    // SRAI
+                            thread.registers[rd] = static_cast<i32>(thread.registers[rs1]) >> shamt;
+                            break;
                     }
                     break;
                 }
@@ -500,12 +530,14 @@ void CPU::execute_instruction()
             {
                 case 0b000:
                 {
-                    if (funct7 = 0b000'0000) {
-                        // ADD
-                        thread.registers[rd] = thread.registers[rs1] + thread.registers[rs2];
-                    } else {
-                        // SUB
-                        thread.registers[rd] = thread.registers[rs1] - thread.registers[rs2];
+                    switch (funct7)
+                    {
+                        case 0b000'0000:    // ADD
+                            thread.registers[rd] = thread.registers[rs1] + thread.registers[rs2];
+                            break;
+                        case 0b010'0000:    // SUB
+                            thread.registers[rd] = thread.registers[rs1] - thread.registers[rs2];
+                            break;
                     }
                     break;
                 }
@@ -518,24 +550,72 @@ void CPU::execute_instruction()
                 case 0b011:     // SLTU
                     thread.registers[rd] = (thread.registers[rs1] < thread.registers[rs2]) ? 1 : 0;
                     break;
-                case 0b100:     // XOR
-                    thread.registers[rd] = thread.registers[rs1] ^ thread.registers[rs2];
-                    break;
-                case 0b101:
-                    if (funct7 == 0b0000000) {
-                        // SRL
-                        thread.registers[rd] = thread.registers[rs1] >> (thread.registers[rs2] & 0x1F);
-                    } else {
-                        // SRA
-                        thread.registers[rd] = (i32)thread.registers[rs1] >> (thread.registers[rs2] & 0x1F);
+                case 0b100:     // XOR, MIN, ZEXT.H
+                {
+                    switch (funct7)
+                    {
+                        case 0b000'0000:    // XOR
+                            thread.registers[rd] = thread.registers[rs1] ^ thread.registers[rs2];
+                            break;
+                        case 0b000'0100:    // ZEXT.H
+                            thread.registers[rd] = thread.registers[rs1] & 0xFFFF;
+                            break;
+                        case 0b000'0101:    // MIN
+                        {
+                            i32 a = static_cast<i32>(thread.registers[rs1]);
+                            i32 b = static_cast<i32>(thread.registers[rs2]);
+                            thread.registers[rd] = static_cast<u32>(std::min(a, b));
+                            break;
+                        }
                     }
                     break;
-                case 0b110:     // OR
-                    thread.registers[rd] = thread.registers[rs1] | thread.registers[rs2];
+                }
+                case 0b101:     // SRL, SRA, MINU
+                {
+                    switch (funct7)
+                    {
+                        case 0b000'0000:    // SRL
+                            thread.registers[rd] = thread.registers[rs1] >> (thread.registers[rs2] & 0x1F);
+                            break;
+                        case 0b010'0000:    // SRA
+                            thread.registers[rd] = (i32)thread.registers[rs1] >> (thread.registers[rs2] & 0x1F);
+                            break;
+                        case 0b000'0101:    // MINU
+                            thread.registers[rd] = std::min(thread.registers[rs1], thread.registers[rs2]);
+                            break;
+                    }
                     break;
-                case 0b111:     // AND
-                    thread.registers[rd] = thread.registers[rs1] & thread.registers[rs2];
+                }
+                case 0b110:     // OR, MAX
+                {
+                    switch (funct7)
+                    {
+                        case 0b000'0000:    // OR
+                            thread.registers[rd] = thread.registers[rs1] | thread.registers[rs2];
+                            break;
+                        case 0b000'0101:    // MAX
+                        {
+                            i32 a = static_cast<i32>(thread.registers[rs1]);
+                            i32 b = static_cast<i32>(thread.registers[rs2]);
+                            thread.registers[rd] = static_cast<u32>(std::max(a, b));
+                            break;
+                        }
+                    }
                     break;
+                }
+                case 0b111:     // AND, MAXU
+                {
+                    switch (funct7)
+                    {
+                        case 0b000'0000:    // AND
+                            thread.registers[rd] = thread.registers[rs1] & thread.registers[rs2];
+                            break;
+                        case 0b000'0101:    // MAXU
+                            thread.registers[rd] = std::max(thread.registers[rs1], thread.registers[rs2]);
+                            break;
+                    }
+                    break;
+                }
             }
             thread.pc += 4;
             break;
