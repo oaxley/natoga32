@@ -456,6 +456,48 @@ void CPU::execute_instruction()
                 case 0b000:     // ADDI
                     thread.registers[rd] = thread.registers[rs1] + imm;
                     break;
+                case 0b001:     // SLLI or Zbb instruction
+                {
+                    switch (funct7)
+                    {
+                        case 0b000'0000:    // SLLI
+                            thread.registers[rd] = thread.registers[rs1] << shamt;
+                            break;
+                        case 0b001'0100:    // BSETI
+                            thread.registers[rd] = thread.registers[rs1] | (1u << shamt);
+                            break;
+                        case 0b010'0100:    // BCLRI
+                            thread.registers[rd] = thread.registers[rs1] & ~(1u << shamt);
+                            break;
+                        case 0b011'0000:    // SEXT.[H,B] / CLZ / CTZ / CPOP
+                        {
+                            switch (shamt)
+                            {
+                                case 0b00000:       // CLZ
+                                    thread.registers[rd] = std::countl_zero(thread.registers[rs1]);
+                                    break;
+                                case 0b00001:       // CTZ
+                                    thread.registers[rd] = std::countr_zero(thread.registers[rs1]);
+                                    break;
+                                case 0b00010:       // CPOP
+                                    thread.registers[rd] = std::popcount(thread.registers[rs1]);
+                                    break;
+                                case 0b00100:       // SEXT.B
+                                    thread.registers[rd] = static_cast<u32>(static_cast<i8>(thread.registers[rs1]));
+                                    break;
+                                case 0b00101:       // SEXT.H
+                                    thread.registers[rd] = static_cast<u32>(static_cast<i16>(thread.registers[rs1]));
+                                    break;
+                            }
+                            break;
+                        }
+                        case 0b011'0100:    // BINVI
+                                thread.registers[rd] = thread.registers[rs1] ^ (1u << shamt);
+                            break;
+
+                    }
+                    break;
+                }
                 case 0b010:     // SLTI
                     thread.registers[rd] = ((i32)thread.registers[rs1] < imm) ? 1 : 0;
                     break;
@@ -465,40 +507,6 @@ void CPU::execute_instruction()
                 case 0b100:     // XORI
                     thread.registers[rd] = thread.registers[rs1] ^ imm;
                     break;
-                case 0b110:     // ORI
-                    thread.registers[rd] = thread.registers[rs1] | imm;
-                    break;
-                case 0b111:     // ANDI
-                    thread.registers[rd] = thread.registers[rs1] & imm;
-                    break;
-                case 0b001:     // SLLI or Zbb instruction
-                {
-                    if (funct7 == 0b011'0000) {
-                        switch (shamt)
-                        {
-                            case 0b00000:       // CLZ
-                                thread.registers[rd] = std::countl_zero(thread.registers[rs1]);
-                                break;
-                            case 0b00001:       // CTZ
-                                thread.registers[rd] = std::countr_zero(thread.registers[rs1]);
-                                break;
-                            case 0b00010:       // CPOP
-                                thread.registers[rd] = std::popcount(thread.registers[rs1]);
-                                break;
-                            case 0b00100:       // SEXT.B
-                                thread.registers[rd] = static_cast<u32>(static_cast<i8>(thread.registers[rs1]));
-                                break;
-                            case 0b00101:       // SEXT.H
-                                thread.registers[rd] = static_cast<u32>(static_cast<i16>(thread.registers[rs1]));
-                                break;
-                        }
-                    } else {
-                        // SLLI
-                        thread.registers[rd] = thread.registers[rs1] << shamt;
-                    }
-
-                    break;
-                }
                 case 0b101:
                 {
                     switch (funct7)
@@ -508,6 +516,12 @@ void CPU::execute_instruction()
                             break;
                         case 0b010'0000:    // SRAI
                             thread.registers[rd] = static_cast<i32>(thread.registers[rs1]) >> shamt;
+                            break;
+                        case 0b010'0100:    // BEXTI
+                            thread.registers[rd] = (thread.registers[rs1] >> shamt) & 1u;
+                            break;
+                        case 0b011'0000:    // RORI
+                            thread.registers[rd] = std::rotr(thread.registers[rs1], shamt);
                             break;
                         case 0b011'0100:    // REV8
                         {
@@ -521,6 +535,12 @@ void CPU::execute_instruction()
                     }
                     break;
                 }
+                case 0b110:     // ORI
+                    thread.registers[rd] = thread.registers[rs1] | imm;
+                    break;
+                case 0b111:     // ANDI
+                    thread.registers[rd] = thread.registers[rs1] & imm;
+                    break;
             }
             thread.pc += 4;
             break;
