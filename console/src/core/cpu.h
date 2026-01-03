@@ -79,7 +79,7 @@ public:
     std::tuple<u32, u32> getLastException() const;
 
     // debug access
-    const ThreadContext& getThreadContext(int id);
+    ThreadContext& getThreadContext(int id);
     int getCurrentThreadID() const;
     CPUState getState() const;
 

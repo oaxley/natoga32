@@ -94,7 +94,7 @@ std::tuple<u32, u32> CPU::getLastException() const
 }
 
 // debug access
-const ThreadContext& CPU::getThreadContext(int id)
+ThreadContext& CPU::getThreadContext(int id)
 {
     return threads_[id];
 }
