@@ -4,7 +4,7 @@
 
 using namespace vc;
 
-TEST_CASE("", "[cpu][instructions][u_type]") {
+TEST_CASE("AUIPC/LUI instructions", "[cpu][instructions][u_type]") {
     InstructionTest test;
 
     SECTION("AUIPC") {
