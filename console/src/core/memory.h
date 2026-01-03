@@ -20,6 +20,7 @@
 
 // program-specific headers
 #include "vc/types.h"
+#include "constants.h"
 
 
 namespace vc {
@@ -27,7 +28,7 @@ namespace vc {
 class Memory
 {
 public:
-    Memory();
+    Memory(size_t ramsize = MMAP_RAM_SIZE);
 
     void reset();
 

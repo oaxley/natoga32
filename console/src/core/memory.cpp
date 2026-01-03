@@ -16,14 +16,13 @@
 #include <stdexcept>
 
 // program-specific headers
-#include "constants.h"
 #include "memory.h"
 
 
 namespace vc {
 
-Memory::Memory() :
-    ram_(MMAP_RAM_SIZE)
+Memory::Memory(size_t ramsize) :
+    ram_(ramsize)
 {
     reset();
 }
