@@ -79,4 +79,16 @@ TEST_CASE("CPU Basics", "[cpu][basic]") {
         auto& thread = cpu.getThreadContext(thread_id);
         REQUIRE(thread.registers[reg_num] == value);
     }
+
+    SECTION("x0 should remain at 0") {
+        auto& thread = cpu.getThreadContext(0);
+
+        // ADDI x0, x0, 564
+        u32 instr = 0x23400013;
+        mem.write32(MMAP_CODE, instr);
+        thread.pc = MMAP_CODE;
+        cpu.tick();
+
+        REQUIRE(thread.registers[0] == 0);
+    }
 }
