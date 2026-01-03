@@ -19,6 +19,7 @@ add_executable(vctests
     libvc/test_cpu/opcode-memory.cpp
     libvc/test_cpu/opcode-auipc-lui.cpp
     libvc/test_cpu/branches.cpp
+    libvc/test_cpu/opcodes_19.cpp
 )
 
 # link targets
