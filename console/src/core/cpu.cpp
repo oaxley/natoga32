@@ -63,7 +63,7 @@ void CPU::reset()
     cpu_state_ = CPUState::Running;
 }
 
-int CPU::tick()
+void CPU::tick()
 {
     if (cpu_state_ != CPUState::Running) {
         return;
@@ -88,27 +88,31 @@ void CPU::wakeThreadOnEvent(u32 event)
     }
 }
 
-// retrieve the current CPU state
-CPUState CPU::getState() const
-{
-    return cpu_state_;
-}
-
-// retrieve the current thread ID
-int CPU::getThreadId() const
-{
-    return current_thread_;
-}
-
 std::tuple<u32, u32> CPU::getLastException() const
 {
     return std::make_tuple(exception_id_, exception_pc_);
 }
 
+// debug access
+const ThreadContext& CPU::getThreadContext(int id)
+{
+    return threads_[id];
+}
+
+int CPU::getCurrentThreadID() const
+{
+    return current_thread_;
+}
+
+CPUState CPU::getState() const
+{
+    return cpu_state_;
+}
+
 
 //----- private methods
 // initialize a Thread
-void CPU::initT(int tid, u32 entrypoint = 0)
+void CPU::initT(int tid, u32 entrypoint)
 {
     if ((tid < 0) || (tid >= THREADS_COUNT)) {
         return;
@@ -449,7 +453,6 @@ void CPU::execute_instruction()
             i32 imm = decoder::immTypeI(instruction);
             u32 shamt = decoder::rs2(instruction) & 0x1F;
             i32 irs1 = static_cast<i32>(urs1);
-            i32 irs2 = static_cast<i32>(urs2);
 
             switch(funct3)
             {
@@ -778,7 +781,7 @@ void CPU::execute_instruction()
                     yieldT();
                     break;
                 case 0b010:     // id.t rd
-                    thread.registers[rd] = static_cast<u32>(getThreadId());
+                    thread.registers[rd] = static_cast<u32>(current_thread_);
                     break;
                 case 0b100:     // sleep.t rs1, rs2
                     sleepT(rs1, rs2);
@@ -870,7 +873,7 @@ u32 CPU::readCSR(u16 csr)
 {
     if (csr >= 4096) {
         triggerException(CPU_MAIN_ILLEGAL_INSTRUCTION);
-        return;
+        return 0;
     }
 
     // handle dynamic CSRs

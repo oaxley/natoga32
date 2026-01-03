@@ -15,11 +15,13 @@
 
 // standard library headers
 #include <array>
+#include <span>
 #include <memory>
 #include <tuple>
 
 // program-specific headers
 #include "vc/types.h"
+#include "constants.h"
 
 namespace vc
 {
@@ -46,7 +48,7 @@ enum class ThreadState : u8
 
 
 //----- structs
-struct ThreadContext
+typedef struct
 {
     u32 pc = 0;                                 //< Program Counter
     u32 sp = 0;                                 //< Stack Pointer
@@ -59,7 +61,7 @@ struct ThreadContext
     std::span<u32> registers = {};              //< RISC-V registers
     u8 id = 0xFF;                               //< Thread ID
     u64 total_cycles = 0;                       //< Thread Total Cycles
-};
+} ThreadContext;
 
 
 //----- class
@@ -69,14 +71,17 @@ public:
     CPU(Memory& mem);
 
     void reset();
-    int tick();
+    void tick();
 
     void wakeThreadOnEvent(u32 event);
 
     // accessors
-    CPUState getState() const;
-    int getThreadId() const;
     std::tuple<u32, u32> getLastException() const;
+
+    // debug access
+    const ThreadContext& getThreadContext(int id);
+    int getCurrentThreadID() const;
+    CPUState getState() const;
 
 private:
     //----- private members

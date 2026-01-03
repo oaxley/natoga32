@@ -11,6 +11,7 @@
  *
  * @brief	Virtual Console - Events list
  */
+#pragma once
 
 // program-specific includes
 #include "vc/types.h"

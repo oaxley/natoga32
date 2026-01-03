@@ -14,6 +14,7 @@
 
 // program-specific includes
 #include "vc.h"
+#include "core/constants.h"
 #include "core/cpu.h"
 #include "core/memory.h"
 
@@ -23,8 +24,8 @@ namespace vc
 // constructor
 Console::Console()
 {
-    memory_ = std::make_unique<Memory>();
-    cpu_ = std::make_unique<CPU>(memory_.get());
+    memory_ = std::make_unique<Memory>(MMAP_RAM_SIZE);
+    cpu_ = std::make_unique<CPU>(*memory_);
 }
 
 // destructor
