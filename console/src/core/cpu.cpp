@@ -72,9 +72,8 @@ int CPU::tick()
     // execute one instruction
     execute_instruction();
 
-    // increment the global instructions/thread counters
+    // increment the global instructions cycle counter
     total_cycles_++;
-    threads_[current_thread_].total_cycles++;
 }
 
 // wake any threads waiting for this event
@@ -858,6 +857,12 @@ void CPU::execute_instruction()
             triggerException(CPU_MAIN_ILLEGAL_INSTRUCTION);
             break;
     }
+
+    // increase the number of cycles for this thread
+    thread.total_cycles++;
+
+    // ensure x0 remains at 0 as per specification
+    thread.registers[0] = 0;
 }
 
 // CSR read/write
