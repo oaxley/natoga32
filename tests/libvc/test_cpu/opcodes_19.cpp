@@ -165,3 +165,51 @@ TEST_CASE("Bit manipulations with Immediate", "[cpu][instructions][bits]") {
         REQUIRE(test.deltaPC() == 4);
     }
 }
+
+TEST_CASE("Sign extension", "[cpu][instructions][sign-ext]") {
+    InstructionTest test;
+
+    SECTION("SEXT.H") {
+        test.setReg(22, 0x0000FFFF);
+        test.loadInstruction(0x605B1A93);       // sext.h x21, x22
+        test.execute();
+        REQUIRE(test.getReg(21) == 0xFFFFFFFF);
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("SEXT.B") {
+        test.setReg(20, 0x000000FF);
+        test.loadInstruction(0x604A1993);       // sext.b x19, x20
+        test.execute();
+        REQUIRE(test.getReg(19) == 0xFFFFFFFF);
+        REQUIRE(test.deltaPC() == 4);
+    }
+}
+
+TEST_CASE("Logical operators", "[cpu][instructions][logical]") {
+    InstructionTest test;
+
+    SECTION("XORI") {
+        test.setReg(24, 0x000000FF);
+        test.loadInstruction(0x0F0C4B93);       // xori x23, x24, 0x0F0
+        test.execute();
+        REQUIRE(test.getReg(23) == 0x0000000F);
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("ORI") {
+        test.setReg(26, 0x000000AA);
+        test.loadInstruction(0x055D6C93);       // ori x25, x26, 0x055
+        test.execute();
+        REQUIRE(test.getReg(25) == 0x000000FF);
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("ANDI") {
+        test.setReg(28, 0x000000FF);
+        test.loadInstruction(0x0F0E7D93);       // andi x27, x28, 0x0F0
+        test.execute();
+        REQUIRE(test.getReg(27) == 0x000000F0);
+        REQUIRE(test.deltaPC() == 4);
+    }
+}
