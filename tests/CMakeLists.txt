@@ -15,6 +15,7 @@ add_executable(vctests
     libvc/test_memory.cpp
     libvc/test_decoder.cpp
     libvc/test_cpu_basic.cpp
+    libvc/test_cpu_opcode-3-35.cpp
 )
 
 # link targets
