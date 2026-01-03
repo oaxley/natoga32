@@ -14,8 +14,8 @@ add_executable(vctests
     libvc/test_memmap.cpp
     libvc/test_memory.cpp
     libvc/test_decoder.cpp
-    libvc/test_cpu_basic.cpp
-    libvc/test_cpu_opcode-3-35.cpp
+    libvc/test_cpu/basic.cpp
+    libvc/test_cpu/opcode-memory.cpp
 )
 
 # link targets
