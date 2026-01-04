@@ -550,7 +550,7 @@ void CPU::execute_instruction()
 
         case OP_OP:         // register-register operations
         {
-            u32 shamt = rs2 & 0x1F;
+            u32 shamt = urs2 & 0x1F;
             i32 irs1 = static_cast<i32>(urs1);
             i32 irs2 = static_cast<i32>(urs2);
 
