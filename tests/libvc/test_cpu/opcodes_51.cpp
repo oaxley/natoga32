@@ -289,3 +289,136 @@ TEST_CASE("Bit Manipulations", "[cpu][instruction][bit]") {
         REQUIRE(test.deltaPC() == 4);
     }
 }
+
+TEST_CASE("Logical operators", "[cpu][instruction][logical]") {
+    InstructionTest test;
+
+    SECTION("XOR") {
+        test.setReg(18, 0x000000FF);  // x18 = 0b11111111
+        test.setReg(19, 0x000000F0);  // x19 = 0b11110000
+        test.loadInstruction(0x013948B3);   // XOR x17, x18, x19
+        test.execute();
+        REQUIRE(test.getReg(17) == 0x0000000F);  // Result = 0xFF ^ 0xF0 = 0x0F
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("OR") {
+        test.setReg(21, 0x000000AA);  // x21 = 0b10101010
+        test.setReg(22, 0x00000055);  // x22 = 0b01010101
+        test.loadInstruction(0x016AEA33);   // OR x20, x21, x22
+        test.execute();
+        REQUIRE(test.getReg(20) == 0x000000FF);  // Result = 0xAA | 0x55 = 0xFF
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("AND") {
+        test.setReg(24, 0x000000FF);  // x24 = 0b11111111
+        test.setReg(25, 0x000000F0);  // x25 = 0b11110000
+        test.loadInstruction(0x019C7BB3);   // AND x23, x24, x25
+        test.execute();
+        REQUIRE(test.getReg(23) == 0x000000F0);  // Result = 0xFF & 0xF0 = 0xF0
+        REQUIRE(test.deltaPC() == 4);
+    }
+}
+
+TEST_CASE("Other operators", "[cpu][instruction][other]") {
+    InstructionTest test;
+
+    SECTION("ZEXT.H") {
+        test.setReg(27, 0xFFFF8765);  // x27 = 0xFFFF8765 (upper bits set)
+        test.loadInstruction(0x080DCD33);   // ZEXT.H x26, x27
+        test.execute();
+        REQUIRE(test.getReg(26) == 0x00008765);  // Result = lower 16 bits only, upper zeroed
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("PACK") {
+        test.setReg(29, 0xAAAA1234);  // x29 = lower 16 bits = 0x1234
+        test.setReg(30, 0xBBBB5678);  // x30 = lower 16 bits = 0x5678
+        test.loadInstruction(0x09EECE33);   // PACK x28, x29, x30
+        test.execute();
+        REQUIRE(test.getReg(28) == 0x56781234);  // Result = (0x5678 << 16) | 0x1234
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("PACK.H") {
+        test.setReg(2, 0xAAAA00AB);  // x2 = lower 8 bits = 0xAB
+        test.setReg(3, 0xBBBB00CD);  // x3 = lower 8 bits = 0xCD
+        test.loadInstruction(0x083170B3);   // PACKH x1, x2, x3
+        test.execute();
+        REQUIRE(test.getReg(1) == 0x0000CDAB);  // Result = (0xCD << 8) | 0xAB
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("MIN") {
+        test.setReg(5, 0xFFFFFFFE);  // x5 = -2 (signed)
+        test.setReg(6, 0x00000005);  // x6 = 5
+        test.loadInstruction(0x0A62C233);   // MIN x4, x5, x6
+        test.execute();
+        REQUIRE(test.getReg(4) == 0xFFFFFFFE);  // Result = -2 (minimum signed value)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("MINU") {
+        test.setReg(8, 0xFFFFFFFE);  // x8 = 4,294,967,294 (unsigned)
+        test.setReg(9, 0x00000005);  // x9 = 5
+        test.loadInstruction(0x0A9453B3);   // MINU x7, x8, x9
+        test.execute();
+        REQUIRE(test.getReg(7) == 0x00000005);  // Result = 5 (minimum unsigned value)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("MAX") {
+        test.setReg(11, 0xFFFFFFFE);  // x11 = -2 (signed)
+        test.setReg(12, 0x00000005);  // x12 = 5
+        test.loadInstruction(0x0AC5E533);   // MAX x10, x11, x12
+        test.execute();
+        REQUIRE(test.getReg(10) == 0x00000005);  // Result = 5 (maximum signed value)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("MAXU") {
+        test.setReg(14, 0xFFFFFFFE);  // x14 = 4,294,967,294 (unsigned)
+        test.setReg(15, 0x00000005);  // x15 = 5
+        test.loadInstruction(0x0AF776B3);   // MAXU x13, x14, x15
+        test.execute();
+        REQUIRE(test.getReg(13) == 0xFFFFFFFE);  // Result = 4,294,967,294 (maximum unsigned value)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("CZERO.EQZ - True") {
+        test.setReg(17, 0x12345678);  // x17 = 0x12345678
+        test.setReg(18, 0x00000000);  // x18 = 0 (condition true)
+        test.loadInstruction(0x0F28D833);   // CZERO.EQZ x16, x17, x18
+        test.execute();
+        REQUIRE(test.getReg(16) == 0x00000000);  // Result = 0 (because x18 == 0)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("CZERO.EQZ - False") {
+        test.setReg(17, 0x12345678);  // x17 = 0x12345678
+        test.setReg(18, 0x00000001);  // x18 = 1 (condition false)
+        test.loadInstruction(0x0F28D833);   // CZERO.EQZ x16, x17, x18
+        test.execute();
+        REQUIRE(test.getReg(16) == 0x12345678);  // Result = x17 (because x18 != 0)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("CZERO.NEZ - True") {
+        test.setReg(20, 0x12345678);  // x20 = 0x12345678
+        test.setReg(21, 0x00000001);  // x21 = 1 (condition true)
+        test.loadInstruction(0x0F5A79B3);   // CZERO.NEZ x19, x20, x21
+        test.execute();
+        REQUIRE(test.getReg(19) == 0x00000000);  // Result = 0 (because x21 != 0)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("CZERO.NEZ - False") {
+        test.setReg(20, 0x12345678);  // x20 = 0x12345678
+        test.setReg(21, 0x00000000);  // x21 = 0 (condition false)
+        test.loadInstruction(0x0F5A79B3);   // CZERO.NEZ x19, x20, x21
+        test.execute();
+        REQUIRE(test.getReg(19) == 0x12345678);  // Result = x20 (because x21 == 0)
+        REQUIRE(test.deltaPC() == 4);
+    }
+}
