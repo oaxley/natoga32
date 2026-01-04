@@ -4,7 +4,7 @@
 
 using namespace vc;
 
-TEST_CASE("ADDI instruction", "[cpu][instructions]") {
+TEST_CASE("ADDI instruction", "[cpu][instruction]") {
     InstructionTest test;
 
     SECTION("MV pseudo-instruction") {
@@ -29,7 +29,7 @@ TEST_CASE("ADDI instruction", "[cpu][instructions]") {
     }
 }
 
-TEST_CASE("Shift instructions", "[cpu][instructions][shift]") {
+TEST_CASE("Shift instructions Immediate", "[cpu][instruction][shift]") {
     InstructionTest test;
 
     SECTION("SLLI") {
@@ -98,7 +98,7 @@ TEST_CASE("Shift instructions", "[cpu][instructions][shift]") {
 
 }
 
-TEST_CASE("Bit manipulations with Immediate", "[cpu][instructions][bits]") {
+TEST_CASE("Bit manipulations Immediate", "[cpu][instruction][bit]") {
     InstructionTest test;
 
     SECTION("BSETI") {
@@ -166,7 +166,7 @@ TEST_CASE("Bit manipulations with Immediate", "[cpu][instructions][bits]") {
     }
 }
 
-TEST_CASE("Sign extension", "[cpu][instructions][sign-ext]") {
+TEST_CASE("Sign extension", "[cpu][instruction][sign-ext]") {
     InstructionTest test;
 
     SECTION("SEXT.H") {
@@ -186,7 +186,7 @@ TEST_CASE("Sign extension", "[cpu][instructions][sign-ext]") {
     }
 }
 
-TEST_CASE("Logical operators", "[cpu][instructions][logical]") {
+TEST_CASE("Logical operators Immediate", "[cpu][instruction][logical]") {
     InstructionTest test;
 
     SECTION("XORI") {

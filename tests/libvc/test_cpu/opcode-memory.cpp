@@ -4,7 +4,7 @@
 
 using namespace vc;
 
-TEST_CASE("CPU Load/Store Instructions", "[cpu][instructions][memory]") {
+TEST_CASE("CPU Load/Store Instructions", "[cpu][instruction][memory]") {
     InstructionTest test;
 
     SECTION("SB and LB/LBU") {

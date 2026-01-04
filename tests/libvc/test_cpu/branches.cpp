@@ -4,7 +4,7 @@
 
 using namespace vc;
 
-TEST_CASE("Branch Instructions", "[cpu][instructions][control-flow]") {
+TEST_CASE("Branch Instructions", "[cpu][instruction][control-flow]") {
     InstructionTest test;
 
     SECTION("BEQ - Branch taken") {
@@ -116,7 +116,7 @@ TEST_CASE("Branch Instructions", "[cpu][instructions][control-flow]") {
     }
 }
 
-TEST_CASE("Jump Instructions", "[cpu][instructions][control-flow]") {
+TEST_CASE("Jump Instructions", "[cpu][instruction][control-flow]") {
     InstructionTest test;
 
     SECTION("JAL") {
