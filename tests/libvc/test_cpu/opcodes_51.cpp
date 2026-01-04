@@ -182,3 +182,70 @@ TEST_CASE("Arithmetic unsigned operations", "[cpu][instruction][arithmetic]") {
         REQUIRE(test.deltaPC() == 4);
     }
 }
+
+TEST_CASE("Shift Instructions", "[cpu][instruction][shift]") {
+    InstructionTest test;
+
+    SECTION("SLL") {
+        test.setReg(5, 0x00000003);  // x5 = 0b11
+        test.setReg(6, 0x00000004);  // x6 = 4 (shift amount)
+        test.loadInstruction(0x00629233);   // SLL x4, x5, x6
+        test.execute();
+        REQUIRE(test.getReg(4) == 0x00000030);  // Result = 0b11 << 4 = 0b110000 = 0x30
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("SLT") {
+        test.setReg(8, 0xFFFFFFFE);  // x8 = -2 (signed)
+        test.setReg(9, 0x00000001);  // x9 = 1
+        test.loadInstruction(0x009423B3);   // SLT x7, x8, x9
+        test.execute();
+        REQUIRE(test.getReg(7) == 0x00000001);  // Result = 1 (-2 < 1 is true)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("SLTU") {
+        test.setReg(11, 0xFFFFFFFE);  // x11 = 4,294,967,294 (unsigned)
+        test.setReg(12, 0x00000001);  // x12 = 1
+        test.loadInstruction(0x00C5B533);   // SLTU x10, x11, x12
+        test.execute();
+        REQUIRE(test.getReg(10) == 0x00000000);  // Result = 0 (4,294,967,294 > 1)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("SRL") {
+        test.setReg(14, 0x80000000);  // x14 = 0b10000000...
+        test.setReg(15, 0x00000004);  // x15 = 4 (shift amount)
+        test.loadInstruction(0x00F756B3);   // SRL x13, x14, x15
+        test.execute();
+        REQUIRE(test.getReg(13) == 0x08000000);  // Result = 0x80000000 >> 4 = 0x08000000 (logical)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("SRA") {
+        test.setReg(17, 0x80000000);  // x17 = -2147483648 (signed)
+        test.setReg(18, 0x00000004);  // x18 = 4 (shift amount)
+        test.loadInstruction(0x4128D833);   // SRA x16, x17, x18
+        test.execute();
+        REQUIRE(test.getReg(16) == 0xF8000000);  // Result = 0x80000000 >> 4 = 0xF8000000 (arithmetic, sign-extended)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("ROR") {
+        test.setReg(20, 0x12345678);  // x20 = 0x12345678
+        test.setReg(21, 0x00000004);  // x21 = 4 (rotate amount)
+        test.loadInstruction(0x615A59B3);   // ROR x19, x20, x21
+        test.execute();
+        REQUIRE(test.getReg(19) == 0x81234567);  // Result = rotate right by 4
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("ROL") {
+        test.setReg(23, 0x12345678);  // x23 = 0x12345678
+        test.setReg(24, 0x00000004);  // x24 = 4 (rotate amount)
+        test.loadInstruction(0x618B9B33);   // ROL x22, x23, x24
+        test.execute();
+        REQUIRE(test.getReg(22) == 0x23456781);  // Result = rotate left by 4
+        REQUIRE(test.deltaPC() == 4);
+    }
+}
