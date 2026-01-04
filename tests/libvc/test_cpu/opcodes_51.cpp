@@ -249,3 +249,43 @@ TEST_CASE("Shift Instructions", "[cpu][instruction][shift]") {
         REQUIRE(test.deltaPC() == 4);
     }
 }
+
+TEST_CASE("Bit Manipulations", "[cpu][instruction][bit]") {
+    InstructionTest test;
+
+    SECTION("BSET") {
+        test.setReg(6, 0x00000010);  // x6 = 0b...00010000 (bit 4 set)
+        test.setReg(7, 0x00000005);  // x7 = 5 (bit position)
+        test.loadInstruction(0x287312B3);   // BSET x5, x6, x7
+        test.execute();
+        REQUIRE(test.getReg(5) == 0x00000030);  // Result = 0b...00110000 (bits 4 and 5 set)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("BCLR") {
+        test.setReg(9, 0x000000FF);   // x9 = 0b11111111 (all low bits set)
+        test.setReg(10, 0x00000003);  // x10 = 3 (bit position)
+        test.loadInstruction(0x48A49433);   // BCLR x8, x9, x10
+        test.execute();
+        REQUIRE(test.getReg(8) == 0x000000F7);  // Result = 0b11110111 (bit 3 cleared)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("BINV") {
+        test.setReg(12, 0x00000020);  // x12 = 0b00100000 (bit 5 set)
+        test.setReg(13, 0x00000004);  // x13 = 4 (bit position)
+        test.loadInstruction(0x68D615B3);   // BINV x11, x12, x13
+        test.execute();
+        REQUIRE(test.getReg(11) == 0x00000030);  // Result = 0b00110000 (bits 4 and 5 set)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("BEXT") {
+        test.setReg(15, 0x00000040);  // x15 = 0b01000000 (bit 6 set)
+        test.setReg(16, 0x00000006);  // x16 = 6 (bit position)
+        test.loadInstruction(0x4907D733);   // BEXT x14, x15, x16
+        test.execute();
+        REQUIRE(test.getReg(14) == 0x00000001);  // Result = 1 (bit 6 was set)
+        REQUIRE(test.deltaPC() == 4);
+    }
+}
