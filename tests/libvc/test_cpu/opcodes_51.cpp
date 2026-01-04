@@ -34,7 +34,6 @@ TEST_CASE("Arithmetic signed instructions", "[cpu][instruction][arithmetic]") {
         REQUIRE(test.deltaPC() == 4);
     }
 
-
     SECTION("MULH") {
         test.setReg(21, 0x00010000);    // x21 = 65536
         test.setReg(22, 0x00010000);    // x22 = 65536
@@ -43,7 +42,6 @@ TEST_CASE("Arithmetic signed instructions", "[cpu][instruction][arithmetic]") {
         REQUIRE(test.getReg(20) == 0x00000001);  // Result = 0 (overflow)
         REQUIRE(test.deltaPC() == 4);
     }
-
 
     SECTION("SUB") {
         test.setReg(12, 0x00000064);  // x12 = 100
@@ -107,5 +105,80 @@ TEST_CASE("Arithmetic signed instructions", "[cpu][instruction][arithmetic]") {
         REQUIRE(test.getReg(17) == 0x00000000);  // Result = 0 (overflow)
         REQUIRE(test.deltaPC() == 4);
     }
+}
 
+TEST_CASE("Arithmetic unsigned operations", "[cpu][instruction][arithmetic]") {
+    InstructionTest test;
+
+    SECTION("MULHU") {
+        test.setReg(24, 0xFFFFFFFF);  // x24 = 4,294,967,295 (max u32)
+        test.setReg(25, 0x00000002);  // x25 = 2
+        test.loadInstruction(0x039C3BB3);   // MULHU x23, x24, x25
+        test.execute();
+        REQUIRE(test.getReg(23) == 0x00000001);  // Upper 32 bits of 0xFFFFFFFF * 2
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("MULHSU") {
+        test.setReg(27, 0xFFFFFFFE);  // x27 = -2 (as signed)
+        test.setReg(28, 0x00000002);  // x28 = 2 (as unsigned)
+        test.loadInstruction(0x03CDAD33);   // MULHSU x26, x27, x28
+        test.execute();
+        REQUIRE(test.getReg(26) == 0xFFFFFFFF);  // Upper 32 bits of (-2) * 2 = -4
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("DIVU") {
+        test.setReg(30, 0x00000064);  // x30 = 100
+        test.setReg(31, 0x0000000A);  // x31 = 10
+        test.loadInstruction(0x03FF5EB3);   // DIVU x29, x30, x31
+        test.execute();
+        REQUIRE(test.getReg(29) == 0x0000000A);  // Result = 100 / 10 = 10
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("DIVU - Divide by zero") {
+        test.setReg(30, 0x00000064);  // x30 = 100
+        test.setReg(31, 0x00000000);  // x31 = 0
+        test.loadInstruction(0x03FF5EB3);   // DIVU x29, x30, x31
+        test.execute();
+        REQUIRE(test.getReg(29) == 0xFFFFFFFF);  // Result = max unsigned (divide by zero)
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("DIVU - Large Unsigned value") {
+        test.setReg(30, 0xFFFFFFFF);  // x30 = 4,294,967,295 (max u32)
+        test.setReg(31, 0x00000002);  // x31 = 2
+        test.loadInstruction(0x03FF5EB3);   // DIVU x29, x30, x31
+        test.execute();
+        REQUIRE(test.getReg(29) == 0x7FFFFFFF);  // Result = 4,294,967,295 / 2 = 2,147,483,647
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("REMU") {
+        test.setReg(2, 0x00000064);  // x2 = 100
+        test.setReg(3, 0x0000000B);  // x3 = 11
+        test.loadInstruction(0x023170B3);   // REMU x1, x2, x3
+        test.execute();
+        REQUIRE(test.getReg(1) == 0x00000001);  // Result = 100 % 11 = 1
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("REMU - Divide by zero") {
+        test.setReg(2, 0x00000064);  // x2 = 100
+        test.setReg(3, 0x00000000);  // x3 = 0
+        test.loadInstruction(0x023170B3);   // REMU x1, x2, x3
+        test.execute();
+        REQUIRE(test.getReg(1) == 0x00000064);  // Result = dividend (100) unchanged
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("REMU - Large unsigned value") {
+        test.setReg(2, 0xFFFFFFFF);  // x2 = 4,294,967,295 (max u32)
+        test.setReg(3, 0x00000003);  // x3 = 3
+        test.loadInstruction(0x023170B3);   // REMU x1, x2, x3
+        test.execute();
+        REQUIRE(test.getReg(1) == 0x00000000);  // Result = 4,294,967,295 % 3 = 0
+        REQUIRE(test.deltaPC() == 4);
+    }
 }
