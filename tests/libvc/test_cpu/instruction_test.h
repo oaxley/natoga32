@@ -23,9 +23,12 @@ public:
         return cpu.getThreadContext(tid);
     }
 
-    void loadInstruction(u32 instr, int tid = 0) {
-        mem.write32(MMAP_CODE, instr);
-        getCtx(tid).pc = old_pc = MMAP_CODE;
+    void loadInstruction(u32 instr, u32 offset = 0, int tid = 0) {
+        u32 addr = MMAP_CODE + offset;
+        mem.write32(addr, instr);
+        if (old_pc == 0) {
+            getCtx(tid).pc = old_pc = addr;
+        }
     }
 
     void execute() {
