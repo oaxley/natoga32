@@ -17,14 +17,15 @@ public:
 
     InstructionTest() :
         mem(), cpu(mem), tid{0} {
-        cpu.reset();
     }
 
-    void loadInstruction(u32 instr) {
+    ThreadContext& getCtx(int tid = 0) {
+        return cpu.getThreadContext(tid);
+    }
+
+    void loadInstruction(u32 instr, int tid = 0) {
         mem.write32(MMAP_CODE, instr);
-        auto& thread = cpu.getThreadContext(tid);
-        thread.pc = MMAP_CODE;
-        old_pc = thread.pc;
+        getCtx(tid).pc = old_pc = MMAP_CODE;
     }
 
     void execute() {
@@ -32,19 +33,16 @@ public:
         new_pc = getPC();
     }
 
-    u32 getReg(int r) {
-        auto& thread = cpu.getThreadContext(tid);
-        return thread.registers[r];
+    u32 getReg(int r, int tid = 0) {
+        return getCtx(tid).registers[r];
     }
 
-    void setReg(int r, u32 value) {
-        auto& thread = cpu.getThreadContext(tid);
-        thread.registers[r] = value;
+    void setReg(int r, u32 value, int tid = 0) {
+        getCtx(tid).registers[r] = value;
     }
 
-    u32 getPC() {
-        auto& thread = cpu.getThreadContext(tid);
-        return thread.pc;
+    u32 getPC(int tid = 0) {
+        return getCtx(tid).pc;
     }
 
     u32 deltaPC() {
