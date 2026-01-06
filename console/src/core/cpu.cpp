@@ -16,6 +16,7 @@
 #include <cstring>
 #include <array>
 #include <span>
+#include <bit>
 
 // program-specific headers
 #include "vc/exceptions.h"
