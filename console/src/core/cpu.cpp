@@ -17,6 +17,7 @@
 #include <array>
 #include <span>
 #include <bit>
+#include <iostream>
 
 // program-specific headers
 #include "vc/exceptions.h"
@@ -282,17 +283,19 @@ void CPU::endT()
 // create a new thread
 void CPU::newT(u8 rd, u8 rs1)
 {
+    auto& thread = threads_[current_thread_];
+
     // find a free slot
     for (int tid = 0; tid < THREADS_COUNT; tid++) {
         auto& t = threads_[tid];
 
         if (t.state == ThreadState::Free) {
             // initialize this thread with the user parameters
-            initT(tid, t.registers[rs1]);
+            initT(tid, thread.registers[rs1]);
             t.state = ThreadState::Ready;
 
             // return its id
-            threads_[current_thread_].registers[rd] = tid;
+            thread.registers[rd] = tid;
             return;
         }
     }
