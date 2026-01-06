@@ -48,7 +48,7 @@ enum class ThreadState : u8
 
 
 //----- structs
-typedef struct
+struct ThreadContext
 {
     u32 pc = 0;                                 //< Program Counter
     u32 sp = 0;                                 //< Stack Pointer
@@ -61,7 +61,7 @@ typedef struct
     std::span<u32> registers = {};              //< RISC-V registers
     u8 id = 0xFF;                               //< Thread ID
     u64 total_cycles = 0;                       //< Thread Total Cycles
-} ThreadContext;
+};
 
 
 //----- class
