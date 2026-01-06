@@ -22,6 +22,7 @@ add_executable(vctests
     libvc/test_cpu/opcodes_19.cpp
     libvc/test_cpu/opcodes_51.cpp
     libvc/test_cpu/opcodes-csr.cpp
+    libvc/test_cpu/opcodes-thread.cpp
 )
 
 # link targets
