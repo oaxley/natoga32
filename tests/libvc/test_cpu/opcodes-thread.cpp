@@ -40,7 +40,7 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         u32 value = MMAP_CODE + 0x100;
         test.setReg(3, value);
         test.loadInstruction(0x0001810b);       // NEW.T x2, x3
-        test.loadInstruction(0x0000100b, 4);       // YIELD.T
+        test.loadInstruction(0x0000100b);       // YIELD.T
 
         // 1st tick
         test.execute();
@@ -68,7 +68,32 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
     }
 
     SECTION("ID.T") {
+        // load id.t, new.t and then yield.t
+        u32 value = MMAP_CODE + 0x100;
+        test.loadInstruction(0x0000220B);       // ID.T x4
+        test.setReg(3, value);
+        test.loadInstruction(0x0001810b);       // NEW.T x2, x3
+        test.loadInstruction(0x0000100b);       // YIELD.T
 
+        // ID.T
+        test.execute();
+        REQUIRE(test.getReg(4) == 0);
+
+        // NEW.T
+        test.execute();
+        u32 tid = test.getReg(2);
+        REQUIRE(tid != 0);
+        REQUIRE(test.getCtx(tid).pc == value);
+
+        // load ID.T in the second thread
+        test.loadInstruction(0x0000220B, 0x100, tid);
+
+        // T0 YIELD.T
+        test.execute();
+
+        // T1 ID.T
+        test.execute();
+        REQUIRE(test.getReg(4, tid) == 1);
     }
 
     SECTION("SLEEP.T") {
@@ -84,7 +109,7 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         u32 value = MMAP_CODE + 0x100;
         test.setReg(3, value);
         test.loadInstruction(0x0001810b);       // NEW.T x2, x3
-        test.loadInstruction(0x0000100b, 4);       // YIELD.T
+        test.loadInstruction(0x0000100b);       // YIELD.T
 
         // 1st tick
         test.execute();
