@@ -96,11 +96,47 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         REQUIRE(test.getReg(4, tid) == 1);
     }
 
-    SECTION("SLEEP.T") {
+    SECTION("SLEEP.T - State verification") {
+        // create a new thread
+        u32 value = MMAP_CODE + 0x100;
+        test.setReg(3, value);
+        test.loadInstruction(0x0001810b);       // NEW.T x2, x3
+        test.execute();
 
+        // sleep.t with a waitkey
+        test.setReg(2, 0x1234);
+        test.loadInstruction(0x0001400B);       // SLEEP.T x2, x0
+        test.execute();
+
+        // check status
+        REQUIRE(test.getCtx(0).state == ThreadState::Sleeping);
+        REQUIRE(test.getCtx(1).state == ThreadState::Running);
     }
 
-    SECTION("WAKE.T") {
+    SECTION("SLEEP.T / WAKE.T - Waitkey") {
+        // Thread 0: new + sleep
+        u32 value = MMAP_CODE + 0x100;
+        test.setReg(3, value);
+        test.loadInstruction(0x0001810b);       // NEW.T x2, x3
+        test.execute();
+
+        test.setReg(2, 0x1234);              // x2 = 0x1234
+        test.loadInstruction(0x0001400B);       // SLEEP.T x2, x0
+        test.execute();
+
+        // check status
+        REQUIRE(test.getCtx(0).state == ThreadState::Sleeping);
+        REQUIRE(test.getCtx(1).state == ThreadState::Running);
+
+        // Thread 1: wake
+        test.setReg(10, 0x1234, 1);      // x10 = 0x1234
+        test.loadInstruction(0x0005500B, 0x100, 1);       // WAKE.T x10
+        test.execute();
+
+        REQUIRE(test.getCtx(0).state == ThreadState::Ready);
+    }
+
+    SECTION("SLEEP.T - Sleep until") {
 
     }
 
