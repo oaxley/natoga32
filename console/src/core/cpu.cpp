@@ -17,7 +17,6 @@
 #include <array>
 #include <span>
 #include <bit>
-#include <iostream>
 
 // program-specific headers
 #include "vc/exceptions.h"
@@ -257,8 +256,10 @@ void CPU::sleepT(u8 rs1, u8 rs2)
 // wake all the threads that match the waitkey value in RS1
 void CPU::wakeT(u8 rs1)
 {
+    u32 waitkey = threads_[current_thread_].registers[rs1];
+
     for (auto& t : threads_) {
-        if (t.state == ThreadState::Sleeping && t.waitkey == t.registers[rs1]) {
+        if (t.state == ThreadState::Sleeping && t.waitkey == waitkey) {
             t.state = ThreadState::Ready;
             t.waitkey = 0;
             t.sleep_until = 0;
