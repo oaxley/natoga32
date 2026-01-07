@@ -1,41 +1,37 @@
 #include <catch2/catch_all.hpp>
 
-#include "core/memory.h"
-#include "core/cpu.h"
+#include "instruction_test.h"
+
 
 using namespace vc;
 
-constexpr int SP_REG = 2;
-constexpr int TP_REG = 4;
-
 TEST_CASE("CPU Basics", "[cpu][basic]") {
-    Memory mem;
-    CPU cpu(mem);
+    InstructionTest test;
 
     SECTION("Thread 0 is main thread after reset") {
-        REQUIRE(cpu.getCurrentThreadID() == 0);
+        REQUIRE(test.cpu.getCurrentThreadID() == 0);
     }
 
     SECTION("Thread 0 starts at RESET_DEFAULT_ADDR") {
-        REQUIRE(cpu.getThreadContext(0).pc == RESET_DEFAULT_ADDR);
+        REQUIRE(test.getCtx().pc == RESET_DEFAULT_ADDR);
     }
 
     SECTION("All threads are free except thread 0") {
-        REQUIRE(cpu.getThreadContext(0).state == ThreadState::Running);
+        REQUIRE(test.getCtx().state == ThreadState::Running);
 
         for (int tid = 1; tid < THREADS_COUNT; tid++) {
-            REQUIRE(cpu.getThreadContext(tid).state == ThreadState::Free);
+            REQUIRE(test.getCtx(tid).state == ThreadState::Free);
         }
     }
 
     SECTION("All registers are set to 0") {
         for (int tid = 0; tid < THREADS_COUNT; tid++) {
-            auto& thread = cpu.getThreadContext(tid);
+            auto& thread = test.getCtx(tid);
 
             for (int r = 0; r < THREADS_REGISTERS; r++) {
                 switch (r)
                 {
-                    case SP_REG:    // specific value for SP
+                    case 2:    // specific value for SP (x2)
                     {
                         u32 value = MMAP_STACK_BASE + ((tid + 1) * MMAP_STACK_SIZE) - 1;
                         REQUIRE(thread.sp_base == value);
@@ -43,7 +39,7 @@ TEST_CASE("CPU Basics", "[cpu][basic]") {
                         REQUIRE(thread.registers[r] == value);
                         break;
                     }
-                    case TP_REG:    // specific value for TP
+                    case 4:    // specific value for TP (x4)
                     {
                         u32 value = MMAP_THREADS_TLS_BASE + tid * MMAP_TTLS_SIZE;
                         REQUIRE(thread.tp == value);
@@ -59,7 +55,7 @@ TEST_CASE("CPU Basics", "[cpu][basic]") {
     }
 
     SECTION("CPU State should be running") {
-        REQUIRE(cpu.getState() == CPUState::Running);
+        REQUIRE(test.cpu.getState() == CPUState::Running);
     }
 
     SECTION("Check the Memory vs Registers span view") {
@@ -73,10 +69,9 @@ TEST_CASE("CPU Basics", "[cpu][basic]") {
         u32 reg_addr = base_addr + reg_num * sizeof(u32);
 
         // write a value in memory
-        mem.write32(reg_addr, value);
+        test.mem.write32(reg_addr, value);
 
         // check for the register thread
-        auto& thread = cpu.getThreadContext(thread_id);
-        REQUIRE(thread.registers[reg_num] == value);
+        REQUIRE(test.getReg(reg_num, thread_id) == value);
     }
 }
