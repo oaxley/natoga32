@@ -761,8 +761,37 @@ void CPU::execute_instruction()
 
             switch (funct3)
             {
-                case 0b000:     // ecall, mret, wfi ...
+                case 0b000:     // ECALL/MRET
+                {
+                    u32 funct12 = instruction >> 20;
+
+                    switch (funct12)
+                    {
+                        case 0x000:    // ECALL
+                        {
+                            // trigger environment call exception
+                            triggerTrap(false, CPU_ECALL_FROM_M_MODE);
+
+                            // we return early, don't do PC+4
+                            return;
+                        }
+                        case 0x302:     // MRET
+                        {
+                            // restore the PC from MEPC
+                            pc = readCSR(CSR_MEPC);
+
+                            // update MSTATUS to restore interrupt enable bits
+                            u32 mstatus = readCSR(CSR_MSTATUS);
+                            u32 mpie = (mstatus >> 7) & 1;              // MPIE / bit 7
+                            mstatus = (mstatus & ~0x8) | (mpie << 3);   // MIE = MPIE
+                            mstatus |= (1 << 7);
+                            writeCSR(CSR_MSTATUS, mstatus);
+
+                            break;
+                        }
+                    }
                     break;
+                }
                 case 0b001:     // CSRRW
                 {
                     writeCSR(csr, urs1);
