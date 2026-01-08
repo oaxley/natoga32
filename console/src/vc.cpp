@@ -39,9 +39,6 @@ void Console::reset()
 
     total_cycles_ = 0;
     state_ = ConsoleState::Stopped;
-
-    exception_id_ = 0;
-    exception_pc_ = 0;
 }
 
 // execute one instruction
@@ -70,9 +67,6 @@ void Console::tick()
 
         case CPUState::Halted:
             state_ = ConsoleState::Halted;
-            auto exception = cpu_->getLastException();
-            exception_id_ = std::get<0>(exception);
-            exception_pc_ = std::get<1>(exception);
             break;
     }
 }
@@ -83,12 +77,6 @@ void Console::runCycles(u64 cycles)
     for (u64 i = 0; i < cycles && state_ == ConsoleState::Running; ++i) {
         tick();
     }
-}
-
-// accessors
-std::tuple<u32, u32> Console::getLastException() const
-{
-    return std::make_tuple(exception_id_, exception_pc_);
 }
 
 } // namespace vc

@@ -51,7 +51,6 @@ public:
     // state queries
     ConsoleState getState() const { return state_; }
     u64 getTotalCycles() const { return total_cycles_; }
-    std::tuple<u32, u32> getLastException() const;
 
     // subsystem access (for host)
     Memory* getMemoryPtr() { return memory_.get(); }
@@ -63,9 +62,6 @@ private:
 
     ConsoleState state_ = ConsoleState::Stopped;
     u64 total_cycles_ = 0;
-
-    u32 exception_id_ = 0;
-    u32 exception_pc_ = 0;
 };
 
 
