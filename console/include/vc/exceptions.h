@@ -22,11 +22,11 @@ namespace vc
 {
 
 // CPU Exceptions
-constexpr u32 CPU_THREAD_MAIN_EXIT_ERROR            = 0x00010101;
-constexpr u32 CPU_THREAD_SPAWN_ERROR                = 0x00010102;
-constexpr u32 CPU_THREAD_STACK_OVERFLOW_ERROR       = 0x00010103;
-constexpr u32 CPU_THREAD_DEADLOCK                   = 0x00010104;
+constexpr u32 CPU_THREAD_MAIN_EXIT_ERROR            = 24;
+constexpr u32 CPU_THREAD_SPAWN_ERROR                = 25;
+constexpr u32 CPU_THREAD_STACK_OVERFLOW_ERROR       = 26;
+constexpr u32 CPU_THREAD_DEADLOCK                   = 27;
 
-constexpr u32 CPU_MAIN_ILLEGAL_INSTRUCTION          = 0x00010201;
+constexpr u32 CPU_MAIN_ILLEGAL_INSTRUCTION          = 2;
 
 } // namespace vc
