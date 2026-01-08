@@ -75,9 +75,6 @@ public:
 
     void wakeThreadOnEvent(u32 event);
 
-    // accessors
-    std::tuple<u32, u32> getLastException() const;
-
     // debug access
     ThreadContext& getThreadContext(int id);
     int getCurrentThreadID() const;
@@ -92,10 +89,6 @@ private:
     Memory& mem_;
     CPUState cpu_state_;
 
-    // error management
-    u32 exception_id_ = 0;
-    u32 exception_pc_ = 0;
-
     //----- private methods
     // threads methods
     void initT(int tid, u32 entrypoint = 0);
@@ -106,8 +99,8 @@ private:
     void endT();
     void newT(u8 rd, u8 rs1);
 
-    // exception triggering
-    void triggerException(u32 value);
+    // interruption / exception trigger
+    void triggerTrap(bool is_interrupt, u32 cause, u32 trap_value = 0);
 
     // instruction executor
     void execute_instruction();

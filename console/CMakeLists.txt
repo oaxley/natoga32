@@ -12,6 +12,7 @@ set(VC_SOURCES
 
 set(VC_HEADERS
     src/core/constants.h
+    src/core/csr.h
     src/core/cpu.h
     src/core/decoders.h
     src/core/helpers.h

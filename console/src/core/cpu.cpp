@@ -26,6 +26,7 @@
 #include "decoders.h"
 #include "helpers.h"
 #include "cpu.h"
+#include "csr.h"
 
 
 namespace vc
@@ -87,11 +88,6 @@ void CPU::wakeThreadOnEvent(u32 event)
             t.sleep_until = 0;
         }
     }
-}
-
-std::tuple<u32, u32> CPU::getLastException() const
-{
-    return std::make_tuple(exception_id_, exception_pc_);
 }
 
 // debug access
@@ -176,7 +172,7 @@ void CPU::yieldT()
         u32 value = mem_.read32(current.canary_addr);
         if (value != STACK_CANARY_VALUE) {
             // stack overflow detected
-            triggerException(CPU_THREAD_STACK_OVERFLOW_ERROR);
+            triggerTrap(false, CPU_THREAD_STACK_OVERFLOW_ERROR);
             return;
         }
         current.state = ThreadState::Ready;
@@ -224,7 +220,7 @@ void CPU::yieldT()
         cpu_state_ = CPUState::Idle;
     } else {
         // deadlock situation
-        triggerException(CPU_THREAD_DEADLOCK);
+        triggerTrap(false, CPU_THREAD_DEADLOCK);
     }
 }
 
@@ -272,7 +268,7 @@ void CPU::endT()
 {
     // Thread 0 is immortal
     if (current_thread_ == 0) {
-        triggerException(CPU_THREAD_MAIN_EXIT_ERROR);
+        triggerTrap(false, CPU_THREAD_MAIN_EXIT_ERROR);
         return;
     }
 
@@ -302,18 +298,31 @@ void CPU::newT(u8 rd, u8 rs1)
     }
 
     // no available slot found!
-    triggerException(CPU_THREAD_SPAWN_ERROR);
+    triggerTrap(false, CPU_THREAD_SPAWN_ERROR);
 }
 
-void CPU::triggerException(u32 value)
+// trigger
+void CPU::triggerTrap(bool is_interrupt, u32 cause, u32 trap_value)
 {
-    // CPU is halted
-    cpu_state_ = CPUState::Halted;
+    // save the current PC
+    writeCSR(CSR_MEPC, threads_[current_thread_].pc);
 
-    // record the exception and the current PC
-    exception_id_ = value;
-    exception_pc_ = threads_[current_thread_].pc;
+    // set cause
+    u32 value = cause;
+    if (is_interrupt) {
+        value |= 0x8000'0000;       // set interrupt bit
+    }
+    writeCSR(CSR_MCAUSE, value);
+
+    // set trap value
+    writeCSR(CSR_MTVAL, trap_value);
+
+    // jump to handler
+    u32 addr_handler = readCSR(CSR_MTVEC);
+    threads_[current_thread_].pc = addr_handler;
 }
+
+
 
 void CPU::execute_instruction()
 {
@@ -862,7 +871,7 @@ void CPU::execute_instruction()
         }
 
         default:            // unknown instruction
-            triggerException(CPU_MAIN_ILLEGAL_INSTRUCTION);
+            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
             break;
     }
 
@@ -877,7 +886,7 @@ void CPU::execute_instruction()
 u32 CPU::readCSR(u16 csr)
 {
     if (csr >= 4096) {
-        triggerException(CPU_MAIN_ILLEGAL_INSTRUCTION);
+        triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
         return 0;
     }
 
