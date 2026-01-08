@@ -119,8 +119,8 @@ OPCODES_T: Dict[str, InstrOpcode] = {
 
     # opcode 0x73 (115)
     'ecall'    : InstrOpcode(InstrType.TYPE_I , 0b111_0011, 0b00000, 0b000, 0b00000, 0b00000, 0b000_0000),
-    'mret'     : InstrOpcode(InstrType.TYPE_I , 0b111_0011, 0b00000, 0b000, 0b00000, 0b00000, 0b000_0000),
-    'wfi'      : InstrOpcode(InstrType.TYPE_I , 0b111_0011, 0b00000, 0b000, 0b00000, 0b00000, 0b000_1000),
+    'mret'     : InstrOpcode(InstrType.TYPE_I , 0b111_0011, 0b00000, 0b000, 0b00000, 0b00010, 0b001_1000),
+    'wfi'      : InstrOpcode(InstrType.TYPE_I , 0b111_0011, 0b00000, 0b000, 0b00000, 0b00101, 0b000_1000),
     'csrrw'    : InstrOpcode(InstrType.TYPE_I , 0b111_0011, 0b00000, 0b001, 0b00000, 0b00000, 0b000_0000),
     'csrrs'    : InstrOpcode(InstrType.TYPE_I , 0b111_0011, 0b00000, 0b010, 0b00000, 0b00000, 0b000_0000),
     'csrrc'    : InstrOpcode(InstrType.TYPE_I , 0b111_0011, 0b00000, 0b011, 0b00000, 0b00000, 0b000_0000),
