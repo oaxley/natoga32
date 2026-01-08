@@ -22,6 +22,7 @@
 // program-specific headers
 #include "vc/types.h"
 #include "constants.h"
+#include "cpu_thread.h"
 
 namespace vc
 {
@@ -37,32 +38,6 @@ enum class CPUState
     Halted          // Exception occured, stopped permanently
 };
 
-enum class ThreadState : u8
-{
-    Free = 0,
-    Ready = 1,
-    Running = 2,
-    Sleeping = 4,
-    Dead = 8
-};
-
-
-//----- structs
-struct ThreadContext
-{
-    u32 pc = 0;                                 //< Program Counter
-    u32 sp = 0;                                 //< Stack Pointer
-    u32 tp = 0;                                 //< Thread Pointer
-    ThreadState state = ThreadState::Free;      //< Thread State
-    u32 sp_base = 0;                            //< Stack base address
-    u32 canary_addr = 0;                        //< Stack Canary address
-    u32 waitkey = 0;                            //< Waitkey value
-    u64 sleep_until = 0;                        //< Time wait value
-    std::span<u32> registers = {};              //< RISC-V registers
-    u8 id = 0xFF;                               //< Thread ID
-    u64 total_cycles = 0;                       //< Thread Total Cycles
-};
-
 
 //----- class
 class CPU
@@ -76,13 +51,13 @@ public:
     void wakeThreadOnEvent(u32 event);
 
     // debug access
-    ThreadContext& getThreadContext(int id);
+    CPUThread& getThread(int id);
     int getCurrentThreadID() const;
     CPUState getState() const;
 
 private:
     //----- private members
-    std::array<ThreadContext, THREADS_COUNT> threads_;
+    std::array<CPUThread, THREADS_COUNT> threads_;
     int current_thread_ = 0;
     u64 total_cycles_ = 0;
 
@@ -91,8 +66,6 @@ private:
 
     //----- private methods
     // threads methods
-    void initT(int tid, u32 entrypoint = 0);
-    void setTPC(int tid, u32 entrypoint);
     void yieldT();
     void sleepT(u8 rs1, u8 rs2);
     void wakeT(u8 rs1);

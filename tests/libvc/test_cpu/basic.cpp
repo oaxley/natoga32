@@ -13,20 +13,21 @@ TEST_CASE("CPU Basics", "[cpu][basic]") {
     }
 
     SECTION("Thread 0 starts at RESET_DEFAULT_ADDR") {
-        REQUIRE(test.getCtx().pc == RESET_DEFAULT_ADDR);
+        REQUIRE(test.getCtx().getPC() == RESET_DEFAULT_ADDR);
     }
 
     SECTION("All threads are free except thread 0") {
-        REQUIRE(test.getCtx().state == ThreadState::Running);
+        REQUIRE(test.getCtx().getState() == ThreadState::Running);
 
         for (int tid = 1; tid < THREADS_COUNT; tid++) {
-            REQUIRE(test.getCtx(tid).state == ThreadState::Free);
+            REQUIRE(test.getCtx(tid).getState() == ThreadState::Free);
         }
     }
 
     SECTION("All registers are set to 0") {
         for (int tid = 0; tid < THREADS_COUNT; tid++) {
             auto& thread = test.getCtx(tid);
+            auto& registers = thread.getRegisters();
 
             for (int r = 0; r < THREADS_REGISTERS; r++) {
                 switch (r)
@@ -34,20 +35,19 @@ TEST_CASE("CPU Basics", "[cpu][basic]") {
                     case 2:    // specific value for SP (x2)
                     {
                         u32 value = MMAP_STACK_BASE + ((tid + 1) * MMAP_STACK_SIZE) - 1;
-                        REQUIRE(thread.sp_base == value);
-                        REQUIRE(thread.sp == value);
-                        REQUIRE(thread.registers[r] == value);
+                        REQUIRE(thread.getSP() == value);
+                        REQUIRE(registers[r] == value);
                         break;
                     }
                     case 4:    // specific value for TP (x4)
                     {
                         u32 value = MMAP_THREADS_TLS_BASE + tid * MMAP_TTLS_SIZE;
-                        REQUIRE(thread.tp == value);
-                        REQUIRE(thread.registers[r] == value);
+                        REQUIRE(thread.getTP() == value);
+                        REQUIRE(registers[r] == value);
                         break;
                     }
                     default:
-                        REQUIRE(thread.registers[r] == 0);
+                        REQUIRE(registers[r] == 0);
                         break;
                 }
             }

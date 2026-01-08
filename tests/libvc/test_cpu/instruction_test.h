@@ -33,9 +33,9 @@ public:
         }
     }
 
-    ThreadContext& getCtx(int tid = 0)
+    CPUThread& getCtx(int tid = 0)
     {
-        return cpu.getThreadContext(tid);
+        return cpu.getThread(tid);
     }
 
     void loadInstruction(u32 instr, u32 offset = 0, int tid = 0)
@@ -43,7 +43,7 @@ public:
         u32 addr = thread_[tid].addr + offset + (thread_[tid].size * sizeof(u32));
         mem.write32(addr, instr);
         if (thread_[tid].size == 0) {
-            getCtx(tid).pc = addr;
+            getCtx(tid).setPC(addr);
             thread_[tid].old_pc = addr;
         }
         thread_[tid].size++;
@@ -57,7 +57,7 @@ public:
     }
 
     u32 getPC(int tid = 0) {
-        return getCtx(tid).pc;
+        return getCtx(tid).getPC();
     }
 
     void execute()
@@ -66,15 +66,15 @@ public:
     }
 
     u32 getReg(int r, int tid = 0) {
-        return getCtx(tid).registers[r];
+        return getCtx(tid).getRegisters()[r];
     }
 
     void setReg(int r, u32 value, int tid = 0) {
-        getCtx(tid).registers[r] = value;
+        getCtx(tid).getRegisters()[r] = value;
     }
 
     u32 deltaPC(int tid = 0) {
-        u32 new_pc = getCtx(tid).pc;
+        u32 new_pc = getCtx(tid).getPC();
         u32 delta = new_pc - thread_[tid].old_pc;
         thread_[tid].old_pc = new_pc;
         return delta;

@@ -17,7 +17,7 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         // count the number of threads
         int count = 0;
         for (int tid = 0; tid < THREADS_COUNT; tid++) {
-            switch (test.getCtx(tid).state)
+            switch (test.getCtx(tid).getState())
             {
                 case ThreadState::Running:
                 case ThreadState::Ready:
@@ -31,7 +31,7 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         int tid = test.getReg(2, 0);
         REQUIRE(count == 2);
         REQUIRE(tid != 0);
-        REQUIRE(test.getCtx(tid).pc == value);
+        REQUIRE(test.getCtx(tid).getPC() == value);
         REQUIRE(test.deltaPC() == 4);
     }
 
@@ -47,15 +47,15 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
 
         // ensure we get ourself a new thread
         u32 tid = test.getReg(2);
-        REQUIRE(test.getCtx(tid).pc == value);
+        REQUIRE(test.getCtx(tid).getPC() == value);
 
         // execute the yield on thread 0
         test.execute();
 
         // checks
         REQUIRE((u32)test.cpu.getCurrentThreadID() == tid);
-        REQUIRE(test.getCtx(tid).state == ThreadState::Running);
-        REQUIRE(test.getCtx(0).state == ThreadState::Ready);
+        REQUIRE(test.getCtx(tid).getState() == ThreadState::Running);
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Ready);
 
         // load END.T instruction into T1
         test.loadInstruction(0x0000700b, 0x100, tid);
@@ -63,8 +63,8 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
 
         // check we are back to T0
         REQUIRE((u32)test.cpu.getCurrentThreadID() == 0);
-        REQUIRE(test.getCtx(0).state == ThreadState::Running);
-        REQUIRE(test.getCtx(tid).state == ThreadState::Dead);
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Running);
+        REQUIRE(test.getCtx(tid).getState() == ThreadState::Dead);
     }
 
     SECTION("ID.T") {
@@ -83,7 +83,7 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         test.execute();
         u32 tid = test.getReg(2);
         REQUIRE(tid != 0);
-        REQUIRE(test.getCtx(tid).pc == value);
+        REQUIRE(test.getCtx(tid).getPC() == value);
 
         // load ID.T in the second thread
         test.loadInstruction(0x0000220B, 0x100, tid);
@@ -109,8 +109,8 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         test.execute();
 
         // check status
-        REQUIRE(test.getCtx(0).state == ThreadState::Sleeping);
-        REQUIRE(test.getCtx(1).state == ThreadState::Running);
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Sleeping);
+        REQUIRE(test.getCtx(1).getState() == ThreadState::Running);
     }
 
     SECTION("SLEEP.T / WAKE.T - Waitkey") {
@@ -125,15 +125,15 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         test.execute();
 
         // check status
-        REQUIRE(test.getCtx(0).state == ThreadState::Sleeping);
-        REQUIRE(test.getCtx(1).state == ThreadState::Running);
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Sleeping);
+        REQUIRE(test.getCtx(1).getState() == ThreadState::Running);
 
         // Thread 1: wake
         test.setReg(10, 0x1234, 1);      // x10 = 0x1234
         test.loadInstruction(0x0005500B, 0x100, 1);       // WAKE.T x10
         test.execute();
 
-        REQUIRE(test.getCtx(0).state == ThreadState::Ready);
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Ready);
     }
 
     SECTION("SLEEP.T - Sleep until") {
@@ -152,15 +152,15 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
 
         // ensure we get ourself a new thread
         u32 tid = test.getReg(2);
-        REQUIRE(test.getCtx(tid).pc == value);
+        REQUIRE(test.getCtx(tid).getPC() == value);
 
         // execute the yield on thread 0
         test.execute();
 
         // checks
         REQUIRE((u32)test.cpu.getCurrentThreadID() == tid);
-        REQUIRE(test.getCtx(tid).state == ThreadState::Running);
-        REQUIRE(test.getCtx(0).state == ThreadState::Ready);
+        REQUIRE(test.getCtx(tid).getState() == ThreadState::Running);
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Ready);
 
         // load YIELD.T instruction into T1
         test.loadInstruction(0x0000100b, 0x100, tid);
@@ -168,7 +168,7 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
 
         // check we are back to T0
         REQUIRE((u32)test.cpu.getCurrentThreadID() == 0);
-        REQUIRE(test.getCtx(0).state == ThreadState::Running);
-        REQUIRE(test.getCtx(tid).state == ThreadState::Ready);
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Running);
+        REQUIRE(test.getCtx(tid).getState() == ThreadState::Ready);
     }
 }
