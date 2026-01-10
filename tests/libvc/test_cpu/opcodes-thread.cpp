@@ -137,7 +137,38 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
     }
 
     SECTION("SLEEP.T - Sleep until") {
+        // load instruction in T0 NEW.T + YIELD
+        u32 value = MMAP_CODE + 0x100;
+        test.setReg(3, value);
+        test.loadInstruction(0x0001810b);       // NEW.T x2, x3
+        test.loadInstruction(0x0000100b);       // YIELD.T
+        test.loadInstruction(0x00100013);       // NOP #1
+        test.loadInstruction(0x00100013);       // NOP #2
+        test.loadInstruction(0x00100013);       // NOP #3
+        test.loadInstruction(0x00100013);       // NOP #4
+        test.loadInstruction(0x0000100b);       // YIELD.T
+        test.execute(2);
 
+        // check status #1
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Ready);
+        REQUIRE(test.getCtx(1).getState() == ThreadState::Running);
+
+        // load sleep instruction in T1
+        test.loadInstruction(0x00400513, 0x100, 1);       // ADDI x10, x0, 4
+        test.loadInstruction(0x00A0400B, 0x100, 1);       // SLEEP x10, x0
+        test.loadInstruction(0x00100013, 0x100, 1);       // NOP #1
+        test.execute(2);
+
+        // check status #2 -> T1 should be sleeping
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Running);
+        REQUIRE(test.getCtx(1).getState() == ThreadState::Sleeping);
+
+        // execute all the nops + yield
+        test.execute(5);
+
+        // check status #3 -> T1 should be running
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Ready);
+        REQUIRE(test.getCtx(1).getState() == ThreadState::Running);
     }
 
     SECTION("YIELD.T - With one new thread") {
