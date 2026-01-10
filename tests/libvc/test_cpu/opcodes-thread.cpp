@@ -140,7 +140,7 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
 
     }
 
-    SECTION("YIELD.T") {
+    SECTION("YIELD.T - With one new thread") {
         // load instruction in T0 NEW.T + YIELD
         u32 value = MMAP_CODE + 0x100;
         test.setReg(3, value);
@@ -170,5 +170,17 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         REQUIRE((u32)test.cpu.getCurrentThreadID() == 0);
         REQUIRE(test.getCtx(0).getState() == ThreadState::Running);
         REQUIRE(test.getCtx(tid).getState() == ThreadState::Ready);
+    }
+
+    SECTION("YIELD.T - Only one thread") {
+        // load YIELD instruction in T0
+        test.loadInstruction(0x0000100b);
+
+        // execute
+        test.execute();
+
+        // checks
+        REQUIRE(test.cpu.getCurrentThreadID() == 0);
+        REQUIRE(test.getCtx(0).getState() == ThreadState::Running);
     }
 }
