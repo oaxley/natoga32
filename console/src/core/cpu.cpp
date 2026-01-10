@@ -879,7 +879,13 @@ u32 CPU::readCSR(u16 csr)
 
 void CPU::writeCSR(u16 csr, u32 value)
 {
-    // TODO: check for RO registers
+    // read-only CSR are the one starting with 0b11
+    if ((csr >> 10) == 3) {
+        triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+        return;
+    }
+
+    // write in the register
     mem_.write32(MMAP_CSR_REGISTERS + csr * sizeof(u32), value);
 }
 
