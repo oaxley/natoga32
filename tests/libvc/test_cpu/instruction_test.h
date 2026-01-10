@@ -60,9 +60,11 @@ public:
         return getCtx(tid).getPC();
     }
 
-    void execute()
+    void execute(int cycles = 1)
     {
-        cpu.tick();
+        for (int i = 0; i < cycles; i++) {
+            cpu.tick();
+        }
     }
 
     u32 getReg(int r, int tid = 0) {
