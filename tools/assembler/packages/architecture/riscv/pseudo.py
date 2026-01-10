@@ -180,13 +180,13 @@ def instr_expand(cpu: CPU, instr: ast.Instruction) -> List[ast.Instruction]:
         param = instr.operands[0]
         if isinstance(param, ast.Number):
             return [
-                ast.Instruction("addi", [x(1), x(0), param]),
+                ast.Instruction("addi", [x(17), x(0), param]),
                 ast.Instruction("ecall", [])
             ]
         elif isinstance(param, ast.Identifier):
             if (param.name in cpu.registers):
                 return [
-                    ast.Instruction("add", [x(1), x(0), param]),
+                    ast.Instruction("add", [x(17), x(0), param]),
                     ast.Instruction("ecall", [])
                 ]
             else:
