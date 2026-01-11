@@ -50,6 +50,10 @@ public:
 
 private:
     std::vector<u8> ram_;
+
+    bool isValidAddress(u32 addr) const;
+    bool isReadOnly(u32 addr) const;
+    bool isInside(u32 value, u32 addr, size_t size) const;
 };
 
 } // namespace vc
