@@ -29,7 +29,14 @@ Memory::Memory(size_t ramsize) :
 
 void Memory::reset()
 {
-    std::memset(ram_.data(), 0, ram_.size());
+    // Reset all memory EXCEPT ROM area
+    // ROM area: 0x0000'0000 to 0x0000'0000 + MMAP_ROM_SIZE
+
+    // Clear memory from ROM end to the end of RAM
+    u32 rom_end = MMAP_ROM_BOOT_LOADER + MMAP_ROM_SIZE;
+    if (rom_end < ram_.size()) {
+        std::memset(ram_.data() + rom_end, 0, ram_.size() - rom_end);
+    }
 }
 
 u8 Memory::read8(u32 addr) const
