@@ -1,81 +1,255 @@
-#include <SDL2/SDL.h>
-#include <iostream>
-#include <cstdlib>
+/* -*- coding: utf-8 -*-
+ * vim: filetype=cpp
+ *
+ * This source file is subject to the MIT License
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the Internet at this address:
+ * https://opensource.org/license/mit
+ *
+ * @author	Sebastien LEGRAND
+ * @license	MIT License
+ *
+ * @brief	Virtual Console - Basic Host Program
+ */
 
-const int WIDTH = 800;
-const int HEIGHT = 480;
+#include <iostream>
+#include <iomanip>
+#include <cstdint>
+#include <vector>
+
+// Use the C API
+#include "vc/vc.h"
+
+
+//----- Helper functions
+
+void print_separator()
+{
+    std::cout << "----------------------------------------\n";
+}
+
+void print_console_state(vc_console_t* console)
+{
+    std::cout << "Console State: ";
+    auto state = vc_console_get_state(console);
+    switch (state) {
+        case VC_STATE_UNINITIALIZED:
+            std::cout << "UNINITIALIZED\n";
+            break;
+        case VC_STATE_READY:
+            std::cout << "READY\n";
+            break;
+        case VC_STATE_RUNNING:
+            std::cout << "RUNNING\n";
+            break;
+        case VC_STATE_PAUSED:
+            std::cout << "PAUSED\n";
+            break;
+        case VC_STATE_ERROR:
+            std::cout << "ERROR\n";
+            break;
+    }
+
+    std::cout << "CPU State: ";
+    auto cpu_state = vc_console_get_cpu_state(console);
+    switch (cpu_state) {
+        case VC_CPU_RUNNING:
+            std::cout << "RUNNING\n";
+            break;
+        case VC_CPU_IDLE:
+            std::cout << "IDLE\n";
+            break;
+        case VC_CPU_HALTED:
+            std::cout << "HALTED\n";
+            break;
+    }
+
+    std::cout << "Current Thread: " << vc_console_get_current_thread_id(console) << "\n";
+    std::cout << "Total Cycles: " << vc_console_get_total_cycles(console) << "\n";
+}
+
+void print_thread_info(vc_console_t* console, int thread_id)
+{
+    std::cout << "Thread " << thread_id << ": ";
+
+    auto state = vc_console_get_thread_state(console, thread_id);
+    switch (state) {
+        case VC_THREAD_FREE:
+            std::cout << "FREE";
+            break;
+        case VC_THREAD_READY:
+            std::cout << "READY";
+            break;
+        case VC_THREAD_RUNNING:
+            std::cout << "RUNNING";
+            break;
+        case VC_THREAD_SLEEPING:
+            std::cout << "SLEEPING";
+            break;
+        case VC_THREAD_DEAD:
+            std::cout << "DEAD";
+            break;
+    }
+
+    if (state != VC_THREAD_FREE) {
+        uint32_t pc = vc_console_get_thread_pc(console, thread_id);
+        std::cout << " | PC: 0x" << std::hex << std::setfill('0') << std::setw(8) << pc << std::dec;
+    }
+
+    std::cout << "\n";
+}
+
+void print_all_threads(vc_console_t* console)
+{
+    std::cout << "\nThread Status:\n";
+    for (int i = 0; i < 8; i++) {
+        print_thread_info(console, i);
+    }
+}
+
+void print_registers(vc_console_t* console, int thread_id)
+{
+    std::cout << "\nThread " << thread_id << " Registers:\n";
+    for (int i = 0; i < 32; i++) {
+        if (i % 4 == 0 && i > 0) {
+            std::cout << "\n";
+        }
+        uint32_t value = vc_console_get_thread_register(console, thread_id, i);
+        std::cout << "x" << std::setw(2) << i << ": 0x"
+                  << std::hex << std::setfill('0') << std::setw(8) << value
+                  << std::dec << "  ";
+    }
+    std::cout << "\n";
+}
+
+
+//----- Test ROM creation
+
+std::vector<uint8_t> create_test_rom()
+{
+    std::vector<uint8_t> rom;
+
+    // CPU starts at address 0x100, so we need to pad the ROM
+    // Fill first 0x100 bytes with zeros (or could be boot loader code)
+    for (int i = 0; i < 0x100; i++) {
+        rom.push_back(0x00);
+    }
+
+    // Now add our test program at offset 0x100
+    // Simple test program that will:
+    // 1. Set some registers
+    // 2. Add values
+    // 3. Loop forever
+
+    // LUI x1, 0x12345000    - Load upper immediate
+    rom.push_back(0x37); rom.push_back(0x51); rom.push_back(0x34); rom.push_back(0x12);
+
+    // ADDI x2, x0, 100      - Add immediate
+    rom.push_back(0x13); rom.push_back(0x01); rom.push_back(0x40); rom.push_back(0x06);
+
+    // ADD x3, x1, x2        - Add registers
+    rom.push_back(0xB3); rom.push_back(0x01); rom.push_back(0x20); rom.push_back(0x00);
+
+    // JAL x0, -12           - Jump back (infinite loop)
+    rom.push_back(0x6F); rom.push_back(0x00); rom.push_back(0x40); rom.push_back(0xFF);
+
+    return rom;
+}
+
+
+//----- Main program
 
 int main(int argc, char* argv[])
 {
-    // 1. initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cerr << "SDL Could not be initialized!" << std::endl;
-        std::cerr << "SDL_Error:" << SDL_GetError() << std::endl;
-        return EXIT_FAILURE;
+    std::cout << "Virtual Console - Host Integration Test\n";
+    print_separator();
+
+    // Step 1: Create console
+    std::cout << "\n1. Creating console...\n";
+    vc_console_t* console = vc_console_create();
+    if (!console) {
+        std::cerr << "ERROR: Failed to create console\n";
+        return 1;
     }
+    std::cout << "   ✓ Console created\n";
 
-    // 2. create a window
-    // SDL_Window* window = SDL_CreateWindow("SDL Example",
-    //                                       SDL_WINDOWPOS_CENTERED,
-    //                                       SDL_WINDOWPOS_CENTERED,
-    //                                       WIDTH, HEIGHT,
-    //                                       SDL_WINDOW_SHOWN
-    // );
-    SDL_Window* window = nullptr;
-    SDL_Renderer* renderer = nullptr;
-    SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, 0, &window, &renderer);
-    if (!window || !renderer) {
-        std::cerr << "Window/Rendered could not be created!" << std::endl;
-        std::cerr << "SDL_Error:" << SDL_GetError() << std::endl;
-        SDL_Quit();
-        return EXIT_FAILURE;
+    // Step 2: Initialize console
+    std::cout << "\n2. Initializing console...\n";
+    if (!vc_console_initialize(console)) {
+        std::cerr << "ERROR: Failed to initialize console\n";
+        std::cerr << "       " << vc_console_get_last_error(console) << "\n";
+        vc_console_destroy(console);
+        return 1;
     }
+    std::cout << "   ✓ Console initialized\n";
+    print_console_state(console);
 
-    // 3. Get the window surface
-    // SDL_Surface* screenSurface = SDL_GetWindowSurface(window);
-    // if (!screenSurface) {
-    //     std::cerr << "Could not obtain an SDL Surface!" << std::endl;
-    //     std::cerr << "SDL_Error:" << SDL_GetError() << std::endl;
-    //     SDL_Quit();
-    //     return EXIT_FAILURE;
-    // }
-
-    // 4. fill the surface
-    // SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xAA, 0xAA, 0xAA));
-    // SDL_UpdateWindowSurface(window);
-
-    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565,
-                    SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
-
-    uint16_t* framebuffer = new uint16_t[WIDTH * HEIGHT];
-    if (!framebuffer) {
-        std::cerr << "Error with memory allocation!" << std::endl;
-        SDL_Quit();
-        return EXIT_FAILURE;
+    // Step 3: Create and load test ROM
+    std::cout << "\n3. Loading test ROM...\n";
+    auto rom = create_test_rom();
+    if (!vc_console_load_rom_data(console, rom.data(), rom.size())) {
+        std::cerr << "ERROR: Failed to load ROM\n";
+        std::cerr << "       " << vc_console_get_last_error(console) << "\n";
+        vc_console_destroy(console);
+        return 1;
     }
+    std::cout << "   ✓ ROM loaded (" << rom.size() << " bytes)\n";
 
-    // fill everything with gray color
-    uint8_t r = 16;
-    uint8_t g = 32;
-    uint8_t b = 16;
-    for(uint32_t i = 0; i < WIDTH*HEIGHT; i++) {
-        framebuffer[i] = (((r & 31) << 11) | ((g & 63) << 5) | (b & 31));
+    // Step 4: Reset console to start execution
+    std::cout << "\n4. Resetting console...\n";
+    vc_console_reset(console);
+    std::cout << "   ✓ Console reset\n";
+    print_console_state(console);
+    print_all_threads(console);
+
+    // Step 5: Change state to running
+    std::cout << "\n5. Starting execution...\n";
+    vc_console_resume(console);
+    std::cout << "   ✓ Console resumed\n";
+
+    // Step 6: Run a few cycles
+    std::cout << "\n6. Executing 10 cycles...\n";
+    vc_console_run(console, 10);
+    print_console_state(console);
+    print_all_threads(console);
+    print_registers(console, 0);
+
+    // Step 7: Memory read test
+    std::cout << "\n7. Memory read test...\n";
+    std::cout << "   Reading first 16 bytes at 0x00000000 (should be zeros):\n   ";
+    for (int i = 0; i < 16; i++) {
+        uint8_t byte = vc_console_mem_read8(console, 0x00000000 + i);
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)byte << " ";
     }
+    std::cout << "\n";
 
-    // update the texture
-    SDL_UpdateTexture(texture, nullptr, framebuffer, WIDTH*2);
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, nullptr, nullptr);
-    SDL_RenderPresent(renderer);
-
-    SDL_Delay(3000);
-
-    SDL_DestroyWindow(window);
-    if (renderer) {
-        SDL_DestroyRenderer(renderer);
+    std::cout << "   Reading 16 bytes at 0x00000100 (program code):\n   ";
+    for (int i = 0; i < 16; i++) {
+        uint8_t byte = vc_console_mem_read8(console, 0x00000100 + i);
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)byte << " ";
     }
+    std::cout << std::dec << "\n";
 
-    delete [] framebuffer;
-    SDL_Quit();
-    return EXIT_SUCCESS;
+    // Step 8: Pause and resume test
+    std::cout << "\n8. Pause/Resume test...\n";
+    vc_console_pause(console);
+    std::cout << "   Paused: " << (vc_console_is_paused(console) ? "YES" : "NO") << "\n";
+    vc_console_resume(console);
+    std::cout << "   Running: " << (vc_console_is_running(console) ? "YES" : "NO") << "\n";
+
+    // Step 9: Run more cycles
+    std::cout << "\n9. Running 1000 more cycles...\n";
+    vc_console_run(console, 1000);
+    print_console_state(console);
+    print_registers(console, 0);
+
+    // Step 10: Cleanup
+    std::cout << "\n10. Cleaning up...\n";
+    vc_console_destroy(console);
+    std::cout << "    ✓ Console destroyed\n";
+
+    print_separator();
+    std::cout << "Test completed successfully!\n";
+
+    return 0;
 }
