@@ -8,7 +8,7 @@ set(VC_SOURCES
     src/core/cpu.cpp
     src/core/cpu_thread.cpp
     src/core/memory.cpp
-    src/vc.cpp
+    src/console.cpp
 )
 
 set(VC_HEADERS
@@ -19,7 +19,7 @@ set(VC_HEADERS
     src/core/decoders.h
     src/core/helpers.h
     src/core/memory.h
-    src/vc.h
+    src/console.h
 )
 
 # library target
