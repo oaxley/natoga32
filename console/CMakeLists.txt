@@ -9,9 +9,15 @@ set(VC_SOURCES
     src/core/cpu_thread.cpp
     src/core/memory.cpp
     src/console.cpp
+    src/vc.cpp
 )
 
 set(VC_HEADERS
+    include/vc/vc.h
+    include/vc/events.h
+    include/vc/exceptions.h
+    include/vc/types.h
+
     src/core/constants.h
     src/core/csr.h
     src/core/cpu.h
