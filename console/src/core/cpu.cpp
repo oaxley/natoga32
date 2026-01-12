@@ -872,6 +872,12 @@ u32 CPU::readCSR(u16 csr)
             return static_cast<u32>(total_cycles_);
         case 0xC80: // cycleh (high 32 bits)
             return static_cast<u32>(total_cycles_ >> 32);
+
+        case 0xC01: // time (low 32 bits)
+            return static_cast<u32>(virtual_time_);
+        case 0xC81: // timeh (high 32 bits)
+            return static_cast<u32>(virtual_time_ >> 32);
+
         default:
             return mem_.read32(MMAP_CSR_REGISTERS + csr * sizeof(u32));
     }

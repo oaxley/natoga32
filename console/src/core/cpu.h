@@ -60,6 +60,7 @@ private:
     std::array<CPUThread, THREADS_COUNT> threads_;
     int current_thread_ = 0;
     u64 total_cycles_ = 0;
+    u64 virtual_time_ = 0;
 
     Memory& mem_;
     CPUState cpu_state_;
