@@ -23,7 +23,7 @@
 
 // C++ to C bridge structure
 struct vc_console_t {
-    vc::Console* console;
+    vc::Console* ptr;
 };
 
 
@@ -33,7 +33,7 @@ vc_console_t* vc_console_create(void)
 {
     try {
         vc_console_t* wrapper = new vc_console_t;
-        wrapper->console = new vc::Console();
+        wrapper->ptr = new vc::Console();
         return wrapper;
     } catch (...) {
         return nullptr;
@@ -43,30 +43,30 @@ vc_console_t* vc_console_create(void)
 void vc_console_destroy(vc_console_t* console)
 {
     if (console) {
-        delete console->console;
+        delete console->ptr;
         delete console;
     }
 }
 
 bool vc_console_initialize(vc_console_t* console)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return false;
     }
-    return console->console->initialize();
+    return console->ptr->initialize();
 }
 
 void vc_console_reset(vc_console_t* console)
 {
-    if (console && console->console) {
-        console->console->reset();
+    if (console && console->ptr) {
+        console->ptr->reset();
     }
 }
 
 void vc_console_shutdown(vc_console_t* console)
 {
-    if (console && console->console) {
-        console->console->shutdown();
+    if (console && console->ptr) {
+        console->ptr->shutdown();
     }
 }
 
@@ -75,18 +75,18 @@ void vc_console_shutdown(vc_console_t* console)
 
 bool vc_console_load_rom_file(vc_console_t* console, const char* path)
 {
-    if (!console || !console->console || !path) {
+    if (!console || !console->ptr || !path) {
         return false;
     }
-    return console->console->loadROM(std::string(path));
+    return console->ptr->loadROM(std::string(path));
 }
 
 bool vc_console_load_rom_data(vc_console_t* console, const uint8_t* data, size_t size)
 {
-    if (!console || !console->console || !data) {
+    if (!console || !console->ptr || !data) {
         return false;
     }
-    return console->console->loadROM(data, size);
+    return console->ptr->loadROM(data, size);
 }
 
 
@@ -94,36 +94,36 @@ bool vc_console_load_rom_data(vc_console_t* console, const uint8_t* data, size_t
 
 void vc_console_tick(vc_console_t* console)
 {
-    if (console && console->console) {
-        console->console->tick();
+    if (console && console->ptr) {
+        console->ptr->tick();
     }
 }
 
 void vc_console_run(vc_console_t* console, uint32_t cycles)
 {
-    if (console && console->console) {
-        console->console->run(cycles);
+    if (console && console->ptr) {
+        console->ptr->run(cycles);
     }
 }
 
 void vc_console_run_frame(vc_console_t* console)
 {
-    if (console && console->console) {
-        console->console->runFrame();
+    if (console && console->ptr) {
+        console->ptr->runFrame();
     }
 }
 
 void vc_console_pause(vc_console_t* console)
 {
-    if (console && console->console) {
-        console->console->pause();
+    if (console && console->ptr) {
+        console->ptr->pause();
     }
 }
 
 void vc_console_resume(vc_console_t* console)
 {
-    if (console && console->console) {
-        console->console->resume();
+    if (console && console->ptr) {
+        console->ptr->resume();
     }
 }
 
@@ -132,11 +132,11 @@ void vc_console_resume(vc_console_t* console)
 
 vc_console_state_t vc_console_get_state(vc_console_t* console)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return VC_STATE_UNINITIALIZED;
     }
 
-    auto state = console->console->getState();
+    auto state = console->ptr->getState();
     switch (state) {
         case vc::ConsoleState::Uninitialized:
             return VC_STATE_UNINITIALIZED;
@@ -155,35 +155,35 @@ vc_console_state_t vc_console_get_state(vc_console_t* console)
 
 bool vc_console_is_running(vc_console_t* console)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return false;
     }
-    return console->console->isRunning();
+    return console->ptr->isRunning();
 }
 
 bool vc_console_is_paused(vc_console_t* console)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return false;
     }
-    return console->console->isPaused();
+    return console->ptr->isPaused();
 }
 
 uint64_t vc_console_get_total_cycles(vc_console_t* console)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return 0;
     }
-    return console->console->getTotalCycles();
+    return console->ptr->getTotalCycles();
 }
 
 vc_cpu_state_t vc_console_get_cpu_state(vc_console_t* console)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return VC_CPU_HALTED;
     }
 
-    auto state = console->console->getCPU().getState();
+    auto state = console->ptr->getCPU().getState();
     switch (state) {
         case vc::CPUState::Running:
             return VC_CPU_RUNNING;
@@ -198,10 +198,10 @@ vc_cpu_state_t vc_console_get_cpu_state(vc_console_t* console)
 
 int vc_console_get_current_thread_id(vc_console_t* console)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return -1;
     }
-    return console->console->getCPU().getCurrentThreadID();
+    return console->ptr->getCPU().getCurrentThreadID();
 }
 
 
@@ -209,8 +209,8 @@ int vc_console_get_current_thread_id(vc_console_t* console)
 
 void vc_console_trigger_event(vc_console_t* console, uint32_t event)
 {
-    if (console && console->console) {
-        console->console->triggerEvent(event);
+    if (console && console->ptr) {
+        console->ptr->triggerEvent(event);
     }
 }
 
@@ -219,16 +219,16 @@ void vc_console_trigger_event(vc_console_t* console, uint32_t event)
 
 const char* vc_console_get_last_error(vc_console_t* console)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return "Invalid console instance";
     }
-    return console->console->getLastError().c_str();
+    return console->ptr->getLastError().c_str();
 }
 
 void vc_console_clear_error(vc_console_t* console)
 {
-    if (console && console->console) {
-        console->console->clearError();
+    if (console && console->ptr) {
+        console->ptr->clearError();
     }
 }
 
@@ -237,46 +237,46 @@ void vc_console_clear_error(vc_console_t* console)
 
 uint8_t vc_console_mem_read8(vc_console_t* console, uint32_t addr)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return 0;
     }
-    return console->console->getMemory().read8(addr);
+    return console->ptr->getMemory().read8(addr);
 }
 
 uint16_t vc_console_mem_read16(vc_console_t* console, uint32_t addr)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return 0;
     }
-    return console->console->getMemory().read16(addr);
+    return console->ptr->getMemory().read16(addr);
 }
 
 uint32_t vc_console_mem_read32(vc_console_t* console, uint32_t addr)
 {
-    if (!console || !console->console) {
+    if (!console || !console->ptr) {
         return 0;
     }
-    return console->console->getMemory().read32(addr);
+    return console->ptr->getMemory().read32(addr);
 }
 
 void vc_console_mem_write8(vc_console_t* console, uint32_t addr, uint8_t value)
 {
-    if (console && console->console) {
-        console->console->getMemory().write8(addr, value);
+    if (console && console->ptr) {
+        console->ptr->getMemory().write8(addr, value);
     }
 }
 
 void vc_console_mem_write16(vc_console_t* console, uint32_t addr, uint16_t value)
 {
-    if (console && console->console) {
-        console->console->getMemory().write16(addr, value);
+    if (console && console->ptr) {
+        console->ptr->getMemory().write16(addr, value);
     }
 }
 
 void vc_console_mem_write32(vc_console_t* console, uint32_t addr, uint32_t value)
 {
-    if (console && console->console) {
-        console->console->getMemory().write32(addr, value);
+    if (console && console->ptr) {
+        console->ptr->getMemory().write32(addr, value);
     }
 }
 
@@ -285,11 +285,11 @@ void vc_console_mem_write32(vc_console_t* console, uint32_t addr, uint32_t value
 
 vc_thread_state_t vc_console_get_thread_state(vc_console_t* console, int thread_id)
 {
-    if (!console || !console->console || thread_id < 0 || thread_id >= 8) {
+    if (!console || !console->ptr || thread_id < 0 || thread_id >= 8) {
         return VC_THREAD_FREE;
     }
 
-    auto& thread = console->console->getCPU().getThread(thread_id);
+    auto& thread = console->ptr->getCPU().getThread(thread_id);
     auto state = thread.getState();
 
     switch (state) {
@@ -310,17 +310,17 @@ vc_thread_state_t vc_console_get_thread_state(vc_console_t* console, int thread_
 
 uint32_t vc_console_get_thread_pc(vc_console_t* console, int thread_id)
 {
-    if (!console || !console->console || thread_id < 0 || thread_id >= 8) {
+    if (!console || !console->ptr || thread_id < 0 || thread_id >= 8) {
         return 0;
     }
 
-    auto& thread = console->console->getCPU().getThread(thread_id);
+    auto& thread = console->ptr->getCPU().getThread(thread_id);
     return thread.getPC();
 }
 
 uint32_t vc_console_get_thread_register(vc_console_t* console, int thread_id, int reg_num)
 {
-    if (!console || !console->console || thread_id < 0 || thread_id >= 8) {
+    if (!console || !console->ptr || thread_id < 0 || thread_id >= 8) {
         return 0;
     }
 
@@ -328,6 +328,6 @@ uint32_t vc_console_get_thread_register(vc_console_t* console, int thread_id, in
         return 0;
     }
 
-    auto& thread = console->console->getCPU().getThread(thread_id);
+    auto& thread = console->ptr->getCPU().getThread(thread_id);
     return thread.getRegisters()[reg_num];
 }
