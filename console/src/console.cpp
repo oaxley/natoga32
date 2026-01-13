@@ -230,7 +230,7 @@ void Console::pause()
 
 void Console::resume()
 {
-    if (state_ == ConsoleState::Paused) {
+    if (state_ == ConsoleState::Paused || state_ == ConsoleState::Ready) {
         state_ = ConsoleState::Running;
     }
 }
