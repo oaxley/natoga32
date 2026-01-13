@@ -141,17 +141,17 @@ std::vector<uint8_t> create_test_rom()
     // 2. Add values
     // 3. Loop forever
 
-    // LUI x1, 0x12345000    - Load upper immediate
-    rom.push_back(0x37); rom.push_back(0x51); rom.push_back(0x34); rom.push_back(0x12);
+    // LUI x12, 0x12345000    - Load upper immediate
+    rom.push_back(0x37); rom.push_back(0x56); rom.push_back(0x34); rom.push_back(0x12);
 
-    // ADDI x2, x0, 100      - Add immediate
-    rom.push_back(0x13); rom.push_back(0x01); rom.push_back(0x40); rom.push_back(0x06);
+    // ADDI x16 x0, 0x678    - Add immediate
+    rom.push_back(0x13); rom.push_back(0x08); rom.push_back(0x80); rom.push_back(0x67);
 
-    // ADD x3, x1, x2        - Add registers
-    rom.push_back(0xB3); rom.push_back(0x01); rom.push_back(0x20); rom.push_back(0x00);
+    // ADD x20, x12, x16      - Add registers
+    rom.push_back(0x33); rom.push_back(0x0a); rom.push_back(0x06); rom.push_back(0x01);
 
     // JAL x0, -12           - Jump back (infinite loop)
-    rom.push_back(0x6F); rom.push_back(0x00); rom.push_back(0x40); rom.push_back(0xFF);
+    rom.push_back(0x6F); rom.push_back(0xf0); rom.push_back(0x5f); rom.push_back(0xFF);
 
     return rom;
 }
