@@ -5,7 +5,7 @@ BUILD_DIR := build
 MAKEFLAGS += --silent
 
 #----- rules
-.PHONY: debug release test
+.PHONY: debug release test host
 
 debug:
 	@cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=debug
@@ -17,6 +17,9 @@ release:
 
 test:
 	@cd $(BUILD_DIR) && ctest --output-on-failure
+
+host:
+	cd $(BUILD_DIR)/host && ./vchost
 
 clean:
 	@rm -rf $(BUILD_DIR)
