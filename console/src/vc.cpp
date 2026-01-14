@@ -22,17 +22,17 @@
 #include "console.h"
 
 // C++ to C bridge structure
-struct vc_console_t {
+struct VC_Console_t {
     vc::Console* ptr;
 };
 
 
 //----- Console lifecycle functions
 
-vc_console_t* vc_console_create(void)
+VC_Console_t* vc_create(void)
 {
     try {
-        vc_console_t* wrapper = new vc_console_t;
+        VC_Console_t* wrapper = new VC_Console_t;
         wrapper->ptr = new vc::Console();
         return wrapper;
     } catch (...) {
@@ -40,7 +40,7 @@ vc_console_t* vc_console_create(void)
     }
 }
 
-void vc_console_destroy(vc_console_t* console)
+void vc_destroy(VC_Console_t* console)
 {
     if (console) {
         delete console->ptr;
@@ -48,7 +48,7 @@ void vc_console_destroy(vc_console_t* console)
     }
 }
 
-bool vc_console_initialize(vc_console_t* console)
+bool vc_initialize(VC_Console_t* console)
 {
     if (!console || !console->ptr) {
         return false;
@@ -56,14 +56,14 @@ bool vc_console_initialize(vc_console_t* console)
     return console->ptr->initialize();
 }
 
-void vc_console_reset(vc_console_t* console)
+void vc_reset(VC_Console_t* console)
 {
     if (console && console->ptr) {
         console->ptr->reset();
     }
 }
 
-void vc_console_shutdown(vc_console_t* console)
+void vc_shutdown(VC_Console_t* console)
 {
     if (console && console->ptr) {
         console->ptr->shutdown();
@@ -73,7 +73,7 @@ void vc_console_shutdown(vc_console_t* console)
 
 //----- ROM loading functions
 
-bool vc_console_load_rom_file(vc_console_t* console, const char* path)
+bool vc_loadRomFile(VC_Console_t* console, const char* path)
 {
     if (!console || !console->ptr || !path) {
         return false;
@@ -81,7 +81,7 @@ bool vc_console_load_rom_file(vc_console_t* console, const char* path)
     return console->ptr->loadROM(std::string(path));
 }
 
-bool vc_console_load_rom_data(vc_console_t* console, const uint8_t* data, size_t size)
+bool vc_loadRomData(VC_Console_t* console, const uint8_t* data, size_t size)
 {
     if (!console || !console->ptr || !data) {
         return false;
@@ -92,35 +92,35 @@ bool vc_console_load_rom_data(vc_console_t* console, const uint8_t* data, size_t
 
 //----- Execution control functions
 
-void vc_console_tick(vc_console_t* console)
+void vc_tick(VC_Console_t* console)
 {
     if (console && console->ptr) {
         console->ptr->tick();
     }
 }
 
-void vc_console_run(vc_console_t* console, uint32_t cycles)
+void vc_run(VC_Console_t* console, uint32_t cycles)
 {
     if (console && console->ptr) {
         console->ptr->run(cycles);
     }
 }
 
-void vc_console_run_frame(vc_console_t* console)
+void vc_runFrame(VC_Console_t* console)
 {
     if (console && console->ptr) {
         console->ptr->runFrame();
     }
 }
 
-void vc_console_pause(vc_console_t* console)
+void vc_pause(VC_Console_t* console)
 {
     if (console && console->ptr) {
         console->ptr->pause();
     }
 }
 
-void vc_console_resume(vc_console_t* console)
+void vc_resume(VC_Console_t* console)
 {
     if (console && console->ptr) {
         console->ptr->resume();
@@ -130,7 +130,7 @@ void vc_console_resume(vc_console_t* console)
 
 //----- State query functions
 
-vc_console_state_t vc_console_get_state(vc_console_t* console)
+VC_ConsoleState_t vc_getState(VC_Console_t* console)
 {
     if (!console || !console->ptr) {
         return VC_STATE_UNINITIALIZED;
@@ -153,7 +153,7 @@ vc_console_state_t vc_console_get_state(vc_console_t* console)
     }
 }
 
-bool vc_console_is_running(vc_console_t* console)
+bool vc_isRunning(VC_Console_t* console)
 {
     if (!console || !console->ptr) {
         return false;
@@ -161,7 +161,7 @@ bool vc_console_is_running(vc_console_t* console)
     return console->ptr->isRunning();
 }
 
-bool vc_console_is_paused(vc_console_t* console)
+bool vc_isPaused(VC_Console_t* console)
 {
     if (!console || !console->ptr) {
         return false;
@@ -169,7 +169,7 @@ bool vc_console_is_paused(vc_console_t* console)
     return console->ptr->isPaused();
 }
 
-uint64_t vc_console_get_total_cycles(vc_console_t* console)
+uint64_t vc_getTotalCycles(VC_Console_t* console)
 {
     if (!console || !console->ptr) {
         return 0;
@@ -177,7 +177,7 @@ uint64_t vc_console_get_total_cycles(vc_console_t* console)
     return console->ptr->getTotalCycles();
 }
 
-vc_cpu_state_t vc_console_get_cpu_state(vc_console_t* console)
+VC_CPUState_t vc_getCpuState(VC_Console_t* console)
 {
     if (!console || !console->ptr) {
         return VC_CPU_HALTED;
@@ -196,7 +196,7 @@ vc_cpu_state_t vc_console_get_cpu_state(vc_console_t* console)
     }
 }
 
-int vc_console_get_current_thread_id(vc_console_t* console)
+int vc_getCurrentThreadId(VC_Console_t* console)
 {
     if (!console || !console->ptr) {
         return -1;
@@ -207,7 +207,7 @@ int vc_console_get_current_thread_id(vc_console_t* console)
 
 //----- Event system
 
-void vc_console_trigger_event(vc_console_t* console, uint32_t event)
+void vc_triggerEvent(VC_Console_t* console, uint32_t event)
 {
     if (console && console->ptr) {
         console->ptr->triggerEvent(event);
@@ -217,7 +217,7 @@ void vc_console_trigger_event(vc_console_t* console, uint32_t event)
 
 //----- Error handling
 
-const char* vc_console_get_last_error(vc_console_t* console)
+const char* vc_getLastError(VC_Console_t* console)
 {
     if (!console || !console->ptr) {
         return "Invalid console instance";
@@ -225,7 +225,7 @@ const char* vc_console_get_last_error(vc_console_t* console)
     return console->ptr->getLastError().c_str();
 }
 
-void vc_console_clear_error(vc_console_t* console)
+void vc_clearError(VC_Console_t* console)
 {
     if (console && console->ptr) {
         console->ptr->clearError();
@@ -235,7 +235,7 @@ void vc_console_clear_error(vc_console_t* console)
 
 //----- Memory access functions
 
-uint8_t vc_console_mem_read8(vc_console_t* console, uint32_t addr)
+uint8_t vc_memRead8(VC_Console_t* console, uint32_t addr)
 {
     if (!console || !console->ptr) {
         return 0;
@@ -243,7 +243,7 @@ uint8_t vc_console_mem_read8(vc_console_t* console, uint32_t addr)
     return console->ptr->getMemory().read8(addr);
 }
 
-uint16_t vc_console_mem_read16(vc_console_t* console, uint32_t addr)
+uint16_t vc_memRead16(VC_Console_t* console, uint32_t addr)
 {
     if (!console || !console->ptr) {
         return 0;
@@ -251,7 +251,7 @@ uint16_t vc_console_mem_read16(vc_console_t* console, uint32_t addr)
     return console->ptr->getMemory().read16(addr);
 }
 
-uint32_t vc_console_mem_read32(vc_console_t* console, uint32_t addr)
+uint32_t vc_memRead32(VC_Console_t* console, uint32_t addr)
 {
     if (!console || !console->ptr) {
         return 0;
@@ -259,21 +259,21 @@ uint32_t vc_console_mem_read32(vc_console_t* console, uint32_t addr)
     return console->ptr->getMemory().read32(addr);
 }
 
-void vc_console_mem_write8(vc_console_t* console, uint32_t addr, uint8_t value)
+void vc_memWrite8(VC_Console_t* console, uint32_t addr, uint8_t value)
 {
     if (console && console->ptr) {
         console->ptr->getMemory().write8(addr, value);
     }
 }
 
-void vc_console_mem_write16(vc_console_t* console, uint32_t addr, uint16_t value)
+void vc_memWrite16(VC_Console_t* console, uint32_t addr, uint16_t value)
 {
     if (console && console->ptr) {
         console->ptr->getMemory().write16(addr, value);
     }
 }
 
-void vc_console_mem_write32(vc_console_t* console, uint32_t addr, uint32_t value)
+void vc_memWrite32(VC_Console_t* console, uint32_t addr, uint32_t value)
 {
     if (console && console->ptr) {
         console->ptr->getMemory().write32(addr, value);
@@ -283,7 +283,7 @@ void vc_console_mem_write32(vc_console_t* console, uint32_t addr, uint32_t value
 
 //----- CPU/Thread debugging functions
 
-vc_thread_state_t vc_console_get_thread_state(vc_console_t* console, int thread_id)
+VC_ThreadState_t vc_getThreadState(VC_Console_t* console, int thread_id)
 {
     if (!console || !console->ptr || thread_id < 0 || thread_id >= 8) {
         return VC_THREAD_FREE;
@@ -308,7 +308,7 @@ vc_thread_state_t vc_console_get_thread_state(vc_console_t* console, int thread_
     }
 }
 
-uint32_t vc_console_get_thread_pc(vc_console_t* console, int thread_id)
+uint32_t vc_getThreadPc(VC_Console_t* console, int thread_id)
 {
     if (!console || !console->ptr || thread_id < 0 || thread_id >= 8) {
         return 0;
@@ -318,7 +318,7 @@ uint32_t vc_console_get_thread_pc(vc_console_t* console, int thread_id)
     return thread.getPC();
 }
 
-uint32_t vc_console_get_thread_register(vc_console_t* console, int thread_id, int reg_num)
+uint32_t vc_getThreadRegister(VC_Console_t* console, int thread_id, int reg_num)
 {
     if (!console || !console->ptr || thread_id < 0 || thread_id >= 8) {
         return 0;
