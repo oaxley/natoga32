@@ -4,6 +4,7 @@ tmp/**
 .DS_Store
 .vscode/**
 a.out
+CLAUDE.md
 
 build/**
 !build/.gitkeep
