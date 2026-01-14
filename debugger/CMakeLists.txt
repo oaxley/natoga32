@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 
 # SDL2 required for imgui
-find_package(SDL2 REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(OpenGL REQUIRED)
 
 # CMake fetch argparse library
 include(FetchContent)
@@ -18,8 +19,6 @@ add_executable(vcdebug
 
 # include directory
 target_include_directories(vcdebug
-    PUBLIC
-        ${SDL2_INCLUDE_DIRS}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -27,7 +26,8 @@ target_include_directories(vcdebug
 # link targets
 target_link_libraries(vcdebug
     PUBLIC
-        ${SDL2_LIBRARIES}
+        glfw
+        OpenGL::GL
     PRIVATE
         argparse
         imgui
