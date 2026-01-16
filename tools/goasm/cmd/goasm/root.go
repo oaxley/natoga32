@@ -56,13 +56,6 @@ func Execute() {
 // - Build symbol table
 // - Track section sizes
 func semanticPass1(program *ast.Program, symbols *symbol.Table, sections *section.Manager) error {
-	// Set base addresses according to NATOGA32 memory map
-	sections.SetBaseAddresses(
-		MMAP_TEXT_SEGMENT,
-		MMAP_DATA_SEGMENT,
-		MMAP_DATA_SEGMENT, // same for data for now
-		MMAP_BSS_SEGMENT,
-	)
 
 	for _, stmt := range program.Statements {
 		switch s := stmt.(type) {
