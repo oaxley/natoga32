@@ -7,9 +7,8 @@ package preprocess
 import (
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
+	"github.com/natoga32/goasm/internal/helpers"
 	"github.com/natoga32/goasm/internal/token"
 )
 
@@ -133,7 +132,7 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 			envValue := os.Getenv(tok.Value)
 			if envValue != "" {
 				// Try to parse as number first
-				if val, err := parseNumber(envValue); err == nil {
+				if val, err := helpers.ParseNumber(envValue); err == nil {
 					result = append(result, token.Token{
 						Type:  token.NUMBER,
 						Value: fmt.Sprintf("%d", val),
@@ -317,7 +316,7 @@ func (p *Preprocessor) evaluateExpr(tokens []token.Token) (int64, error) {
 func (p *Preprocessor) evalToken(tok token.Token) (int64, error) {
 	switch tok.Type {
 	case token.NUMBER:
-		return parseNumber(tok.Value)
+		return helpers.ParseNumber(tok.Value)
 
 	case token.IDENT:
 		if val, ok := p.defines[tok.Value]; ok {
@@ -328,7 +327,7 @@ func (p *Preprocessor) evalToken(tok token.Token) (int64, error) {
 	case token.ENVVAR:
 		envValue := os.Getenv(tok.Value)
 		if envValue != "" {
-			return parseNumber(envValue)
+			return helpers.ParseNumber(envValue)
 		}
 		return 0, nil // Undefined env var is 0
 
@@ -370,21 +369,4 @@ func (p *Preprocessor) IsDefined(name string) bool {
 // Define adds a define
 func (p *Preprocessor) Define(name string, value int64) {
 	p.defines[name] = value
-}
-
-//----- helper functions
-
-// parseNumber parses a number string
-func parseNumber(s string) (int64, error) {
-	s = strings.ToLower(s)
-	if strings.HasPrefix(s, "0x") {
-		return strconv.ParseInt(s[2:], 16, 64)
-	}
-	if strings.HasPrefix(s, "0b") {
-		return strconv.ParseInt(s[2:], 2, 64)
-	}
-	if strings.HasPrefix(s, "0o") {
-		return strconv.ParseInt(s[2:], 8, 64)
-	}
-	return strconv.ParseInt(s, 10, 64)
 }
