@@ -5,7 +5,7 @@ BUILD_DIR := build
 MAKEFLAGS += --silent
 
 #----- rules
-.PHONY: debug release test host
+.PHONY: debug release test host tools
 
 debug:
 	@cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=debug
@@ -23,3 +23,6 @@ host:
 
 clean:
 	@rm -rf $(BUILD_DIR)
+
+tools:
+	@cd tools/goasm && go build -o ../../build/vcasm ./cmd/goasm/
