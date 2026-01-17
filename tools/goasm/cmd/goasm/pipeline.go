@@ -89,6 +89,7 @@ func assemble(inputFile string) error {
 		MMAP_TEXT_SEGMENT,
 		MMAP_DATA_SEGMENT,
 		MMAP_BSS_SEGMENT,
+		MMAP_ROM_SEGMENT,
 	)
 
 	// Phase 5: Semantic Analysis - Pass 1 (calculate addresses)
@@ -128,6 +129,7 @@ func assemble(inputFile string) error {
 		MMAP_TEXT_SEGMENT,
 		MMAP_DATA_SEGMENT,
 		MMAP_BSS_SEGMENT,
+		MMAP_ROM_SEGMENT,
 	)
 
 	if err := semanticPass3(program, symbols, sections); err != nil {

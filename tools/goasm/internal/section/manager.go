@@ -20,6 +20,7 @@ func NewManager() *Manager {
 	m.AddSection(SectionText.String(), SectionText)
 	m.AddSection(SectionData.String(), SectionData)
 	m.AddSection(SectionBss.String(), SectionBss)
+	m.AddSection(SectionRom.String(), SectionRom)
 
 	// Start in .text section
 	m.current = m.sections[".text"]
@@ -120,15 +121,18 @@ func (m *Manager) CurrentAddress() int64 {
 
 // SetBaseAddresses sets base addresses for all sections
 // This should be called after all code/data has been emitted
-func (m *Manager) SetBaseAddresses(textBase, dataBase, bssBase int64) {
-	if sec := m.sections[".text"]; sec != nil {
+func (m *Manager) SetBaseAddresses(textBase, dataBase, bssBase, rombase int64) {
+	if sec := m.sections[SectionText.String()]; sec != nil {
 		sec.BaseAddr = textBase
 	}
-	if sec := m.sections[".data"]; sec != nil {
+	if sec := m.sections[SectionData.String()]; sec != nil {
 		sec.BaseAddr = dataBase
 	}
-	if sec := m.sections[".bss"]; sec != nil {
+	if sec := m.sections[SectionBss.String()]; sec != nil {
 		sec.BaseAddr = bssBase
+	}
+	if sec := m.sections[SectionRom.String()]; sec != nil {
+		sec.BaseAddr = rombase
 	}
 }
 

@@ -19,6 +19,8 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 		return sections.SetSection(section.SectionData.String())
 	case ".bss":
 		return sections.SetSection(section.SectionBss.String())
+	case ".rom":
+		return sections.SetSection(section.SectionRom.String())
 
 	case ".byte":
 		sections.Current().Size += int64(len(dir.Args))
@@ -112,6 +114,8 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 		return sections.SetSection(section.SectionData.String())
 	case ".bss":
 		return sections.SetSection(section.SectionBss.String())
+	case ".rom":
+		return sections.SetSection(section.SectionRom.String())
 
 	case ".byte":
 		for _, arg := range dir.Args {

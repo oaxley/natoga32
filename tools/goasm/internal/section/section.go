@@ -11,6 +11,7 @@ const (
 	SectionText SectionType = iota // Executable code
 	SectionData                    // Initialized data
 	SectionBss                     // Uninitialized data
+	SectionRom                     // ROM section code+data
 )
 
 // String returns the string representation of a section type
@@ -19,6 +20,7 @@ func (t SectionType) String() string {
 		SectionText: ".text",
 		SectionData: ".data",
 		SectionBss:  ".bss",
+		SectionRom:  ".rom",
 	}
 	if int(t) < len(names) {
 		return names[t]
