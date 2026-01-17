@@ -14,13 +14,11 @@ import (
 func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.Manager) error {
 	switch dir.Name {
 	case ".text":
-		return sections.SetSection(".text")
+		return sections.SetSection(section.SectionText.String())
 	case ".data":
-		return sections.SetSection(".data")
-	case ".rodata":
-		return sections.SetSection(".rodata")
+		return sections.SetSection(section.SectionData.String())
 	case ".bss":
-		return sections.SetSection(".bss")
+		return sections.SetSection(section.SectionBss.String())
 
 	case ".byte":
 		sections.Current().Size += int64(len(dir.Args))
@@ -109,13 +107,11 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.Manager) error {
 	switch dir.Name {
 	case ".text":
-		return sections.SetSection(".text")
+		return sections.SetSection(section.SectionText.String())
 	case ".data":
-		return sections.SetSection(".data")
-	case ".rodata":
-		return sections.SetSection(".rodata")
+		return sections.SetSection(section.SectionData.String())
 	case ".bss":
-		return sections.SetSection(".bss")
+		return sections.SetSection(section.SectionBss.String())
 
 	case ".byte":
 		for _, arg := range dir.Args {

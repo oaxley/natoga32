@@ -88,7 +88,6 @@ func assemble(inputFile string) error {
 	sections.SetBaseAddresses(
 		MMAP_TEXT_SEGMENT,
 		MMAP_DATA_SEGMENT,
-		MMAP_DATA_SEGMENT, // same for data for now
 		MMAP_BSS_SEGMENT,
 	)
 
@@ -128,7 +127,6 @@ func assemble(inputFile string) error {
 	sections.SetBaseAddresses(
 		MMAP_TEXT_SEGMENT,
 		MMAP_DATA_SEGMENT,
-		MMAP_DATA_SEGMENT, // same for data for now
 		MMAP_BSS_SEGMENT,
 	)
 

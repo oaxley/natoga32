@@ -10,7 +10,7 @@ func TestManagerDefault(t *testing.T) {
 	}
 
 	// Check default sections exist
-	sections := []string{".text", ".data", ".rodata", ".bss"}
+	sections := []string{".text", ".data", ".bss"}
 	for _, name := range sections {
 		if m.Get(name) == nil {
 			t.Errorf("default section '%s' not found", name)
@@ -78,7 +78,7 @@ func TestManagerAll(t *testing.T) {
 	}
 
 	// Check order
-	expectedOrder := []string{".text", ".data", ".rodata", ".bss"}
+	expectedOrder := []string{".text", ".data", ".bss"}
 	for i, sec := range all {
 		if sec.Name != expectedOrder[i] {
 			t.Errorf("section %d: expected '%s', got '%s'", i, expectedOrder[i], sec.Name)
@@ -109,16 +109,13 @@ func TestSectionReserve(t *testing.T) {
 func TestManagerSetBaseAddresses(t *testing.T) {
 	m := NewManager()
 
-	m.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	m.SetBaseAddresses(0x1000, 0x2000, 0x4000)
 
 	if m.Get(".text").BaseAddr != 0x1000 {
 		t.Errorf("expected .text base 0x1000, got 0x%X", m.Get(".text").BaseAddr)
 	}
 	if m.Get(".data").BaseAddr != 0x2000 {
 		t.Errorf("expected .data base 0x2000, got 0x%X", m.Get(".data").BaseAddr)
-	}
-	if m.Get(".rodata").BaseAddr != 0x3000 {
-		t.Errorf("expected .rodata base 0x3000, got 0x%X", m.Get(".rodata").BaseAddr)
 	}
 	if m.Get(".bss").BaseAddr != 0x4000 {
 		t.Errorf("expected .bss base 0x4000, got 0x%X", m.Get(".bss").BaseAddr)

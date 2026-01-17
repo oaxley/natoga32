@@ -11,7 +11,7 @@ import (
 func TestOrgDirectivePass1(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x4000)
 
 	// Start in .text at 0x1000
 	// Emit 4 bytes first
@@ -37,7 +37,7 @@ func TestOrgDirectivePass1(t *testing.T) {
 func TestOrgDirectivePass1AtCurrentAddress(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x4000)
 
 	// .org at current address should be a no-op
 	dir := &ast.Directive{
@@ -58,7 +58,7 @@ func TestOrgDirectivePass1AtCurrentAddress(t *testing.T) {
 func TestOrgDirectivePass1BackwardError(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x4000)
 
 	// Emit 16 bytes first
 	sections.Current().Size += 16 // Current address is now 0x1010
@@ -78,7 +78,7 @@ func TestOrgDirectivePass1BackwardError(t *testing.T) {
 func TestOrgDirectivePass3(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x4000)
 
 	// Emit 4 bytes first
 	sections.EmitWord(0xDEADBEEF)
@@ -116,7 +116,7 @@ func TestOrgDirectivePass3(t *testing.T) {
 func TestOrgDirectivePass3BackwardError(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x4000)
 
 	// Emit 16 bytes first
 	for i := 0; i < 4; i++ {

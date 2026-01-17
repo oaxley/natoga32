@@ -17,10 +17,9 @@ func NewManager() *Manager {
 	}
 
 	// Create default sections
-	m.AddSection(".text", SectionText)
-	m.AddSection(".data", SectionData)
-	m.AddSection(".rodata", SectionRodata)
-	m.AddSection(".bss", SectionBss)
+	m.AddSection(SectionText.String(), SectionText)
+	m.AddSection(SectionData.String(), SectionData)
+	m.AddSection(SectionBss.String(), SectionBss)
 
 	// Start in .text section
 	m.current = m.sections[".text"]
@@ -121,15 +120,12 @@ func (m *Manager) CurrentAddress() int64 {
 
 // SetBaseAddresses sets base addresses for all sections
 // This should be called after all code/data has been emitted
-func (m *Manager) SetBaseAddresses(textBase, dataBase, rodataBase, bssBase int64) {
+func (m *Manager) SetBaseAddresses(textBase, dataBase, bssBase int64) {
 	if sec := m.sections[".text"]; sec != nil {
 		sec.BaseAddr = textBase
 	}
 	if sec := m.sections[".data"]; sec != nil {
 		sec.BaseAddr = dataBase
-	}
-	if sec := m.sections[".rodata"]; sec != nil {
-		sec.BaseAddr = rodataBase
 	}
 	if sec := m.sections[".bss"]; sec != nil {
 		sec.BaseAddr = bssBase

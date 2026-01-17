@@ -8,19 +8,17 @@ package section
 type SectionType int
 
 const (
-	SectionText   SectionType = iota // Executable code
-	SectionData                      // Initialized data
-	SectionRodata                    // Read-only data
-	SectionBss                       // Uninitialized data
+	SectionText SectionType = iota // Executable code
+	SectionData                    // Initialized data
+	SectionBss                     // Uninitialized data
 )
 
 // String returns the string representation of a section type
 func (t SectionType) String() string {
 	names := [...]string{
-		SectionText:   ".text",
-		SectionData:   ".data",
-		SectionRodata: ".rodata",
-		SectionBss:    ".bss",
+		SectionText: ".text",
+		SectionData: ".data",
+		SectionBss:  ".bss",
 	}
 	if int(t) < len(names) {
 		return names[t]
