@@ -193,8 +193,8 @@ handler##COUNT:                  ; Produces: handler5:
 |-----------|-------------|
 | `.text` | Switch to code section |
 | `.data` | Switch to initialized data section |
-| `.rodata` | Switch to read-only data section |
 | `.bss` | Switch to uninitialized data section |
+| `.rom` | Switch to ROM section (for boot loader code) |
 | `.byte val [, val...]` | Emit 8-bit values |
 | `.half val [, val...]` | Emit 16-bit values |
 | `.word val [, val...]` | Emit 32-bit values |
@@ -202,6 +202,24 @@ handler##COUNT:                  ; Produces: handler5:
 | `.ascii "text"` | Emit string without null terminator |
 | `.space N` | Reserve N bytes (zero-filled) |
 | `.align N` | Align to 2^N byte boundary |
+| `.org addr` | Set location counter to absolute address |
+
+### The `.org` Directive
+
+The `.org` directive sets the location counter to an absolute address. This is useful for placing code or data at specific memory locations:
+
+```asm
+.rom
+    ; Boot code at ROM base
+    j _start
+
+.org 0x100                  ; Jump to address 0x100
+_start:
+    ; Entry point
+    li sp, 0x00F80000       ; Initialize stack pointer
+```
+
+If the target address is ahead of the current position, the gap is filled with zeros. The assembler will error if you try to move backward.
 
 ## Relocation Modifiers
 
