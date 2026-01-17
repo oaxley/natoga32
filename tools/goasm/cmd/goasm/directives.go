@@ -87,6 +87,19 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 				sections.Current().Size += info.Size()
 			}
 		}
+
+	case ".org":
+		if len(dir.Args) > 0 {
+			if num, ok := dir.Args[0].(*ast.Number); ok {
+				targetAddr := num.Value
+				currentAddr := sections.CurrentAddress()
+				gap := targetAddr - currentAddr
+				if gap < 0 {
+					return fmt.Errorf(".org address 0x%X is before current address 0x%X", targetAddr, currentAddr)
+				}
+				sections.Current().Size += gap
+			}
+		}
 	}
 
 	return nil
@@ -167,6 +180,21 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 					return fmt.Errorf("cannot read incbin file '%s': %v", str.Text, err)
 				}
 				sections.Emit(data)
+			}
+		}
+
+	case ".org":
+		if len(dir.Args) > 0 {
+			if num, ok := dir.Args[0].(*ast.Number); ok {
+				targetAddr := num.Value
+				currentAddr := sections.CurrentAddress()
+				gap := targetAddr - currentAddr
+				if gap < 0 {
+					return fmt.Errorf(".org address 0x%X is before current address 0x%X", targetAddr, currentAddr)
+				}
+				for i := int64(0); i < gap; i++ {
+					sections.EmitByte(0)
+				}
 			}
 		}
 	}
