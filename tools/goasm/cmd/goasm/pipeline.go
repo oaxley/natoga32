@@ -25,7 +25,7 @@ func assemble(inputFile string) error {
 
 	// Phase 1: Lexer
 	fmt.Println("Phase 1: Lexer")
-	lex, err := lexer.NewFromReader(file)
+	lex, err := lexer.NewFromReaderWithFile(file, inputFile)
 	if err != nil {
 		return fmt.Errorf("lexer error: %v", err)
 	}

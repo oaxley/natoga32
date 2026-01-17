@@ -82,7 +82,7 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 				filename := filepath.Join(baseDir, str.Text)
 				info, err := os.Stat(filename)
 				if err != nil {
-					return fmt.Errorf("cannot stat incbin file '%s': %v", str.Text, err)
+					return fmt.Errorf("%s: error: cannot stat incbin file '%s': %v", dir.Location, str.Text, err)
 				}
 				sections.Current().Size += info.Size()
 			}
@@ -95,7 +95,7 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 				currentAddr := sections.CurrentAddress()
 				gap := targetAddr - currentAddr
 				if gap < 0 {
-					return fmt.Errorf(".org address 0x%X is before current address 0x%X", targetAddr, currentAddr)
+					return fmt.Errorf("%s: error: .org address 0x%X is before current address 0x%X", dir.Location, targetAddr, currentAddr)
 				}
 				sections.Current().Size += gap
 			}
@@ -177,7 +177,7 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 				filename := filepath.Join(baseDir, str.Text)
 				data, err := os.ReadFile(filename)
 				if err != nil {
-					return fmt.Errorf("cannot read incbin file '%s': %v", str.Text, err)
+					return fmt.Errorf("%s: error: cannot read incbin file '%s': %v", dir.Location, str.Text, err)
 				}
 				sections.Emit(data)
 			}
@@ -190,7 +190,7 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 				currentAddr := sections.CurrentAddress()
 				gap := targetAddr - currentAddr
 				if gap < 0 {
-					return fmt.Errorf(".org address 0x%X is before current address 0x%X", targetAddr, currentAddr)
+					return fmt.Errorf("%s: error: .org address 0x%X is before current address 0x%X", dir.Location, targetAddr, currentAddr)
 				}
 				for i := int64(0); i < gap; i++ {
 					sections.EmitByte(0)

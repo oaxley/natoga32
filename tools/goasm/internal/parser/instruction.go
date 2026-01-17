@@ -24,5 +24,6 @@ func (p *Parser) parseInstruction() (*ast.Instruction, error) {
 	return &ast.Instruction{
 		Opcode:   opTok.Value,
 		Operands: operands,
+		Location: locationFromToken(opTok),
 	}, nil
 }

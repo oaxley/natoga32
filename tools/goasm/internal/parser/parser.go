@@ -102,3 +102,12 @@ func (p *Parser) expect(typ token.Type) bool {
 	}
 	return false
 }
+
+// locationFromToken creates a SourceLocation from a token
+func locationFromToken(tok token.Token) ast.SourceLocation {
+	return ast.SourceLocation{
+		Filename: tok.Filename,
+		Line:     tok.Row,
+		Column:   tok.Col,
+	}
+}

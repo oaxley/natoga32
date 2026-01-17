@@ -14,11 +14,12 @@ import (
 
 // Lexer tokenizes assembly source code
 type Lexer struct {
-	input  string
-	pos    int // Current position in input
-	row    int // Current line number (1-based)
-	col    int // Current column (1-based)
-	tokens []token.Token
+	input    string
+	filename string
+	pos      int // Current position in input
+	row      int // Current line number (1-based)
+	col      int // Current column (1-based)
+	tokens   []token.Token
 }
 
 // New creates a new lexer from a string
@@ -29,6 +30,18 @@ func New(input string) *Lexer {
 		row:    1,
 		col:    1,
 		tokens: make([]token.Token, 0),
+	}
+}
+
+// NewWithFile creates a new lexer from a string with a filename
+func NewWithFile(input, filename string) *Lexer {
+	return &Lexer{
+		input:    input,
+		filename: filename,
+		pos:      0,
+		row:      1,
+		col:      1,
+		tokens:   make([]token.Token, 0),
 	}
 }
 
@@ -46,12 +59,26 @@ func NewFromReader(r io.Reader) (*Lexer, error) {
 	return New(sb.String()), nil
 }
 
+// NewFromReaderWithFile creates a new lexer from an io.Reader with a filename
+func NewFromReaderWithFile(r io.Reader, filename string) (*Lexer, error) {
+	var sb strings.Builder
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		sb.WriteString(scanner.Text())
+		sb.WriteByte('\n')
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return NewWithFile(sb.String(), filename), nil
+}
+
 // Tokenize processes the input and returns all tokens
 func (l *Lexer) Tokenize() []token.Token {
 	for !l.atEnd() {
 		l.scanToken()
 	}
-	l.tokens = append(l.tokens, token.New(token.EOF, "", l.row, l.col))
+	l.tokens = append(l.tokens, token.NewWithFile(token.EOF, "", l.filename, l.row, l.col))
 	return l.tokens
 }
 
@@ -100,5 +127,5 @@ func (l *Lexer) match(expected byte) bool {
 
 // addToken adds a token to the list
 func (l *Lexer) addToken(typ token.Type, value string, row, col int) {
-	l.tokens = append(l.tokens, token.New(typ, value, row, col))
+	l.tokens = append(l.tokens, token.NewWithFile(typ, value, l.filename, row, col))
 }

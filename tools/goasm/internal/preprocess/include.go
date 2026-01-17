@@ -49,7 +49,7 @@ func (p *Preprocessor) handleInclude(ts *tokenStream) ([]token.Token, error) {
 	}
 	defer file.Close()
 
-	lex, err := lexer.NewFromReader(file)
+	lex, err := lexer.NewFromReaderWithFile(file, fullPath)
 	if err != nil {
 		delete(p.includes, fullPath)
 		return nil, fmt.Errorf("error reading include file '%s': %v", fullPath, err)

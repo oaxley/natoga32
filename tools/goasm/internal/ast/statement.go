@@ -6,7 +6,8 @@ package ast
 
 // Label represents a label definition (e.g., "main:")
 type Label struct {
-	Name string
+	Name     string
+	Location SourceLocation
 }
 
 func (l *Label) node()      {}
@@ -17,6 +18,7 @@ type Instruction struct {
 	Opcode   string
 	Operands []Expression
 	Address  int // Set during semantic analysis
+	Location SourceLocation
 }
 
 func (i *Instruction) node()      {}
@@ -24,8 +26,9 @@ func (i *Instruction) statement() {}
 
 // Directive represents an assembler directive (e.g., ".text", ".byte 0x00")
 type Directive struct {
-	Name string
-	Args []Expression
+	Name     string
+	Args     []Expression
+	Location SourceLocation
 }
 
 func (d *Directive) node()      {}

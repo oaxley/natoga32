@@ -20,5 +20,8 @@ func (p *Parser) parseLabel() (*ast.Label, error) {
 	// Consume trailing EOL
 	p.expect(token.EOL)
 
-	return &ast.Label{Name: name}, nil
+	return &ast.Label{
+		Name:     name,
+		Location: locationFromToken(tok),
+	}, nil
 }

@@ -13,11 +13,12 @@ import (
 func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *section.Manager) error {
 	op, ok := arch.LookupOpcode(instr.Opcode)
 	if !ok {
-		return fmt.Errorf("unknown instruction: %s", instr.Opcode)
+		return fmt.Errorf("%s: error: unknown instruction '%s'", instr.Location, instr.Opcode)
 	}
 
 	pc := sections.CurrentAddress()
 	var encoded []byte
+	var err error
 
 	switch op.Type {
 	case arch.TypeR:
@@ -43,7 +44,10 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			rs1 = evalRegister(instr.Operands[1])
 		}
 		if len(instr.Operands) >= 3 {
-			imm = evalImmediate(instr.Operands[2], symbols, pc)
+			imm, err = evalImmediateWithError(instr.Operands[2], symbols, pc)
+			if err != nil {
+				return err
+			}
 		}
 		encoded = arch.EncodeTypeI(op, rd, rs1, imm)
 
@@ -57,7 +61,11 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			rs1 = evalRegister(instr.Operands[1])
 		}
 		if len(instr.Operands) >= 3 {
-			shamt = uint32(evalImmediate(instr.Operands[2], symbols, pc))
+			val, err := evalImmediateWithError(instr.Operands[2], symbols, pc)
+			if err != nil {
+				return err
+			}
+			shamt = uint32(val)
 		}
 		encoded = arch.EncodeTypeI2(op, rd, rs1, shamt)
 
@@ -68,7 +76,10 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			rs2 = evalRegister(instr.Operands[0])
 		}
 		if len(instr.Operands) >= 2 {
-			imm = evalImmediate(instr.Operands[1], symbols, pc)
+			imm, err = evalImmediateWithError(instr.Operands[1], symbols, pc)
+			if err != nil {
+				return err
+			}
 		}
 		if len(instr.Operands) >= 3 {
 			rs1 = evalRegister(instr.Operands[2])
@@ -85,7 +96,10 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			rs2 = evalRegister(instr.Operands[1])
 		}
 		if len(instr.Operands) >= 3 {
-			target := evalExpression(instr.Operands[2], symbols, pc)
+			target, err := evalExpressionWithError(instr.Operands[2], symbols, pc)
+			if err != nil {
+				return err
+			}
 			imm = int32(target - pc)
 		}
 		encoded = arch.EncodeTypeB(op, rs1, rs2, imm)
@@ -97,7 +111,10 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			rd = evalRegister(instr.Operands[0])
 		}
 		if len(instr.Operands) >= 2 {
-			imm = evalImmediate(instr.Operands[1], symbols, pc)
+			imm, err = evalImmediateWithError(instr.Operands[1], symbols, pc)
+			if err != nil {
+				return err
+			}
 		}
 		encoded = arch.EncodeTypeU(op, rd, imm)
 
@@ -108,13 +125,16 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			rd = evalRegister(instr.Operands[0])
 		}
 		if len(instr.Operands) >= 2 {
-			target := evalExpression(instr.Operands[1], symbols, pc)
+			target, err := evalExpressionWithError(instr.Operands[1], symbols, pc)
+			if err != nil {
+				return err
+			}
 			imm = int32(target - pc)
 		}
 		encoded = arch.EncodeTypeJ(op, rd, imm)
 
 	default:
-		return fmt.Errorf("unsupported instruction type: %v", op.Type)
+		return fmt.Errorf("%s: error: unsupported instruction type '%v'", instr.Location, op.Type)
 	}
 
 	sections.Emit(encoded)

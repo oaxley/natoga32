@@ -11,6 +11,7 @@ import (
 // parsePrimary parses a primary expression
 func (p *Parser) parsePrimary() (ast.Expression, error) {
 	tok := p.advance()
+	loc := locationFromToken(tok)
 
 	switch tok.Type {
 	case token.EOF:
@@ -21,13 +22,13 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid number %q: %v", tok.Value, err)
 		}
-		return &ast.Number{Value: val}, nil
+		return &ast.Number{Value: val, Location: loc}, nil
 
 	case token.IDENT:
-		return &ast.Identifier{Name: tok.Value}, nil
+		return &ast.Identifier{Name: tok.Value, Location: loc}, nil
 
 	case token.DOLLAR:
-		return &ast.CurrentPC{}, nil
+		return &ast.CurrentPC{Location: loc}, nil
 
 	case token.STRING:
 		// Strip quotes
@@ -35,7 +36,7 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 		if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
 			s = s[1 : len(s)-1]
 		}
-		return &ast.StringLiteral{Text: s}, nil
+		return &ast.StringLiteral{Text: s, Location: loc}, nil
 
 	case token.CHAR:
 		// Strip quotes and get character
@@ -67,7 +68,7 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 				ch = rune(s[0])
 			}
 		}
-		return &ast.CharLiteral{Char: ch}, nil
+		return &ast.CharLiteral{Char: ch, Location: loc}, nil
 
 	case token.ABS_LO, token.ABS_HI, token.PCREL_LO, token.PCREL_HI:
 		// Relocation modifier: %lo(expr), %hi(expr), etc.
@@ -87,13 +88,13 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 
 		switch tok.Type {
 		case token.ABS_LO:
-			return &ast.LoRel{Expr: expr}, nil
+			return &ast.LoRel{Expr: expr, Location: loc}, nil
 		case token.ABS_HI:
-			return &ast.HiRel{Expr: expr}, nil
+			return &ast.HiRel{Expr: expr, Location: loc}, nil
 		case token.PCREL_LO:
-			return &ast.PCRelLo{Expr: expr}, nil
+			return &ast.PCRelLo{Expr: expr, Location: loc}, nil
 		case token.PCREL_HI:
-			return &ast.PCRelHi{Expr: expr}, nil
+			return &ast.PCRelHi{Expr: expr, Location: loc}, nil
 		}
 
 	case token.LPAREN:
@@ -117,7 +118,7 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ast.UnaryOp{Op: op, Operand: operand}, nil
+		return &ast.UnaryOp{Op: op, Operand: operand, Location: loc}, nil
 	}
 
 	return nil, fmt.Errorf("unexpected token in expression: %s (%q) at line %d", tok.Type, tok.Value, tok.Row)

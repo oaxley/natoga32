@@ -17,7 +17,8 @@ func (p *Parser) parseDirective() (*ast.Directive, error) {
 	p.expect(token.EOL)
 
 	return &ast.Directive{
-		Name: dirTok.Value,
-		Args: args,
+		Name:     dirTok.Value,
+		Args:     args,
+		Location: locationFromToken(dirTok),
 	}, nil
 }

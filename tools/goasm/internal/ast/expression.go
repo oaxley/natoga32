@@ -6,7 +6,8 @@ package ast
 
 // Number represents a numeric literal
 type Number struct {
-	Value int64
+	Value    int64
+	Location SourceLocation
 }
 
 func (n *Number) node()       {}
@@ -14,7 +15,8 @@ func (n *Number) expression() {}
 
 // Identifier represents a symbol reference
 type Identifier struct {
-	Name string
+	Name     string
+	Location SourceLocation
 }
 
 func (i *Identifier) node()       {}
@@ -22,7 +24,8 @@ func (i *Identifier) expression() {}
 
 // StringLiteral represents a string literal
 type StringLiteral struct {
-	Text string
+	Text     string
+	Location SourceLocation
 }
 
 func (s *StringLiteral) node()       {}
@@ -30,23 +33,27 @@ func (s *StringLiteral) expression() {}
 
 // CharLiteral represents a character literal
 type CharLiteral struct {
-	Char rune
+	Char     rune
+	Location SourceLocation
 }
 
 func (c *CharLiteral) node()       {}
 func (c *CharLiteral) expression() {}
 
 // CurrentPC represents the current program counter ($)
-type CurrentPC struct{}
+type CurrentPC struct {
+	Location SourceLocation
+}
 
 func (c *CurrentPC) node()       {}
 func (c *CurrentPC) expression() {}
 
 // BinaryOp represents a binary operation (e.g., a + b)
 type BinaryOp struct {
-	Op    string // "+", "-", "*", "/", etc.
-	Left  Expression
-	Right Expression
+	Op       string // "+", "-", "*", "/", etc.
+	Left     Expression
+	Right    Expression
+	Location SourceLocation
 }
 
 func (b *BinaryOp) node()       {}
@@ -54,8 +61,9 @@ func (b *BinaryOp) expression() {}
 
 // UnaryOp represents a unary operation (e.g., -x)
 type UnaryOp struct {
-	Op    string // "+" or "-"
-	Operand Expression
+	Op       string // "+" or "-"
+	Operand  Expression
+	Location SourceLocation
 }
 
 func (u *UnaryOp) node()       {}
@@ -71,7 +79,8 @@ type RelocExpr interface {
 
 // HiRel represents %hi(expr) - absolute high 20 bits
 type HiRel struct {
-	Expr Expression
+	Expr     Expression
+	Location SourceLocation
 }
 
 func (h *HiRel) node()       {}
@@ -80,7 +89,8 @@ func (h *HiRel) reloc()      {}
 
 // LoRel represents %lo(expr) - absolute low 12 bits
 type LoRel struct {
-	Expr Expression
+	Expr     Expression
+	Location SourceLocation
 }
 
 func (l *LoRel) node()       {}
@@ -89,7 +99,8 @@ func (l *LoRel) reloc()      {}
 
 // PCRelHi represents %pcrel_hi(expr) - PC-relative high 20 bits
 type PCRelHi struct {
-	Expr Expression
+	Expr     Expression
+	Location SourceLocation
 }
 
 func (p *PCRelHi) node()       {}
@@ -98,7 +109,8 @@ func (p *PCRelHi) reloc()      {}
 
 // PCRelLo represents %pcrel_lo(expr) - PC-relative low 12 bits
 type PCRelLo struct {
-	Expr Expression
+	Expr     Expression
+	Location SourceLocation
 }
 
 func (p *PCRelLo) node()       {}

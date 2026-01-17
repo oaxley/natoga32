@@ -30,7 +30,7 @@ func (p *Parser) parseExpression(minPrec int) (ast.Expression, error) {
 		}
 
 		// Consume the operator
-		p.advance()
+		opTok := p.advance()
 
 		// Parse right side with higher precedence
 		right, err := p.parseExpression(prec + 1)
@@ -39,9 +39,10 @@ func (p *Parser) parseExpression(minPrec int) (ast.Expression, error) {
 		}
 
 		left = &ast.BinaryOp{
-			Op:    op,
-			Left:  left,
-			Right: right,
+			Op:       op,
+			Left:     left,
+			Right:    right,
+			Location: locationFromToken(opTok),
 		}
 	}
 

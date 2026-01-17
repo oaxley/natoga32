@@ -111,14 +111,18 @@ func (t Type) String() string {
 
 // Token represents a single token from the source code
 type Token struct {
-	Type  Type   // The type of the token
-	Value string // The literal value as seen in the source
-	Row   int    // Line number (1-based)
-	Col   int    // Column number (1-based)
+	Type     Type   // The type of the token
+	Value    string // The literal value as seen in the source
+	Filename string // Source filename
+	Row      int    // Line number (1-based)
+	Col      int    // Column number (1-based)
 }
 
 // String returns a string representation of the token
 func (t Token) String() string {
+	if t.Filename != "" {
+		return fmt.Sprintf("%s;%s;%d;%d;%s", t.Type, t.Filename, t.Row, t.Col, t.Value)
+	}
 	return fmt.Sprintf("%s;%d;%d;%s", t.Type, t.Row, t.Col, t.Value)
 }
 
@@ -129,6 +133,17 @@ func New(typ Type, value string, row, col int) Token {
 		Value: value,
 		Row:   row,
 		Col:   col,
+	}
+}
+
+// NewWithFile creates a new token with a filename
+func NewWithFile(typ Type, value, filename string, row, col int) Token {
+	return Token{
+		Type:     typ,
+		Value:    value,
+		Filename: filename,
+		Row:      row,
+		Col:      col,
 	}
 }
 
