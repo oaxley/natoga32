@@ -50,6 +50,20 @@ func EncodeTypeR(op InstrOpcode, rd, rs1, rs2 uint32) []byte {
 	return uint32ToBytes(value)
 }
 
+// EncodeTypeR2 encodes an R-type instruction with two source registers (rd=0)
+// Used for instructions like sleep.t that have no destination register
+// Format: funct7[31:25] | rs2[24:20] | rs1[19:15] | funct3[14:12] | rd[11:7] | opcode[6:0]
+func EncodeTypeR2(op InstrOpcode, rs1, rs2 uint32) []byte {
+	value := (op.Funct7 << 25) |
+		((rs2 & 0x1F) << 20) |
+		((rs1 & 0x1F) << 15) |
+		(op.Funct3 << 12) |
+		(0 << 7) | // rd = 0
+		op.Opcode
+
+	return uint32ToBytes(value)
+}
+
 // EncodeTypeI encodes an I-type instruction
 // Format: imm[31:20] | rs1[19:15] | funct3[14:12] | rd[11:7] | opcode[6:0]
 func EncodeTypeI(op InstrOpcode, rd, rs1 uint32, imm int32) []byte {
@@ -165,6 +179,8 @@ func Encode(mnemonic string, rd, rs1, rs2 uint32, imm int32) ([]byte, error) {
 	switch op.Type {
 	case TypeR:
 		return EncodeTypeR(op, rd, rs1, rs2), nil
+	case TypeR2:
+		return EncodeTypeR2(op, rs1, rs2), nil
 	case TypeI:
 		return EncodeTypeI(op, rd, rs1, imm), nil
 	case TypeI2:

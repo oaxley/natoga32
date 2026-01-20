@@ -34,6 +34,16 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		}
 		encoded = arch.EncodeTypeR(op, rd, rs1, rs2)
 
+	case arch.TypeR2:
+		rs1, rs2 := uint32(0), uint32(0)
+		if len(instr.Operands) >= 1 {
+			rs1 = evalRegister(instr.Operands[0])
+		}
+		if len(instr.Operands) >= 2 {
+			rs2 = evalRegister(instr.Operands[1])
+		}
+		encoded = arch.EncodeTypeR2(op, rs1, rs2)
+
 	case arch.TypeI:
 		rd, rs1 := uint32(0), uint32(0)
 		imm := int32(0)

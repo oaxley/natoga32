@@ -9,6 +9,7 @@ type InstrType int
 
 const (
 	TypeR  InstrType = iota // R-type: register-register operations
+	TypeR2                  // R-type with rs1, rs2 only (rd=0)
 	TypeI                   // I-type: immediate operations, loads
 	TypeI2                  // I-type variant: shift immediate (uses funct7)
 	TypeS                   // S-type: stores
@@ -21,6 +22,7 @@ const (
 func (t InstrType) String() string {
 	names := [...]string{
 		TypeR:  "R",
+		TypeR2: "R2",
 		TypeI:  "I",
 		TypeI2: "I2",
 		TypeS:  "S",
