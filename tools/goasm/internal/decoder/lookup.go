@@ -37,11 +37,34 @@ var useRs2Opcodes = map[uint32]bool{
 	0x73: true, // For mret, wfi
 }
 
+// zbbUnaryInstructions are Zbb instructions with fixed rs2/shamt values
+// These need special handling because they share opcode/funct3/funct7 with
+// shift-immediate instructions like binvi, but have specific rs2 values.
+var zbbUnaryInstructions = map[string]bool{
+	"clz":    true, // rs2=0b00000
+	"ctz":    true, // rs2=0b00001
+	"cpop":   true, // rs2=0b00010
+	"sext.b": true, // rs2=0b00100
+	"sext.h": true, // rs2=0b00101
+	"rev8":   true, // rs2=0b11000
+}
+
+// shiftImmediateInstructions are instructions where rs2 field is actually
+// a shift amount (shamt), not a fixed value. They should be matched as
+// fallback when no Zbb unary instruction matches.
+var shiftImmediateInstructions = map[string]bool{
+	"binvi": true,
+	"bseti": true,
+	"bclri": true,
+	"bexti": true,
+	"rori":  true,
+}
+
 func init() {
 	reverseOpcodeTable = make(map[OpcodeKey]*OpcodeEntry)
 
 	for mnemonic, info := range arch.Opcodes {
-		key := buildKey(info)
+		key := buildKeyForMnemonic(mnemonic, info)
 		reverseOpcodeTable[key] = &OpcodeEntry{
 			Mnemonic: mnemonic,
 			Info:     info,
@@ -49,8 +72,9 @@ func init() {
 	}
 }
 
-// buildKey creates a lookup key from opcode info
-func buildKey(info arch.InstrOpcode) OpcodeKey {
+// buildKeyForMnemonic creates a lookup key from opcode info, with special
+// handling for certain instruction classes
+func buildKeyForMnemonic(mnemonic string, info arch.InstrOpcode) OpcodeKey {
 	key := OpcodeKey{
 		Opcode: info.Opcode,
 		Funct3: info.Funct3,
@@ -61,7 +85,21 @@ func buildKey(info arch.InstrOpcode) OpcodeKey {
 		key.Funct7 = info.Funct7
 	}
 
-	// Include rs2 for special instructions
+	// Zbb unary instructions always include Rs2 (even when 0)
+	// because they have fixed rs2 values that distinguish them
+	// from shift-immediate instructions
+	if zbbUnaryInstructions[mnemonic] {
+		key.Rs2 = info.Rs2
+		return key
+	}
+
+	// Shift-immediate instructions (binvi, bseti, etc.) do NOT include
+	// Rs2 in the key because it's a variable shift amount
+	if shiftImmediateInstructions[mnemonic] {
+		return key
+	}
+
+	// For other instructions, include rs2 if non-zero
 	if useRs2Opcodes[info.Opcode] && info.Rs2 != 0 {
 		key.Rs2 = info.Rs2
 	}
