@@ -123,6 +123,7 @@ func TestFormatIType(t *testing.T) {
 func TestFormatLoadInstructions(t *testing.T) {
 	f := New(DefaultOptions())
 
+	// Load format: lw rd, rs1, offset (assembler format for round-trip)
 	tests := []struct {
 		name     string
 		mnemonic string
@@ -131,13 +132,13 @@ func TestFormatLoadInstructions(t *testing.T) {
 		imm      int32
 		want     string
 	}{
-		{"lw zero offset", "lw", 1, 2, 0, "lw ra, 0(sp)"},
-		{"lw positive offset", "lw", 10, 11, 4, "lw a0, 4(a1)"},
-		{"lw negative offset", "lw", 12, 13, -4, "lw a2, -4(a3)"},
-		{"lb", "lb", 5, 6, 1, "lb t0, 1(t1)"},
-		{"lh", "lh", 7, 8, 2, "lh t2, 2(s0)"},
-		{"lbu", "lbu", 9, 10, 0, "lbu s1, 0(a0)"},
-		{"lhu", "lhu", 11, 12, 10, "lhu a1, 10(a2)"},
+		{"lw zero offset", "lw", 1, 2, 0, "lw ra, sp, 0"},
+		{"lw positive offset", "lw", 10, 11, 4, "lw a0, a1, 4"},
+		{"lw negative offset", "lw", 12, 13, -4, "lw a2, a3, -4"},
+		{"lb", "lb", 5, 6, 1, "lb t0, t1, 1"},
+		{"lh", "lh", 7, 8, 2, "lh t2, s0, 2"},
+		{"lbu", "lbu", 9, 10, 0, "lbu s1, a0, 0"},
+		{"lhu", "lhu", 11, 12, 10, "lhu a1, a2, 10"},
 	}
 
 	for _, tt := range tests {
@@ -181,6 +182,7 @@ func TestFormatI2Type(t *testing.T) {
 func TestFormatSType(t *testing.T) {
 	f := New(DefaultOptions())
 
+	// Store format: sw rs2, offset, rs1 (assembler format for round-trip)
 	tests := []struct {
 		name     string
 		mnemonic string
@@ -189,11 +191,11 @@ func TestFormatSType(t *testing.T) {
 		imm      int32
 		want     string
 	}{
-		{"sw zero offset", "sw", 2, 1, 0, "sw ra, 0(sp)"},
-		{"sw positive offset", "sw", 10, 11, 4, "sw a1, 4(a0)"},
-		{"sw negative offset", "sw", 12, 13, -4, "sw a3, -4(a2)"},
-		{"sh", "sh", 5, 6, 2, "sh t1, 2(t0)"},
-		{"sb", "sb", 7, 8, 1, "sb s0, 1(t2)"},
+		{"sw zero offset", "sw", 2, 1, 0, "sw ra, 0, sp"},
+		{"sw positive offset", "sw", 10, 11, 4, "sw a1, 4, a0"},
+		{"sw negative offset", "sw", 12, 13, -4, "sw a3, -4, a2"},
+		{"sh", "sh", 5, 6, 2, "sh t1, 2, t0"},
+		{"sb", "sb", 7, 8, 1, "sb s0, 1, t2"},
 	}
 
 	for _, tt := range tests {
@@ -475,12 +477,15 @@ func TestFormatWithPseudo(t *testing.T) {
 		want     string
 	}{
 		{"nop", "addi", 0, 0, 0, 0, 0, "nop"},
-		{"li", "addi", 1, 0, 0, 10, 0, "li ra, 10"},
+		// Note: "li" is intentionally NOT matched to ensure round-trip compatibility
+		{"addi_from_zero", "addi", 1, 0, 0, 10, 0, "addi ra, zero, 10"},
 		{"mv", "addi", 5, 10, 0, 0, 0, "mv t0, a0"},
+		{"mv_from_zero", "addi", 5, 0, 0, 0, 0, "mv t0, zero"}, // addi rd, x0, 0 => mv rd, zero
 		{"ret", "jalr", 0, 1, 0, 0, 0, "ret"},
 		{"jr", "jalr", 0, 10, 0, 0, 0, "jr a0"},
 		{"j", "jal", 0, 0, 0, 8, 0x1000, "j 0x1008"},
-		{"call", "jal", 1, 0, 0, 100, 0x1000, "call 0x1064"},
+		// Note: "call" is intentionally NOT matched to ensure round-trip compatibility
+		{"jal_ra", "jal", 1, 0, 0, 100, 0x1000, "jal ra, 0x1064"},
 		{"beqz", "beq", 0, 5, 0, 8, 0x1000, "beqz t0, 0x1008"},
 		{"bnez", "bne", 0, 10, 0, 16, 0x2000, "bnez a0, 0x2010"},
 		{"neg", "sub", 5, 0, 10, 0, 0, "neg t0, a0"},

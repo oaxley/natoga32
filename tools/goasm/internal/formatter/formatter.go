@@ -90,6 +90,8 @@ func (f *Formatter) formatInstruction(addr uint32, instr *decoder.DecodedInstruc
 		return f.formatTypeR(instr)
 	case arch.TypeR2:
 		return f.formatTypeR2(instr)
+	case arch.TypeRU:
+		return f.formatTypeRU(instr)
 	case arch.TypeI:
 		return f.formatTypeI(instr)
 	case arch.TypeI2:
@@ -122,14 +124,22 @@ func (f *Formatter) formatTypeR2(instr *decoder.DecodedInstruction) string {
 	return fmt.Sprintf("%s %s, %s", instr.Mnemonic, rs1, rs2)
 }
 
+// formatTypeRU formats RU-type (unary) instructions: mnemonic rd, rs1
+// Used for Zbb instructions like clz, ctz, cpop, sext.b, sext.h, rev8
+func (f *Formatter) formatTypeRU(instr *decoder.DecodedInstruction) string {
+	rd := f.regName(instr.Rd)
+	rs1 := f.regName(instr.Rs1)
+	return fmt.Sprintf("%s %s, %s", instr.Mnemonic, rd, rs1)
+}
+
 // formatTypeI formats I-type instructions
 func (f *Formatter) formatTypeI(instr *decoder.DecodedInstruction) string {
 	rd := f.regName(instr.Rd)
 	rs1 := f.regName(instr.Rs1)
 
-	// Load instructions use offset(base) format
+	// Load instructions: lw rd, rs1, offset (assembler format for round-trip)
 	if isLoadInstruction(instr.Mnemonic) {
-		return fmt.Sprintf("%s %s, %d(%s)", instr.Mnemonic, rd, instr.Immediate, rs1)
+		return fmt.Sprintf("%s %s, %s, %d", instr.Mnemonic, rd, rs1, instr.Immediate)
 	}
 
 	// CSR instructions have special formatting
@@ -158,11 +168,12 @@ func (f *Formatter) formatTypeI2(instr *decoder.DecodedInstruction) string {
 	return fmt.Sprintf("%s %s, %s, %d", instr.Mnemonic, rd, rs1, instr.Immediate)
 }
 
-// formatTypeS formats S-type (store) instructions: mnemonic rs2, offset(rs1)
+// formatTypeS formats S-type (store) instructions: mnemonic rs2, offset, rs1
+// Uses assembler format for round-trip compatibility
 func (f *Formatter) formatTypeS(instr *decoder.DecodedInstruction) string {
 	rs1 := f.regName(instr.Rs1)
 	rs2 := f.regName(instr.Rs2)
-	return fmt.Sprintf("%s %s, %d(%s)", instr.Mnemonic, rs2, instr.Immediate, rs1)
+	return fmt.Sprintf("%s %s, %d, %s", instr.Mnemonic, rs2, instr.Immediate, rs1)
 }
 
 // formatTypeB formats B-type (branch) instructions: mnemonic rs1, rs2, target
@@ -188,18 +199,20 @@ func (f *Formatter) formatTypeJ(addr uint32, instr *decoder.DecodedInstruction) 
 }
 
 // formatCSR formats CSR instructions
+// Uses assembler format for round-trip: rd, rs1/uimm, csr
 func (f *Formatter) formatCSR(instr *decoder.DecodedInstruction) string {
 	rd := f.regName(instr.Rd)
-	rs1 := f.regName(instr.Rs1)
 	csr := uint32(instr.Immediate) & 0xFFF
 
-	// CSR immediate variants use rs1 field as immediate
+	// CSR immediate variants use rs1 field as uimm
+	// Note: assembler treats this as a register, so use register syntax
 	if strings.HasSuffix(instr.Mnemonic, "i") {
-		uimm := instr.Rs1
-		return fmt.Sprintf("%s %s, 0x%X, %d", instr.Mnemonic, rd, csr, uimm)
+		// Use x-notation for uimm since assembler parses it as register
+		return fmt.Sprintf("%s %s, x%d, 0x%X", instr.Mnemonic, rd, instr.Rs1, csr)
 	}
 
-	return fmt.Sprintf("%s %s, 0x%X, %s", instr.Mnemonic, rd, csr, rs1)
+	rs1 := f.regName(instr.Rs1)
+	return fmt.Sprintf("%s %s, %s, 0x%X", instr.Mnemonic, rd, rs1, csr)
 }
 
 // regName returns the register name based on formatter options
