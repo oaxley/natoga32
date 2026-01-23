@@ -453,3 +453,86 @@ func TestCalculateTarget(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatWithPseudo(t *testing.T) {
+	// Test that pseudo-instructions are formatted correctly when ShowPseudo is enabled
+	opts := Options{
+		UseABINames: true,
+		ShowAddress: false,
+		ShowHex:     false,
+		ShowPseudo:  true,
+	}
+	f := New(opts)
+
+	tests := []struct {
+		name     string
+		mnemonic string
+		rd       uint32
+		rs1      uint32
+		rs2      uint32
+		imm      int32
+		addr     uint32
+		want     string
+	}{
+		{"nop", "addi", 0, 0, 0, 0, 0, "nop"},
+		{"li", "addi", 1, 0, 0, 10, 0, "li ra, 10"},
+		{"mv", "addi", 5, 10, 0, 0, 0, "mv t0, a0"},
+		{"ret", "jalr", 0, 1, 0, 0, 0, "ret"},
+		{"jr", "jalr", 0, 10, 0, 0, 0, "jr a0"},
+		{"j", "jal", 0, 0, 0, 8, 0x1000, "j 0x1008"},
+		{"call", "jal", 1, 0, 0, 100, 0x1000, "call 0x1064"},
+		{"beqz", "beq", 0, 5, 0, 8, 0x1000, "beqz t0, 0x1008"},
+		{"bnez", "bne", 0, 10, 0, 16, 0x2000, "bnez a0, 0x2010"},
+		{"neg", "sub", 5, 0, 10, 0, 0, "neg t0, a0"},
+		{"not", "xori", 6, 11, 0, -1, 0, "not t1, a1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			instr := decodeForTest(tt.mnemonic, tt.rd, tt.rs1, tt.rs2, tt.imm)
+			got := f.FormatInstruction(tt.addr, instr)
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatWithoutPseudo(t *testing.T) {
+	// Test that pseudo-instructions are NOT formatted when ShowPseudo is disabled
+	opts := Options{
+		UseABINames: true,
+		ShowAddress: false,
+		ShowHex:     false,
+		ShowPseudo:  false, // Disabled
+	}
+	f := New(opts)
+
+	tests := []struct {
+		name     string
+		mnemonic string
+		rd       uint32
+		rs1      uint32
+		rs2      uint32
+		imm      int32
+		addr     uint32
+		want     string
+	}{
+		// Without pseudo, nop should show as addi
+		{"nop -> addi", "addi", 0, 0, 0, 0, 0, "addi zero, zero, 0"},
+		{"li -> addi", "addi", 1, 0, 0, 10, 0, "addi ra, zero, 10"},
+		{"mv -> addi", "addi", 5, 10, 0, 0, 0, "addi t0, a0, 0"},
+		{"ret -> jalr", "jalr", 0, 1, 0, 0, 0, "jalr zero, ra, 0"},
+		{"j -> jal", "jal", 0, 0, 0, 8, 0x1000, "jal zero, 0x1008"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			instr := decodeForTest(tt.mnemonic, tt.rd, tt.rs1, tt.rs2, tt.imm)
+			got := f.FormatInstruction(tt.addr, instr)
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

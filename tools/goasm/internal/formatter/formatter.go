@@ -17,6 +17,7 @@ type Options struct {
 	UseABINames bool // Use ABI register names (ra, sp, a0) instead of x0-x31
 	ShowAddress bool // Prefix output with address
 	ShowHex     bool // Show hex encoding as comment
+	ShowPseudo  bool // Show pseudo-instructions when possible
 }
 
 // DefaultOptions returns the default formatting options
@@ -30,12 +31,16 @@ func DefaultOptions() Options {
 
 // Formatter formats decoded instructions as assembly text
 type Formatter struct {
-	opts Options
+	opts   Options
+	pseudo *decoder.PseudoMatcher
 }
 
 // New creates a new Formatter with the given options
 func New(opts Options) *Formatter {
-	return &Formatter{opts: opts}
+	return &Formatter{
+		opts:   opts,
+		pseudo: decoder.NewPseudoMatcher(),
+	}
 }
 
 // Format formats a decoded instruction at the given address
@@ -68,6 +73,16 @@ func (f *Formatter) FormatInstruction(addr uint32, instr *decoder.DecodedInstruc
 func (f *Formatter) formatInstruction(addr uint32, instr *decoder.DecodedInstruction) string {
 	if instr.IsUnknown() {
 		return fmt.Sprintf(".word 0x%08X", instr.RawWord)
+	}
+
+	// Try pseudo-instruction matching if enabled
+	if f.opts.ShowPseudo {
+		if mnemonic, operands, matched := f.pseudo.Match(instr, addr, f.opts.UseABINames); matched {
+			if operands == "" {
+				return mnemonic
+			}
+			return fmt.Sprintf("%s %s", mnemonic, operands)
+		}
 	}
 
 	switch instr.Type {

@@ -59,7 +59,7 @@ func init() {
 	// Disassembly flags
 	rootCmd.Flags().BoolVar(&disasmMode, "disasm", false, "Disassemble input file")
 	rootCmd.Flags().Uint32Var(&disasmBaseAddr, "base", MMAP_TEXT_SEGMENT, "Base address for disassembly (raw binary only)")
-	rootCmd.Flags().BoolVar(&disasmPseudo, "pseudo", false, "Show pseudo-instructions (not yet implemented)")
+	rootCmd.Flags().BoolVar(&disasmPseudo, "pseudo", false, "Show pseudo-instructions (nop, li, mv, ret, etc.)")
 	rootCmd.Flags().BoolVar(&disasmShowHex, "hex", true, "Show hex encoding in disassembly output")
 	rootCmd.Flags().BoolVar(&disasmNoABI, "no-abi", false, "Use x0-x31 register names instead of ABI names")
 }

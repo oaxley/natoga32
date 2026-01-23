@@ -26,6 +26,7 @@ func runDisasm(inputFile string) error {
 		UseABINames: !disasmNoABI,
 		ShowAddress: true,
 		ShowHex:     disasmShowHex,
+		ShowPseudo:  disasmPseudo,
 	}
 	fmtr := formatter.New(opts)
 
