@@ -44,6 +44,18 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		}
 		encoded = arch.EncodeTypeR2(op, rs1, rs2)
 
+	case arch.TypeRU:
+		// Unary R-type: clz, ctz, cpop, sext.b, sext.h, rev8
+		// Takes rd, rs1 only - rs2 is fixed by the opcode
+		rd, rs1 := uint32(0), uint32(0)
+		if len(instr.Operands) >= 1 {
+			rd = evalRegister(instr.Operands[0])
+		}
+		if len(instr.Operands) >= 2 {
+			rs1 = evalRegister(instr.Operands[1])
+		}
+		encoded = arch.EncodeTypeRU(op, rd, rs1)
+
 	case arch.TypeI:
 		rd, rs1 := uint32(0), uint32(0)
 		imm := int32(0)

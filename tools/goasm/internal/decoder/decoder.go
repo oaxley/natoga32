@@ -38,6 +38,8 @@ func Decode(word uint32) *DecodedInstruction {
 		decodeTypeR(word, instr)
 	case arch.TypeR2:
 		decodeTypeR2(word, instr)
+	case arch.TypeRU:
+		decodeTypeRU(word, instr)
 	case arch.TypeI:
 		decodeTypeI(word, instr)
 	case arch.TypeI2:
@@ -83,6 +85,15 @@ func decodeTypeR2(word uint32, instr *DecodedInstruction) {
 	instr.Rs1 = int(extractRs1(word))
 	instr.Rs2 = int(extractRs2(word))
 	// rd is not used in R2-type
+}
+
+// decodeTypeRU decodes RU-type instruction operands (unary: rd, rs1 only)
+// Used for Zbb instructions like clz, ctz, cpop, sext.b, sext.h, rev8
+// Format: funct7[31:25] | rs2[24:20] | rs1[19:15] | funct3[14:12] | rd[11:7] | opcode[6:0]
+func decodeTypeRU(word uint32, instr *DecodedInstruction) {
+	instr.Rd = int(extractRd(word))
+	instr.Rs1 = int(extractRs1(word))
+	// rs2 is not an operand in RU-type (it's part of the opcode)
 }
 
 // decodeTypeI decodes I-type instruction operands
