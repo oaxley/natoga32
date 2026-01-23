@@ -20,29 +20,48 @@ var (
 	outputFormat string
 	debugLevel   int
 	baseDir      string // Base directory for resolving relative paths
+
+	// Disassembler flags
+	disasmMode     bool   // -disasm: Enable disassembly mode
+	disasmBaseAddr uint32 // -base: Base address for raw binary (default: MMAP_TEXT_SEGMENT)
+	disasmPseudo   bool   // -pseudo: Enable pseudo-instruction recognition (Step 4)
+	disasmShowHex  bool   // -hex: Show hex encoding (default: true)
+	disasmNoABI    bool   // -no-abi: Use x0-x31 instead of ABI names
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "goasm [input file]",
-	Short: "NATOGA32 RISC-V Assembler",
-	Long: `goasm is a RISC-V assembler for the NATOGA32 virtual console.
+	Short: "NATOGA32 RISC-V Assembler/Disassembler",
+	Long: `goasm is a RISC-V assembler and disassembler for the NATOGA32 virtual console.
 
 It assembles RISC-V assembly files into binary format for ROM or
-cartridge loading.`,
+cartridge loading. Use -disasm flag to disassemble binary files.`,
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		inputFile := args[0]
-		if err := assemble(inputFile); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+
+		// Check for disassembly mode
+		if disasmMode {
+			return runDisasm(inputFile)
 		}
+
+		// Default: assembly mode
+		return assemble(inputFile)
 	},
 }
 
 func init() {
+	// Assembly flags
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "a.out", "Output file path")
 	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "on32", "Output format: on32, bin")
 	rootCmd.Flags().IntVarP(&debugLevel, "debug", "d", 0, "Debug level (1-8 to stop after specific phase)")
+
+	// Disassembly flags
+	rootCmd.Flags().BoolVar(&disasmMode, "disasm", false, "Disassemble input file")
+	rootCmd.Flags().Uint32Var(&disasmBaseAddr, "base", MMAP_TEXT_SEGMENT, "Base address for disassembly (raw binary only)")
+	rootCmd.Flags().BoolVar(&disasmPseudo, "pseudo", false, "Show pseudo-instructions (not yet implemented)")
+	rootCmd.Flags().BoolVar(&disasmShowHex, "hex", true, "Show hex encoding in disassembly output")
+	rootCmd.Flags().BoolVar(&disasmNoABI, "no-abi", false, "Use x0-x31 register names instead of ABI names")
 }
 
 func Execute() {
