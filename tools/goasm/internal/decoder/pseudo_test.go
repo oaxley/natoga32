@@ -27,61 +27,39 @@ func TestPseudoNop(t *testing.T) {
 	}
 }
 
-func TestPseudoLi(t *testing.T) {
+// TestPseudoLiNotMatched verifies that "addi rd, x0, imm" is NOT converted to "li"
+// because the assembler's "li" pseudo may expand to lui+addi for boundary values.
+func TestPseudoLiNotMatched(t *testing.T) {
 	pm := NewPseudoMatcher()
 
 	tests := []struct {
-		name    string
-		rd      uint32
-		imm     int32
-		wantOps string
+		name string
+		rd   uint32
+		imm  int32
 	}{
-		{"li positive", 1, 10, "ra, 10"},
-		{"li negative", 10, -5, "a0, -5"},
-		{"li zero", 5, 0, "t0, 0"},
+		{"li positive", 1, 10},
+		{"li negative", 10, -5},
+		{"li boundary", 5, -2048},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// addi rd, x0, imm => li rd, imm
+			// addi rd, x0, imm should NOT match as "li"
 			word := encodeForTest("addi", tt.rd, 0, 0, tt.imm)
 			instr := Decode(word)
-			mnemonic, operands, matched := pm.Match(instr, 0, true)
+			_, _, matched := pm.Match(instr, 0, true)
 
-			if !matched {
-				t.Error("expected li to be matched")
-			}
-			if mnemonic != "li" {
-				t.Errorf("got mnemonic %q, want %q", mnemonic, "li")
-			}
-			if operands != tt.wantOps {
-				t.Errorf("got operands %q, want %q", operands, tt.wantOps)
+			if matched {
+				t.Error("addi rd, x0, imm should NOT be matched as li")
 			}
 		})
 	}
-
-	// Test with numeric register names
-	t.Run("li numeric names", func(t *testing.T) {
-		word := encodeForTest("addi", 1, 0, 0, 10)
-		instr := Decode(word)
-		mnemonic, operands, matched := pm.Match(instr, 0, false)
-
-		if !matched {
-			t.Error("expected li to be matched")
-		}
-		if mnemonic != "li" {
-			t.Errorf("got mnemonic %q, want %q", mnemonic, "li")
-		}
-		if operands != "x1, 10" {
-			t.Errorf("got operands %q, want %q", operands, "x1, 10")
-		}
-	})
 }
 
 func TestPseudoMv(t *testing.T) {
 	pm := NewPseudoMatcher()
 
-	// addi rd, rs1, 0 => mv rd, rs1 (where rs1 != x0, otherwise it's li)
+	// addi rd, rs1, 0 => mv rd, rs1
 	tests := []struct {
 		name    string
 		rd      uint32
@@ -90,6 +68,7 @@ func TestPseudoMv(t *testing.T) {
 	}{
 		{"mv t0, ra", 5, 1, "t0, ra"},
 		{"mv a0, sp", 10, 2, "a0, sp"},
+		{"mv t0, zero", 5, 0, "t0, zero"}, // addi rd, x0, 0 is also mv rd, zero
 	}
 
 	for _, tt := range tests {
@@ -165,22 +144,18 @@ func TestPseudoJump(t *testing.T) {
 	}
 }
 
-func TestPseudoCall(t *testing.T) {
+// TestPseudoCallNotMatched verifies that "jal ra, offset" is NOT converted to "call"
+// because the assembler's "call" pseudo expands to auipc+jalr (2 instructions).
+func TestPseudoCallNotMatched(t *testing.T) {
 	pm := NewPseudoMatcher()
 
-	// jal ra, offset => call target
+	// jal ra, offset should NOT match as "call"
 	word := encodeForTest("jal", 1, 0, 0, 100)
 	instr := Decode(word)
-	mnemonic, operands, matched := pm.Match(instr, 0x1000, true)
+	_, _, matched := pm.Match(instr, 0x1000, true)
 
-	if !matched {
-		t.Error("expected call to be matched")
-	}
-	if mnemonic != "call" {
-		t.Errorf("got mnemonic %q, want %q", mnemonic, "call")
-	}
-	if operands != "0x1064" {
-		t.Errorf("got operands %q, want %q", operands, "0x1064")
+	if matched {
+		t.Error("jal ra, offset should NOT be matched as call")
 	}
 }
 

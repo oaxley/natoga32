@@ -61,18 +61,13 @@ func (pm *PseudoMatcher) Match(instr *DecodedInstruction, addr uint32, useABI bo
 
 // matchAddi handles addi-based pseudo-instructions:
 // - nop: addi x0, x0, 0
-// - li: addi rd, x0, imm
 // - mv: addi rd, rs1, 0
+// Note: We do NOT convert "addi rd, x0, imm" to "li" because the assembler's
+// "li" pseudo may expand to lui+addi for boundary values like -2048.
 func (pm *PseudoMatcher) matchAddi(instr *DecodedInstruction, useABI bool) (string, string, bool) {
 	// nop: addi x0, x0, 0
 	if instr.Rd == 0 && instr.Rs1 == 0 && instr.Immediate == 0 {
 		return "nop", "", true
-	}
-
-	// li: addi rd, x0, imm
-	if instr.Rs1 == 0 {
-		rd := regName(instr.Rd, useABI)
-		return "li", fmt.Sprintf("%s, %d", rd, instr.Immediate), true
 	}
 
 	// mv: addi rd, rs1, 0
@@ -82,6 +77,7 @@ func (pm *PseudoMatcher) matchAddi(instr *DecodedInstruction, useABI bool) (stri
 		return "mv", fmt.Sprintf("%s, %s", rd, rs1), true
 	}
 
+	// Do NOT match addi rd, x0, imm as "li" - it may reassemble differently
 	return "", "", false
 }
 
@@ -106,7 +102,8 @@ func (pm *PseudoMatcher) matchJalr(instr *DecodedInstruction, useABI bool) (stri
 
 // matchJal handles jal-based pseudo-instructions:
 // - j: jal x0, offset
-// - call: jal ra, offset
+// Note: We do NOT convert "jal ra, offset" to "call" because the assembler's
+// "call" pseudo expands to auipc+jalr (2 instructions), not a single jal.
 func (pm *PseudoMatcher) matchJal(instr *DecodedInstruction, addr uint32, useABI bool) (string, string, bool) {
 	target := calculateTarget(addr, instr.Immediate)
 
@@ -115,11 +112,7 @@ func (pm *PseudoMatcher) matchJal(instr *DecodedInstruction, addr uint32, useABI
 		return "j", fmt.Sprintf("0x%X", target), true
 	}
 
-	// call: jal ra, offset
-	if instr.Rd == 1 { // ra = x1
-		return "call", fmt.Sprintf("0x%X", target), true
-	}
-
+	// Do NOT match jal ra as "call" - it would reassemble differently
 	return "", "", false
 }
 
