@@ -123,7 +123,7 @@ func TestFormatIType(t *testing.T) {
 func TestFormatLoadInstructions(t *testing.T) {
 	f := New(DefaultOptions())
 
-	// Load format: lw rd, rs1, offset (assembler format for round-trip)
+	// Load format: Standard RISC-V syntax: lw rd, offset(rs1)
 	tests := []struct {
 		name     string
 		mnemonic string
@@ -132,13 +132,13 @@ func TestFormatLoadInstructions(t *testing.T) {
 		imm      int32
 		want     string
 	}{
-		{"lw zero offset", "lw", 1, 2, 0, "lw ra, sp, 0"},
-		{"lw positive offset", "lw", 10, 11, 4, "lw a0, a1, 4"},
-		{"lw negative offset", "lw", 12, 13, -4, "lw a2, a3, -4"},
-		{"lb", "lb", 5, 6, 1, "lb t0, t1, 1"},
-		{"lh", "lh", 7, 8, 2, "lh t2, s0, 2"},
-		{"lbu", "lbu", 9, 10, 0, "lbu s1, a0, 0"},
-		{"lhu", "lhu", 11, 12, 10, "lhu a1, a2, 10"},
+		{"lw zero offset", "lw", 1, 2, 0, "lw ra, 0(sp)"},
+		{"lw positive offset", "lw", 10, 11, 4, "lw a0, 4(a1)"},
+		{"lw negative offset", "lw", 12, 13, -4, "lw a2, -4(a3)"},
+		{"lb", "lb", 5, 6, 1, "lb t0, 1(t1)"},
+		{"lh", "lh", 7, 8, 2, "lh t2, 2(s0)"},
+		{"lbu", "lbu", 9, 10, 0, "lbu s1, 0(a0)"},
+		{"lhu", "lhu", 11, 12, 10, "lhu a1, 10(a2)"},
 	}
 
 	for _, tt := range tests {
@@ -182,7 +182,7 @@ func TestFormatI2Type(t *testing.T) {
 func TestFormatSType(t *testing.T) {
 	f := New(DefaultOptions())
 
-	// Store format: sw rs2, offset, rs1 (assembler format for round-trip)
+	// Store format: Standard RISC-V syntax: sw rs2, offset(rs1)
 	tests := []struct {
 		name     string
 		mnemonic string
@@ -191,11 +191,11 @@ func TestFormatSType(t *testing.T) {
 		imm      int32
 		want     string
 	}{
-		{"sw zero offset", "sw", 2, 1, 0, "sw ra, 0, sp"},
-		{"sw positive offset", "sw", 10, 11, 4, "sw a1, 4, a0"},
-		{"sw negative offset", "sw", 12, 13, -4, "sw a3, -4, a2"},
-		{"sh", "sh", 5, 6, 2, "sh t1, 2, t0"},
-		{"sb", "sb", 7, 8, 1, "sb s0, 1, t2"},
+		{"sw zero offset", "sw", 2, 1, 0, "sw ra, 0(sp)"},
+		{"sw positive offset", "sw", 10, 11, 4, "sw a1, 4(a0)"},
+		{"sw negative offset", "sw", 12, 13, -4, "sw a3, -4(a2)"},
+		{"sh", "sh", 5, 6, 2, "sh t1, 2(t0)"},
+		{"sb", "sb", 7, 8, 1, "sb s0, 1(t2)"},
 	}
 
 	for _, tt := range tests {

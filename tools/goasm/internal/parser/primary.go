@@ -98,7 +98,34 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 		}
 
 	case token.LPAREN:
-		// Parenthesized expression
+		// Could be either:
+		// 1. Parenthesized expression: (a + b)
+		// 2. Zero-offset shorthand: (sp) equivalent to 0(sp)
+
+		// Peek ahead to check if this is just (identifier)
+		if p.check(token.IDENT) {
+			baseTok := p.peek()
+			// Look ahead one more to see if it's followed by )
+			savedPos := p.pos
+			p.advance() // consume identifier
+
+			if p.check(token.RPAREN) {
+				// This is (register) shorthand for 0(register)
+				p.advance() // consume )
+				offset := &ast.Number{Value: 0, Location: loc}
+				base := &ast.Identifier{Name: baseTok.Value, Location: locationFromToken(baseTok)}
+				return &ast.OffsetBase{
+					Offset:   offset,
+					Base:     base,
+					Location: loc,
+				}, nil
+			}
+
+			// Not a shorthand, restore position and parse as normal expression
+			p.pos = savedPos
+		}
+
+		// Regular parenthesized expression
 		expr, err := p.parseExpression(1)
 		if err != nil {
 			return nil, err
@@ -122,4 +149,31 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 	}
 
 	return nil, fmt.Errorf("unexpected token in expression: %s (%q) at line %d", tok.Type, tok.Value, tok.Row)
+}
+
+// parseOffsetBase parses the (base) part of an offset(base) expression
+// Example: 4(sp), label(a0), (sp)
+func (p *Parser) parseOffsetBase(offset ast.Expression, loc ast.SourceLocation) (ast.Expression, error) {
+	// Consume the '('
+	p.advance()
+
+	// Parse the base register (must be an identifier)
+	if !p.check(token.IDENT) {
+		return nil, fmt.Errorf("expected register identifier in offset(base) expression")
+	}
+
+	baseTok := p.advance()
+	base := &ast.Identifier{Name: baseTok.Value, Location: locationFromToken(baseTok)}
+
+	// Expect closing ')'
+	if !p.check(token.RPAREN) {
+		return nil, fmt.Errorf("expected ')' after base register in offset(base) expression")
+	}
+	p.advance()
+
+	return &ast.OffsetBase{
+		Offset:   offset,
+		Base:     base,
+		Location: loc,
+	}, nil
 }

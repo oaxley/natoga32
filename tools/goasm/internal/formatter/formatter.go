@@ -137,9 +137,9 @@ func (f *Formatter) formatTypeI(instr *decoder.DecodedInstruction) string {
 	rd := f.regName(instr.Rd)
 	rs1 := f.regName(instr.Rs1)
 
-	// Load instructions: lw rd, rs1, offset (assembler format for round-trip)
+	// Load instructions: Standard RISC-V syntax: lw rd, offset(rs1)
 	if isLoadInstruction(instr.Mnemonic) {
-		return fmt.Sprintf("%s %s, %s, %d", instr.Mnemonic, rd, rs1, instr.Immediate)
+		return fmt.Sprintf("%s %s, %d(%s)", instr.Mnemonic, rd, instr.Immediate, rs1)
 	}
 
 	// CSR instructions have special formatting
@@ -168,12 +168,12 @@ func (f *Formatter) formatTypeI2(instr *decoder.DecodedInstruction) string {
 	return fmt.Sprintf("%s %s, %s, %d", instr.Mnemonic, rd, rs1, instr.Immediate)
 }
 
-// formatTypeS formats S-type (store) instructions: mnemonic rs2, offset, rs1
-// Uses assembler format for round-trip compatibility
+// formatTypeS formats S-type (store) instructions
+// Standard RISC-V syntax: sw rs2, offset(rs1)
 func (f *Formatter) formatTypeS(instr *decoder.DecodedInstruction) string {
 	rs1 := f.regName(instr.Rs1)
 	rs2 := f.regName(instr.Rs2)
-	return fmt.Sprintf("%s %s, %d, %s", instr.Mnemonic, rs2, instr.Immediate, rs1)
+	return fmt.Sprintf("%s %s, %d(%s)", instr.Mnemonic, rs2, instr.Immediate, rs1)
 }
 
 // formatTypeB formats B-type (branch) instructions: mnemonic rs1, rs2, target

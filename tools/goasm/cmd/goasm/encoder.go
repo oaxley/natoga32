@@ -62,10 +62,21 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		if len(instr.Operands) >= 1 {
 			rd = evalRegister(instr.Operands[0])
 		}
-		if len(instr.Operands) >= 2 {
+
+		// Check for standard RISC-V syntax: lw rd, offset(rs1)
+		if len(instr.Operands) == 2 {
+			if offsetBase, ok := instr.Operands[1].(*ast.OffsetBase); ok {
+				rs1 = evalRegister(offsetBase.Base)
+				imm, err = evalImmediateWithError(offsetBase.Offset, symbols, pc)
+				if err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("%s: error: invalid operand format for %s (expected offset(base))", instr.Location, instr.Opcode)
+			}
+		} else if len(instr.Operands) >= 3 {
+			// Legacy syntax: lw rd, rs1, offset
 			rs1 = evalRegister(instr.Operands[1])
-		}
-		if len(instr.Operands) >= 3 {
 			imm, err = evalImmediateWithError(instr.Operands[2], symbols, pc)
 			if err != nil {
 				return err
@@ -97,13 +108,24 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		if len(instr.Operands) >= 1 {
 			rs2 = evalRegister(instr.Operands[0])
 		}
-		if len(instr.Operands) >= 2 {
+
+		// Check for standard RISC-V syntax: sw rs2, offset(rs1)
+		if len(instr.Operands) == 2 {
+			if offsetBase, ok := instr.Operands[1].(*ast.OffsetBase); ok {
+				rs1 = evalRegister(offsetBase.Base)
+				imm, err = evalImmediateWithError(offsetBase.Offset, symbols, pc)
+				if err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("%s: error: invalid operand format for %s (expected offset(base))", instr.Location, instr.Opcode)
+			}
+		} else if len(instr.Operands) >= 3 {
+			// Legacy syntax: sw rs2, offset, rs1
 			imm, err = evalImmediateWithError(instr.Operands[1], symbols, pc)
 			if err != nil {
 				return err
 			}
-		}
-		if len(instr.Operands) >= 3 {
 			rs1 = evalRegister(instr.Operands[2])
 		}
 		encoded = arch.EncodeTypeS(op, rs1, rs2, imm)

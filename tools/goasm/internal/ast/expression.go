@@ -116,3 +116,15 @@ type PCRelLo struct {
 func (p *PCRelLo) node()       {}
 func (p *PCRelLo) expression() {}
 func (p *PCRelLo) reloc()      {}
+
+// OffsetBase represents an offset(base) expression for load/store instructions
+// Example: 4(sp) where offset=4, base=sp
+// This is the standard RISC-V syntax for memory access instructions
+type OffsetBase struct {
+	Offset   Expression // The offset expression (can be immediate, symbol, etc.)
+	Base     Expression // The base register (must be register identifier)
+	Location SourceLocation
+}
+
+func (o *OffsetBase) node()       {}
+func (o *OffsetBase) expression() {}

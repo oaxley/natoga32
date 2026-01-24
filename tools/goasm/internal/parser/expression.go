@@ -46,6 +46,34 @@ func (p *Parser) parseExpression(minPrec int) (ast.Expression, error) {
 		}
 	}
 
+	// After parsing the complete expression, check for offset(base) syntax
+	// This must happen AFTER all operators are parsed, so -4(sp) becomes
+	// OffsetBase{UnaryOp{-, 4}, sp} not UnaryOp{-, OffsetBase{4, sp}}
+	if p.check(token.LPAREN) {
+		// Peek ahead to see if this is (identifier)
+		savedPos := p.pos
+		p.advance() // consume (
+
+		if p.check(token.IDENT) {
+			baseTok := p.peek()
+			p.advance() // consume identifier
+
+			if p.check(token.RPAREN) {
+				// This is offset(base) syntax
+				p.advance() // consume )
+				base := &ast.Identifier{Name: baseTok.Value, Location: locationFromToken(baseTok)}
+				return &ast.OffsetBase{
+					Offset:   left,
+					Base:     base,
+					Location: locationFromToken(baseTok),
+				}, nil
+			}
+		}
+
+		// Not offset(base) syntax, restore position
+		p.pos = savedPos
+	}
+
 	return left, nil
 }
 
