@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/natoga32/goasm/internal/lexer"
+	"github.com/natoga32/goasm/internal/optimizer"
 	"github.com/natoga32/goasm/internal/parser"
 	"github.com/natoga32/goasm/internal/preprocess"
 	"github.com/natoga32/goasm/internal/pseudo"
@@ -79,6 +80,13 @@ func assemble(inputFile string) error {
 		fmt.Println("=== EXPANDED AST ===")
 		debugProgram(program)
 		return nil
+	}
+
+	// Phase 4.5: Peephole Optimization (optional)
+	if optimizeFlag {
+		fmt.Println("Phase 4.5: Peephole Optimization")
+		opt := optimizer.New()
+		program = opt.OptimizeProgram(program)
 	}
 
 	// Initialize symbol table and section manager
