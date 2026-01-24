@@ -1077,13 +1077,8 @@ Error: cannot open file: 'missing.inc'
 
 ## See Also
 
-- [NATOGA32 Architecture Documentation](../architecture/console.md)
 - [RISC-V Specifications](https://riscv.org/technical/specifications/)
 - [RISC-V Assembly Programmer's Manual](https://github.com/riscv-non-isa/riscv-asm-manual)
-
-## Contributing
-
-Report issues and contribute at: https://github.com/natoga32/natoga32
 
 ## License
 
