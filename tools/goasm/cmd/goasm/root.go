@@ -20,6 +20,7 @@ var (
 	outputFormat string
 	debugLevel   int
 	baseDir      string // Base directory for resolving relative paths
+	optimizeFlag bool   // -O/--optimize: Enable peephole optimizations
 
 	// Disassembler flags
 	disasmMode     bool   // -disasm: Enable disassembly mode
@@ -55,6 +56,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "a.out", "Output file path")
 	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "on32", "Output format: on32, bin")
 	rootCmd.Flags().IntVarP(&debugLevel, "debug", "d", 0, "Debug level (1-8 to stop after specific phase)")
+	rootCmd.Flags().BoolVarP(&optimizeFlag, "optimize", "O", false, "Enable peephole optimizations")
 
 	// Disassembly flags
 	rootCmd.Flags().BoolVar(&disasmMode, "disasm", false, "Disassemble input file")

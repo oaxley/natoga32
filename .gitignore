@@ -5,7 +5,7 @@ tmp/**
 .vscode/**
 a.out
 CLAUDE.md
-PROGRESS.md
+PROGRESS*.md
 
 build/**
 !build/.gitkeep
