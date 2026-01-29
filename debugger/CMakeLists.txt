@@ -13,13 +13,25 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(argparse)
 
 # create the Virtual Console debugger binary
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/third_party/imgui)
+
 add_executable(vcdebug
     src/main.cpp
+    src/debug_client.cpp
+
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
 # include directory
 target_include_directories(vcdebug
     PRIVATE
+        ${IMGUI_DIR}
+        ${IMGUI_DIR}/backends
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
