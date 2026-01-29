@@ -9,123 +9,21 @@
  * @author	Sebastien LEGRAND
  * @license	MIT License
  *
- * @brief	Virtual Console - Basic Host Program
+ * @brief	Host main file
  */
-
+// standard library headers
 #include <iostream>
-#include <iomanip>
-#include <cstdint>
 #include <vector>
+#include <chrono>
 
-// Use the C API
+// program-specific includes
+#include <argparse/argparse.hpp>
 #include "vc/vc.h"
+#include "debug_server.h"
 
+//----- functions
 
-//----- Helper functions
-
-void print_separator()
-{
-    std::cout << "----------------------------------------\n";
-}
-
-void print_console_state(VC_Console_t* console)
-{
-    std::cout << "Console State: ";
-    auto state = vc_getState(console);
-    switch (state) {
-        case VC_STATE_UNINITIALIZED:
-            std::cout << "UNINITIALIZED\n";
-            break;
-        case VC_STATE_READY:
-            std::cout << "READY\n";
-            break;
-        case VC_STATE_RUNNING:
-            std::cout << "RUNNING\n";
-            break;
-        case VC_STATE_PAUSED:
-            std::cout << "PAUSED\n";
-            break;
-        case VC_STATE_ERROR:
-            std::cout << "ERROR\n";
-            break;
-    }
-
-    std::cout << "CPU State: ";
-    auto cpu_state = vc_getCpuState(console);
-    switch (cpu_state) {
-        case VC_CPU_RUNNING:
-            std::cout << "RUNNING\n";
-            break;
-        case VC_CPU_IDLE:
-            std::cout << "IDLE\n";
-            break;
-        case VC_CPU_HALTED:
-            std::cout << "HALTED\n";
-            break;
-    }
-
-    std::cout << "Current Thread: " << vc_getCurrentThreadId(console) << "\n";
-    std::cout << "Total Cycles: " << vc_getTotalCycles(console) << "\n";
-}
-
-void print_thread_info(VC_Console_t* console, int thread_id)
-{
-    std::cout << "Thread " << thread_id << ": ";
-
-    auto state = vc_getThreadState(console, thread_id);
-    switch (state) {
-        case VC_THREAD_FREE:
-            std::cout << "FREE";
-            break;
-        case VC_THREAD_READY:
-            std::cout << "READY";
-            break;
-        case VC_THREAD_RUNNING:
-            std::cout << "RUNNING";
-            break;
-        case VC_THREAD_SLEEPING:
-            std::cout << "SLEEPING";
-            break;
-        case VC_THREAD_DEAD:
-            std::cout << "DEAD";
-            break;
-    }
-
-    if (state != VC_THREAD_FREE) {
-        uint32_t pc = vc_getThreadPc(console, thread_id);
-        std::cout << " | PC: 0x" << std::hex << std::setfill('0') << std::setw(8) << pc << std::dec;
-    }
-
-    std::cout << "\n";
-}
-
-void print_all_threads(VC_Console_t* console)
-{
-    std::cout << "\nThread Status:\n";
-    for (int i = 0; i < 8; i++) {
-        print_thread_info(console, i);
-    }
-}
-
-void print_registers(VC_Console_t* console, int thread_id)
-{
-    std::cout << "\nThread " << thread_id << " Registers:\n";
-    for (int i = 0; i < 32; i++) {
-        if (i % 4 == 0 && i > 0) {
-            std::cout << "\n";
-        }
-        uint32_t value = vc_getThreadRegister(console, thread_id, i);
-        std::cout << "x" << std::setw(2) << i << ": 0x"
-                  << std::hex << std::setfill('0') << std::setw(8) << value
-                  << std::dec << "  ";
-    }
-    std::cout << "\n";
-}
-
-
-//----- Test ROM creation
-
-std::vector<uint8_t> create_test_rom()
+std::vector<uint8_t> createTestROM()
 {
     std::vector<uint8_t> rom;
 
@@ -157,99 +55,84 @@ std::vector<uint8_t> create_test_rom()
 }
 
 
-//----- Main program
 
+//----- main entry
 int main(int argc, char* argv[])
 {
-    std::cout << "Virtual Console - Host Integration Test\n";
-    print_separator();
+    //----- Read the command line arguments
 
-    // Step 1: Create console
-    std::cout << "\n1. Creating console...\n";
+    // argument parser
+    argparse::ArgumentParser program("vchost", "0.1.0");
+
+    // debug flag
+    program.add_argument("--debug")
+        .flag()
+        .default_value(false)
+        .help("Enable debug server");
+
+    // debug port
+    program.add_argument("--debug-port")
+        .scan<'i', int>()
+        .default_value(2600)
+        .help("Default debug listening port");
+
+    // read the command line arguments
+    try {
+        program.parse_args(argc, argv);
+    } catch (const std::exception& err) {
+        std::cerr << err.what() << "\n";
+        std::cerr << program;
+        return EXIT_FAILURE;
+    }
+
+    //----- Create the console
+
+    // create the console
     VC_Console_t* console = vc_create();
     if (!console) {
-        std::cerr << "ERROR: Failed to create console\n";
-        return 1;
+        std::cerr << "Error: failed to create the console\n";
+        return EXIT_FAILURE;
     }
-    std::cout << "   ✓ Console created\n";
 
-    // Step 2: Initialize console
-    std::cout << "\n2. Initializing console...\n";
+    // initialize the console
     if (!vc_initialize(console)) {
-        std::cerr << "ERROR: Failed to initialize console\n";
+        std::cerr << "Error: failed to initialize the console\n";
         std::cerr << "       " << vc_getLastError(console) << "\n";
-        vc_destroy(console);
-        return 1;
+        return EXIT_FAILURE;
     }
-    std::cout << "   ✓ Console initialized\n";
-    print_console_state(console);
 
-    // Step 3: Create and load test ROM
-    std::cout << "\n3. Loading test ROM...\n";
-    auto rom = create_test_rom();
+    // load the ROM
+    auto rom = createTestROM();
     if (!vc_loadRomData(console, rom.data(), rom.size())) {
-        std::cerr << "ERROR: Failed to load ROM\n";
+        std::cerr << "Error: failed to load the ROM\n";
         std::cerr << "       " << vc_getLastError(console) << "\n";
-        vc_destroy(console);
-        return 1;
+        return EXIT_FAILURE;
     }
-    std::cout << "   ✓ ROM loaded (" << rom.size() << " bytes)\n";
 
-    // Step 4: Reset console to start execution
-    std::cout << "\n4. Resetting console...\n";
-    vc_reset(console);
-    std::cout << "   ✓ Console reset\n";
-    print_console_state(console);
-    print_all_threads(console);
+    //------ Lookup for a potential debug mode
 
-    // Step 5: Change state to running
-    std::cout << "\n5. Starting execution...\n";
-    vc_resume(console);
-    std::cout << "   ✓ Console resumed\n";
+    // retrieve the debug values
+    auto has_debug = program.get<bool>("--debug");
+    auto debug_port = program.get<int>("--debug-port");
 
-    // Step 6: Run a few cycles
-    std::cout << "\n6. Executing 10 cycles...\n";
-    vc_run(console, 10);
-    print_console_state(console);
-    print_all_threads(console);
-    print_registers(console, 0);
+    if (has_debug) {
+        // create the debug server
+        auto debug_server = DebugServer(console, debug_port);
+        debug_server.start();
 
-    // Step 7: Memory read test
-    std::cout << "\n7. Memory read test...\n";
-    std::cout << "   Reading first 16 bytes at 0x00000000 (should be zeros):\n   ";
-    for (int i = 0; i < 16; i++) {
-        uint8_t byte = vc_memRead8(console, 0x00000000 + i);
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)byte << " ";
+        // main loop waiting for debug thread to finish
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        return EXIT_SUCCESS;
+    } else {
+        // start the console without debug
+        vc_run(console, 100);
     }
-    std::cout << "\n";
 
-    std::cout << "   Reading 16 bytes at 0x00000100 (program code):\n   ";
-    for (int i = 0; i < 16; i++) {
-        uint8_t byte = vc_memRead8(console, 0x00000100 + i);
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)byte << " ";
-    }
-    std::cout << std::dec << "\n";
-
-    // Step 8: Pause and resume test
-    std::cout << "\n8. Pause/Resume test...\n";
-    vc_pause(console);
-    std::cout << "   Paused: " << (vc_isPaused(console) ? "YES" : "NO") << "\n";
-    vc_resume(console);
-    std::cout << "   Running: " << (vc_isRunning(console) ? "YES" : "NO") << "\n";
-
-    // Step 9: Run more cycles
-    std::cout << "\n9. Running 1000 more cycles...\n";
-    vc_run(console, 1000);
-    print_console_state(console);
-    print_registers(console, 0);
-
-    // Step 10: Cleanup
-    std::cout << "\n10. Cleaning up...\n";
+    // cleanup
     vc_destroy(console);
-    std::cout << "    ✓ Console destroyed\n";
 
-    print_separator();
-    std::cout << "Test completed successfully!\n";
-
-    return 0;
+    return EXIT_SUCCESS;
 }
