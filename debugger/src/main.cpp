@@ -13,16 +13,11 @@
  */
 // standard library headers
 #include <iostream>
-#include <GLFW/glfw3.h>
-
 #include <argparse/argparse.hpp>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-
 
 // program-specific includes
 #include "debug_client.h"
+#include "ui/helpers.h"
 
 
 //----- main entry point
@@ -59,6 +54,59 @@ int main(int argc, char* argv[])
     if (client.connect()) {
         std::cout << "Debugger connected to host at " << host << ":" << port << "\n";
     }
+
+    // initialize video backend
+    GLFWwindow* window = nullptr;
+    if (!initVideoBackend(window))
+        return EXIT_FAILURE;
+
+    initImGui(window);
+
+
+
+    // Application state
+    bool show_demo = false;
+    float slider_value = 0.5f;
+    int counter = 0;
+    float color[3] = {0.4f, 0.7f, 0.2f};
+
+
+    // mainloop
+    while (!glfwWindowShouldClose(window))
+    {
+        // get events
+        glfwPollEvents();
+
+        // Start ImGui frame
+        newFrame();
+
+        // Your GUI code here
+        ImGui::Begin("Hello ImGui!");
+
+        ImGui::Text("Welcome to Dear ImGui!");
+        ImGui::Spacing();
+
+        if (ImGui::Button("Click me!")) {
+            counter++;
+        }
+        ImGui::SameLine();
+        ImGui::Text("Count: %d", counter);
+
+        ImGui::SliderFloat("Slider", &slider_value, 0.0f, 1.0f);
+        ImGui::ColorEdit3("Color", color);
+
+        ImGui::Checkbox("Show Demo Window", &show_demo);
+
+        // ImGui::Text("FPS: %.1f", io.Framerate);
+        ImGui::End();
+
+        // Render
+        render(window);
+    }
+
+    // clean ImGui + video backend
+    cleanImGui();
+    cleanVideoBackend(window);
 
     return EXIT_SUCCESS;
 }
