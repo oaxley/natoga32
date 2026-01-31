@@ -16,6 +16,7 @@
 // standard library headers
 #include <vector>
 #include <memory>
+#include <GLFW/glfw3.h>
 
 // program-specific includes
 #include "debug_client.h"
@@ -24,8 +25,8 @@
 class IGeneric
 {
 public:
-    IGeneric(DebugClient& client) :
-        client_{client}, childs_{}
+    IGeneric(DebugClient& client, GLFWwindow* window) :
+        client_{client}, childs_{}, window_{window}
     { }
 
     virtual ~IGeneric() { }
@@ -45,4 +46,5 @@ public:
 protected:
     DebugClient& client_;
     std::vector<std::unique_ptr<IGeneric>> childs_;
+    GLFWwindow* window_;
 };
