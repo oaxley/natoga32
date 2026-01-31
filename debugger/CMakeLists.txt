@@ -26,6 +26,7 @@ set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/third_party/imgui)
 
 add_executable(vcdebug
     src/main.cpp
+    src/config.cpp
     src/debug_client.cpp
 
     ${IMGUI_DIR}/imgui.cpp
