@@ -16,6 +16,7 @@
 #include <iostream>
 #include <fstream>
 #include <toml++/toml.hpp>
+#include <GLFW/glfw3.h>
 
 // program-specific includes
 #include "config.h"
@@ -32,6 +33,7 @@ constexpr const char* CONFIG_DIR = "vcdebug";
 Config initializeConfig()
 {
     return Config{
+        .window = { .x = 10, .y = 10, .width = 800, .height = 600},
         .connection = { .host = "localhost", .port = 2600}
     };
 }
@@ -42,6 +44,11 @@ Config parseConfig(const fs::path& path)
     auto data = toml::parse_file(path.string());
 
     Config cfg;
+    cfg.window.x = data["window"]["x"].value_or(10);
+    cfg.window.y = data["window"]["y"].value_or(10);
+    cfg.window.width = data["window"]["width"].value_or(800);
+    cfg.window.height = data["window"]["height"].value_or(600);
+
     cfg.connection.host = data["connection"]["host"].value_or(std::string("localhost"));
     cfg.connection.port = data["connection"]["port"].value_or(2600);
 
@@ -66,11 +73,39 @@ fs::path getConfigHome()
 }
 
 // save the configuration
-bool saveConfig(const fs::path& path, const Config& config)
+bool saveConfig(const Config& config, std::optional<std::string> user_path)
 {
+    fs::path path;
+
+    // user specified path
+    if (user_path.has_value()) {
+        path = *user_path;
+        if (!fs::exists(path)) {
+            std::cerr << "Error: unable to save the configuration file ";
+            std::cerr << path.string() << "\n";
+            return false;
+        }
+    } else {
+        // XDG_CONFIG_HOME
+        path = getConfigHome();
+        if (!path.empty()) {
+            path = path / CONFIG_DIR / CONFIG_FILENAME;
+        }
+    }
+
+    // create the directories
     fs::create_directories(path.parent_path());
 
+    // configuration
     toml::table cfg;
+
+    // window parameters
+    cfg.insert("window", toml::table{
+        {"x", config.window.x},
+        {"y", config.window.y},
+        {"width", config.window.width},
+        {"height", config.window.height},
+    });
 
     // connection parameters
     cfg.insert("connection", toml::table{
@@ -125,12 +160,8 @@ Result<Config> loadConfig(std::optional<std::string> user_path)
 
     // nothing found - first launch -> create the config
     Config cfg = initializeConfig();
-
-    if (!config_home.empty()) {
-        fs::path save_path = config_home / CONFIG_DIR / CONFIG_FILENAME;
-        if (!saveConfig(save_path, cfg)) {
-            std::cerr << "Warning: could not save configuration to " << save_path << "\n";
-        }
+    if (!saveConfig(cfg)) {
+        std::cerr << "Warning: unable to save the configuration\n";
     }
 
     // return the configuration

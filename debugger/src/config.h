@@ -27,9 +27,18 @@ struct ConnectionParams
     int port;
 };
 
+struct WindowParams
+{
+    int x;
+    int y;
+    int width;
+    int height;
+};
+
 // configuration main object
 struct Config
 {
+    WindowParams window;
     ConnectionParams connection;
 };
 
@@ -51,6 +60,9 @@ struct Result
 
 // load the configuration
 Result<Config> loadConfig(std::optional<std::string> user_path = std::nullopt);
+
+// save the configuration
+bool saveConfig(const Config& config, std::optional<std::string> user_path = std::nullopt);
 
 } // namespace Config
 
