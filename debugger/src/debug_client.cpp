@@ -81,9 +81,13 @@ bool DebugClient::connect()
     // try to connect to host
     if (::connect(client_socket_, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         client_socket_ = -1;
-        std::cerr << "Error: unable to connect to remote host\n";
+        std::cerr << "Error: unable to connect to remote host (";
+        std::cerr << host_ << ":" << port_ << ")\n";
         return false;
     }
+
+    // write message
+    std::cout << "Connected to " << host_ << ":" << port_ << "\n";
 
     return true;
 }
