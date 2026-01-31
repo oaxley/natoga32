@@ -56,15 +56,10 @@ int main(int argc, char* argv[])
     //----- Read the command line
     argparse::ArgumentParser program("vcdebug", "0.1.0");
 
-    // host
-    program.add_argument("host")
-        .help("IP/host to connect to");
-
-    // port
-    program.add_argument("port")
-        .scan<'i', int>()
-        .default_value(2600)
-        .help("Host listening port");
+    // configuration file (optional)
+    program.add_argument("-c", "--config")
+        .help("Path to configuration file")
+        .default_value(std::string(""));
 
     // read the command line arguments
     try {
@@ -75,14 +70,35 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    // retrieve the parameters and connect to host
-    auto host = program.get<std::string>("host");
-    auto port = program.get<int>("port");
+    // retrieve the parameters if any
+    auto config_path = program.get<std::string>("--config");
 
-    DebugClient client(host, port);
+
+    // convert the "user_config" to optional for loadConfig
+    std::optional<std::string> user_config;
+    if (!config_path.empty()) {
+        user_config = config_path;
+    }
+
+    // load the configuration
+    auto result = Config::loadConfig(user_config);
+    if (!result) {
+        std::cerr << "Error: " << result.error << "\n";
+        return EXIT_FAILURE;
+    }
+    Config::Config cfg = *result;
+
+
+    // connect to the host server
+    DebugClient client(cfg.connection.host, cfg.connection.port);
 
     if (client.connect()) {
-        std::cout << "Debugger connected to host at " << host << ":" << port << "\n";
+        std::cout << "Debugger connected to host at ";
+        std::cout << cfg.connection.host << ":";
+        std::cout << cfg.connection.port << "\n";
+    } else {
+        // stop processing
+        // return EXIT_FAILURE;
     }
 
     // initialize video backend
