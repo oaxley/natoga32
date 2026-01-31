@@ -20,8 +20,12 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+// program-specific includes
+#include "config.h"
+
+
 //----- functions
-bool initVideoBackend(GLFWwindow*& window)
+bool initVideoBackend(GLFWwindow*& window, const Config::Config& cfg)
 {
     // initialize GLFW
     if (!glfwInit()) {
@@ -35,19 +39,28 @@ bool initVideoBackend(GLFWwindow*& window)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    // window is hidden first so we can position it
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
     // create window
-    window = glfwCreateWindow(800, 600, "vcdebug", nullptr, nullptr);
+    window = glfwCreateWindow(cfg.window.width, cfg.window.height, "vcdebug", nullptr, nullptr);
     if (!window) {
         std::cerr << "Error: failed to create window\n";
         glfwTerminate();
         return false;
     }
 
+    // position the window
+    glfwSetWindowPos(window, cfg.window.x, cfg.window.y);
+
     // make this window the current context
     glfwMakeContextCurrent(window);
 
     // activate VSYNC every frame
     glfwSwapInterval(1);
+
+    // show the window
+    glfwShowWindow(window);
 
     return true;
 }
