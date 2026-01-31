@@ -6,11 +6,20 @@ find_package(OpenGL REQUIRED)
 
 # CMake fetch argparse library
 include(FetchContent)
+
 FetchContent_Declare(
     argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse.git
 )
+
+FetchContent_Declare(
+    tomlplusplus
+    GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+    GIT_TAG        v3.4.0
+)
+
 FetchContent_MakeAvailable(argparse)
+FetchContent_MakeAvailable(tomlplusplus)
 
 # create the Virtual Console debugger binary
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/third_party/imgui)
@@ -41,6 +50,7 @@ target_link_libraries(vcdebug
         glfw
         OpenGL::GL
     PRIVATE
+        tomlplusplus::tomlplusplus
         argparse
         imgui
         vc
