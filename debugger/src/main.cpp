@@ -15,19 +15,48 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <optional>
 #include <argparse/argparse.hpp>
 
 // program-specific includes
+#include "config.h"
 #include "debug_client.h"
 #include "ui/helpers.h"
 #include "ui/generic.h"
+#include "ui/about.h"
+
+
+class MyButton : public IGeneric
+{
+public:
+    MyButton(DebugClient& client, GLFWwindow* window, std::string label) :
+        IGeneric(client, window), label_{label}
+    { }
+
+    void render()
+    {
+        if (ImGui::Button(label_.c_str())) {
+            count_++;
+        }
+        ImGui::SameLine();
+        ImGui::Text("Count: %d", count_);
+    }
+
+private:
+    int count_ = 0;
+    std::string label_;
+
+};
 
 class ClickMe : public IGeneric
 {
 public:
-    ClickMe(DebugClient& client, std::string name) :
-        IGeneric(client), name_{name}
-    { }
+    ClickMe(DebugClient& client, GLFWwindow* window, std::string name) :
+        IGeneric(client, window), name_{name}
+    {
+        addChild(std::make_unique<MyButton>(client, window, "clicker #1"));
+        addChild(std::make_unique<MyButton>(client, window, "clicker #2"));
+    }
 
     virtual ~ClickMe()
     { }
@@ -36,11 +65,7 @@ public:
     {
         ImGui::Begin(name_.c_str());
 
-        if (ImGui::Button("Click Me!")) {
-            count_++;
-        }
-        ImGui::SameLine();
-        ImGui::Text("Count: %d", count_);
+        IGeneric::render();
 
         ImGui::End();
     }
@@ -92,14 +117,10 @@ int main(int argc, char* argv[])
     // connect to the host server
     DebugClient client(cfg.connection.host, cfg.connection.port);
 
-    if (client.connect()) {
-        std::cout << "Debugger connected to host at ";
-        std::cout << cfg.connection.host << ":";
-        std::cout << cfg.connection.port << "\n";
-    } else {
-        // stop processing
-        // return EXIT_FAILURE;
-    }
+    // disable for now
+    // if (!client.connect()) {
+    //     return EXIT_FAILURE;
+    // }
 
     // initialize video backend
     GLFWwindow* window = nullptr;
@@ -110,15 +131,11 @@ int main(int argc, char* argv[])
 
     // ImGui widgets list
     std::vector<std::unique_ptr<IGeneric>> widgets;
-    widgets.push_back(std::make_unique<ClickMe>(client, "Button #1"));
-    widgets.push_back(std::make_unique<ClickMe>(client, "Button #2"));
+    widgets.push_back(std::make_unique<ClickMe>(client, window, "Click Window"));
+    widgets.push_back(std::make_unique<About>(client, window));
 
-    // Application state
-    // bool show_demo = false;
-    // float slider_value = 0.5f;
-    // int counter = 0;
-    // float color[3] = {0.4f, 0.7f, 0.2f};
-
+    // state variables
+    bool show_about = false;
 
     // mainloop
     while (!glfwWindowShouldClose(window))
@@ -129,27 +146,57 @@ int main(int argc, char* argv[])
         // Start ImGui frame
         newFrame();
 
+        // Global keyboard shortcuts
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q)) {
+            glfwSetWindowShouldClose(window, true);
+        }
+
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Open", "Ctrl+O")) {
+                    // handle open
+                }
+                if (ImGui::MenuItem("Save", "Ctrl+S")) {
+                    // handle save
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
+                    glfwSetWindowShouldClose(window, true);
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("View")) {
+                if (ImGui::MenuItem("Registers")) {
+                    // toggle registers window
+                }
+                if (ImGui::MenuItem("Memory")) {
+                    // toggle memory window
+                }
+                if (ImGui::MenuItem("Disassembly")) {
+                    // toggle disassembly window
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Help")) {
+                if (ImGui::MenuItem("About")) {
+                    show_about = true;
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMainMenuBar();
+        }
+
+        // about modal window
+        if (show_about) {
+            ImGui::OpenPopup("About##modal");
+            show_about = false;
+        }
+
         // render all the widgets
         for (auto& widget : widgets) {
             widget->render();
         }
-
-        // ImGui::Text("Welcome to Dear ImGui!");
-        // ImGui::Spacing();
-
-        // if (ImGui::Button("Click me!")) {
-        //     counter++;
-        // }
-        // ImGui::SameLine();
-        // ImGui::Text("Count: %d", counter);
-
-        // ImGui::SliderFloat("Slider", &slider_value, 0.0f, 1.0f);
-        // ImGui::ColorEdit3("Color", color);
-
-        // ImGui::Checkbox("Show Demo Window", &show_demo);
-
-        // ImGui::Text("FPS: %.1f", io.Framerate);
-
 
         // Render
         render(window);
@@ -158,6 +205,9 @@ int main(int argc, char* argv[])
     // clean ImGui + video backend
     cleanImGui();
     cleanVideoBackend(window);
+
+    // save the configuration
+
 
     return EXIT_SUCCESS;
 }
