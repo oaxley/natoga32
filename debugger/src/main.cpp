@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
 
     // initialize video backend
     GLFWwindow* window = nullptr;
-    if (!initVideoBackend(window))
+    if (!initVideoBackend(window, cfg))
         return EXIT_FAILURE;
 
     initImGui(window);
@@ -202,12 +202,17 @@ int main(int argc, char* argv[])
         render(window);
     }
 
+    //----- save the configuration
+
+    // retrieve the window dimensions
+    glfwGetWindowPos(window, &cfg.window.x, &cfg.window.y);
+    glfwGetWindowSize(window, &cfg.window.width, &cfg.window.height);
+
+    Config::saveConfig(cfg, user_config);
+
     // clean ImGui + video backend
     cleanImGui();
     cleanVideoBackend(window);
-
-    // save the configuration
-
 
     return EXIT_SUCCESS;
 }
