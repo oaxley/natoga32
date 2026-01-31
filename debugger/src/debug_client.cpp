@@ -50,10 +50,9 @@ bool DebugClient::connect()
     }
 
     // prepare the structure
-    struct sockaddr_in server_addr = {
-        .sin_family = AF_INET,
-        .sin_port = htons(port_)
-    };
+    struct sockaddr_in server_addr = {};
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port_);
 
     if (isdigit(host_[0])) {
         // IP address
@@ -61,7 +60,7 @@ bool DebugClient::connect()
 
     } else {
         // hostname
-        struct addrinfo hints = {0};
+        struct addrinfo hints = {};
         hints.ai_family = AF_INET;
 
         struct addrinfo* result;
