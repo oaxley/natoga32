@@ -14,6 +14,8 @@
 #pragma once
 
 // standard library headers
+#include <vector>
+#include <memory>
 
 // program-specific includes
 #include "debug_client.h"
@@ -23,7 +25,7 @@ class IGeneric
 {
 public:
     IGeneric(DebugClient& client) :
-        client_{client}
+        client_{client}, childs_{}
     { }
 
     virtual ~IGeneric() { }
@@ -31,6 +33,12 @@ public:
     // render the UI element
     virtual void render() = 0;
 
+    // add a new child to this element
+    void addChild(std::unique_ptr<IGeneric> child) {
+        childs_.push_back(std::move(child));
+    }
+
 protected:
     DebugClient& client_;
+    std::vector<std::unique_ptr<IGeneric>> childs_;
 };
