@@ -31,7 +31,11 @@ public:
     virtual ~IGeneric() { }
 
     // render the UI element
-    virtual void render() = 0;
+    virtual void render() {
+        for (auto& child : childs_) {
+            child->render();
+        }
+    }
 
     // add a new child to this element
     void addChild(std::unique_ptr<IGeneric> child) {
