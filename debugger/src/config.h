@@ -35,11 +35,18 @@ struct WindowParams
     int height;
 };
 
+struct Font
+{
+    std::string path;
+    float size;
+};
+
 // configuration main object
 struct Config
 {
     WindowParams window;
     ConnectionParams connection;
+    Font font;
 };
 
 //----- templates

@@ -34,7 +34,8 @@ Config initializeConfig()
 {
     return Config{
         .window = { .x = 10, .y = 10, .width = 800, .height = 600},
-        .connection = { .host = "localhost", .port = 2600}
+        .connection = { .host = "localhost", .port = 2600},
+        .font = { .path = "", .size = 14.0f}
     };
 }
 
@@ -54,6 +55,9 @@ Config parseConfig(const fs::path& path)
 
     cfg.connection.host = data["connection"]["host"].value_or(cfg.connection.host);
     cfg.connection.port = data["connection"]["port"].value_or(cfg.connection.port);
+
+    cfg.font.path = data["font"]["path"].value_or(cfg.font.path);
+    cfg.font.size = data["font"]["size"].value_or(cfg.font.size);
 
     return cfg;
 }
@@ -115,6 +119,14 @@ bool saveConfig(const Config& config, std::optional<std::string> user_path)
         {"host", config.connection.host},
         {"port", config.connection.port}
     });
+
+    // font parameters
+    if (!config.font.path.empty()) {
+        cfg.insert("font", toml::table{
+            {"path", config.font.path},
+            {"size", config.font.size}
+        });
+    }
 
     // save the file
     std::ofstream file(path);
