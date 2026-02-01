@@ -73,7 +73,7 @@ void cleanVideoBackend(GLFWwindow* window)
     glfwTerminate();
 }
 
-void initImGui(GLFWwindow* window)
+void initImGui(GLFWwindow* window, const Config::Config& cfg)
 {
     if (!window)
         return;
@@ -84,6 +84,10 @@ void initImGui(GLFWwindow* window)
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    if (!cfg.font.path.empty()) {
+        io.Fonts->AddFontFromFileTTF(cfg.font.path.c_str(), cfg.font.size);
+    }
 
     ImGui::StyleColorsDark();
 
