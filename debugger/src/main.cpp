@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
     if (!initVideoBackend(window, cfg))
         return EXIT_FAILURE;
 
-    initImGui(window);
+    initImGui(window, cfg);
 
     // ImGui widgets list
     std::vector<std::unique_ptr<IGeneric>> widgets;
