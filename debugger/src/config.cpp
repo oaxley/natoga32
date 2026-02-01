@@ -43,14 +43,17 @@ Config parseConfig(const fs::path& path)
 {
     auto data = toml::parse_file(path.string());
 
-    Config cfg;
-    cfg.window.x = data["window"]["x"].value_or(10);
-    cfg.window.y = data["window"]["y"].value_or(10);
-    cfg.window.width = data["window"]["width"].value_or(800);
-    cfg.window.height = data["window"]["height"].value_or(600);
+    // initialize the configuration with the default values
+    Config cfg = initializeConfig();
 
-    cfg.connection.host = data["connection"]["host"].value_or(std::string("localhost"));
-    cfg.connection.port = data["connection"]["port"].value_or(2600);
+    // read the values from thefile
+    cfg.window.x = data["window"]["x"].value_or(cfg.window.x);
+    cfg.window.y = data["window"]["y"].value_or(cfg.window.y);
+    cfg.window.width = data["window"]["width"].value_or(cfg.window.width);
+    cfg.window.height = data["window"]["height"].value_or(cfg.window.height);
+
+    cfg.connection.host = data["connection"]["host"].value_or(cfg.connection.host);
+    cfg.connection.port = data["connection"]["port"].value_or(cfg.connection.port);
 
     return cfg;
 }
@@ -119,6 +122,7 @@ bool saveConfig(const Config& config, std::optional<std::string> user_path)
         return false;
 
     file << cfg;
+    file << "\n";
     return true;
 }
 
