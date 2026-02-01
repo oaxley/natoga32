@@ -20,9 +20,11 @@
 
 // program-specific includes
 #include "config.h"
+#include "states.h"
 #include "debug_client.h"
 #include "ui/helpers.h"
 #include "ui/generic.h"
+#include "ui/menubar.h"
 #include "ui/about.h"
 
 
@@ -135,7 +137,7 @@ int main(int argc, char* argv[])
     widgets.push_back(std::make_unique<About>(client, window));
 
     // state variables
-    bool show_about = false;
+    States states;
 
     // mainloop
     while (!glfwWindowShouldClose(window))
@@ -152,45 +154,13 @@ int main(int argc, char* argv[])
             glfwSetWindowShouldClose(window, true);
         }
 
-        if (ImGui::BeginMainMenuBar()) {
-            if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Open", "Ctrl+O")) {
-                    // handle open
-                }
-                if (ImGui::MenuItem("Save", "Ctrl+S")) {
-                    // handle save
-                }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
-                    glfwSetWindowShouldClose(window, true);
-                }
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("View")) {
-                if (ImGui::MenuItem("Registers")) {
-                    // toggle registers window
-                }
-                if (ImGui::MenuItem("Memory")) {
-                    // toggle memory window
-                }
-                if (ImGui::MenuItem("Disassembly")) {
-                    // toggle disassembly window
-                }
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("Help")) {
-                if (ImGui::MenuItem("About")) {
-                    show_about = true;
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::EndMainMenuBar();
-        }
+        // show the menubar
+        showMenubar(window, &states);
 
         // about modal window
-        if (show_about) {
+        if (states.show_about) {
             ImGui::OpenPopup("About##modal");
-            show_about = false;
+            states.show_about = false;
         }
 
         // render all the widgets
