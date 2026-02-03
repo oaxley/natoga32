@@ -25,14 +25,16 @@
 class IGeneric
 {
 public:
-    IGeneric(DebugClient& client, GLFWwindow* window) :
-        client_{client}, childs_{}, window_{window}
+    IGeneric(DebugClient& client, GLFWwindow* window, bool visible = false) :
+        client_{client}, childs_{}, window_{window}, visible_{visible}
     { }
 
     virtual ~IGeneric() { }
 
     // render the UI element
     virtual void render() {
+        if (!isVisible()) return;
+
         for (auto& child : childs_) {
             child->render();
         }
@@ -43,8 +45,15 @@ public:
         childs_.push_back(std::move(child));
     }
 
+    // visibility flag accessors
+    bool isVisible() const { return visible_; }
+    void show() { visible_ = true; }
+    void hide() { visible_ = false; }
+    void toggleVisible() { visible_ = !visible_; }
+
 protected:
     DebugClient& client_;
     std::vector<std::unique_ptr<IGeneric>> childs_;
     GLFWwindow* window_;
+    bool visible_ = false;
 };
