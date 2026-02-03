@@ -15,6 +15,9 @@
 
 struct States
 {
+    // quit
+    bool quit = false;
+
     // show the Help > About window
     bool show_about = false;
 };
