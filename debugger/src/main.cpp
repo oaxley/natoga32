@@ -12,6 +12,7 @@
  * @brief	Debugger Client
  */
 // standard library headers
+#include <array>
 #include <iostream>
 #include <vector>
 #include <memory>
@@ -27,6 +28,7 @@
 #include "ui/generic.h"
 #include "ui/menubar.h"
 #include "ui/about.h"
+#include "ui/registers.h"
 
 
 class MyButton : public IGeneric
@@ -55,10 +57,15 @@ class ClickMe : public IGeneric
 {
 public:
     ClickMe(DebugClient& client, GLFWwindow* window, std::string name) :
-        IGeneric(client, window), name_{name}
+        IGeneric(client, window, true), name_{name}
     {
-        addChild(std::make_unique<MyButton>(client, window, "clicker #1"));
-        addChild(std::make_unique<MyButton>(client, window, "clicker #2"));
+        std::array<uint32_t, 32> regs = {0};
+        regs[12] = 0xDEADC0DE;
+        regs[20] = 0xCAFEBABE;
+
+        addChild(std::make_unique<Registers>(client, window, regs));
+        // addChild(std::make_unique<MyButton>(client, window, "clicker #1"));
+        // addChild(std::make_unique<MyButton>(client, window, "clicker #2"));
     }
 
     virtual ~ClickMe()
@@ -66,6 +73,8 @@ public:
 
     void render()
     {
+        if (!isVisible()) return;
+
         ImGui::Begin(name_.c_str());
 
         IGeneric::render();
@@ -75,6 +84,37 @@ public:
 
 private:
     int count_ = 0;
+    std::string name_;
+};
+
+class FrameBuffer : public IGeneric
+{
+public:
+    FrameBuffer(DebugClient& client, GLFWwindow* window, std::string name) :
+        IGeneric(client, window), name_{name}
+    {}
+
+    void render()
+    {
+        if (!isVisible()) return;
+
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(128, 128, 128, 255));
+
+        // Set fixed size before Begin
+        ImGui::SetNextWindowSize(ImVec2(640, 384), ImGuiCond_Always);
+        ImGui::SetNextWindowSizeConstraints(ImVec2(640, 384), ImVec2(640, 384));  // Prevent resizing
+
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar;
+
+        if (ImGui::Begin(name_.c_str(), &visible_, flags)) {
+            // If you have a texture ID from OpenGL/Vulkan
+            // ImGui::Image((ImTextureID)(intptr_t)texture_id, ImVec2(640, 384));
+            ImGui::Dummy(ImVec2(640, 384));  // Reserve space
+        }
+        ImGui::End();
+        ImGui::PopStyleColor();
+    }
+private:
     std::string name_;
 };
 
@@ -132,15 +172,18 @@ int main(int argc, char* argv[])
 
     initImGui(window, cfg);
 
-    // ImGui widgets list
-    std::vector<std::unique_ptr<IGeneric>> widgets;
-    widgets.push_back(std::make_unique<ClickMe>(client, window, "Click Window"));
-    widgets.push_back(std::make_unique<About>(client, window));
+    // new window
+    ClickMe clickme(client, window, "Click Me");
+    FrameBuffer fba(client, window, "FrameBuffer A");
 
-    // state variables
-    States state;
+    // widgets are by default visible
+    IGeneric widgets(client, window, true);
+    widgets.addChild(clickme);
+    widgets.addChild(std::make_unique<About>(client, window));
+    widgets.addChild(fba);
 
     // mainloop
+    States state;
     while (!glfwWindowShouldClose(window))
     {
         // get events
@@ -165,6 +208,14 @@ int main(int argc, char* argv[])
                 ImGui::OpenPopup("About##modal");
                 break;
 
+            case States::LoadSymbols:
+                clickme.toggleVisible();
+                break;
+
+            case States::FrameBufferA:
+                fba.toggleVisible();
+                break;
+
             case States::Quit:
                 glfwSetWindowShouldClose(window, true);
                 break;
@@ -173,10 +224,7 @@ int main(int argc, char* argv[])
                 break;
         }
 
-        // render all the widgets
-        for (auto& widget : widgets) {
-            widget->render();
-        }
+        widgets.render();
 
         // Render
         render(window);
