@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
     widgets.push_back(std::make_unique<About>(client, window));
 
     // state variables
-    States states;
+    States state;
 
     // mainloop
     while (!glfwWindowShouldClose(window))
@@ -146,7 +146,8 @@ int main(int argc, char* argv[])
         // get events
         glfwPollEvents();
 
-        // Start ImGui frame
+        // reset the state and start a new frame
+        state = States::NoState;
         newFrame();
 
         // Global keyboard shortcuts
@@ -156,19 +157,20 @@ int main(int argc, char* argv[])
         }
 
         // show the menubar
-        showMenubar(&states);
+        showMenubar(state);
 
-        // quit
-        if (states.quit) {
-            glfwSetWindowShouldClose(window, true);
-            continue;
-        }
+        switch (state)
+        {
+            case States::About:
+                ImGui::OpenPopup("About##modal");
+                break;
 
+            case States::Quit:
+                glfwSetWindowShouldClose(window, true);
+                break;
 
-        // about modal window
-        if (states.show_about) {
-            ImGui::OpenPopup("About##modal");
-            states.show_about = false;
+            default:
+                break;
         }
 
         // render all the widgets

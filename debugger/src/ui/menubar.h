@@ -23,7 +23,7 @@
 
 
 // menubar definition
-void showMenubar(States* states)
+void showMenubar(States& state)
 {
     if (ImGui::BeginMainMenuBar()) {
         // File Menu
@@ -37,7 +37,7 @@ void showMenubar(States* states)
 
             ImGui::Separator();
             if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
-                states->quit = true;
+                state = States::Quit;
             }
             ImGui::EndMenu();
         }
@@ -206,7 +206,7 @@ void showMenubar(States* states)
         // Help
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem("About")) {
-                states->show_about = true;
+                state = States::About;
             }
             ImGui::EndMenu();
         }
