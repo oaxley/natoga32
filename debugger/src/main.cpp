@@ -19,6 +19,7 @@
 #include <argparse/argparse.hpp>
 
 // program-specific includes
+#include "constants.h"
 #include "config.h"
 #include "states.h"
 #include "debug_client.h"
@@ -81,7 +82,7 @@ private:
 int main(int argc, char* argv[])
 {
     //----- Read the command line
-    argparse::ArgumentParser program("vcdebug", "0.1.0");
+    argparse::ArgumentParser program("vcdebug", VERSION);
 
     // configuration file (optional)
     program.add_argument("-c", "--config")
@@ -157,10 +158,12 @@ int main(int argc, char* argv[])
         // show the menubar
         showMenubar(&states);
 
+        // quit
         if (states.quit) {
             glfwSetWindowShouldClose(window, true);
             continue;
         }
+
 
         // about modal window
         if (states.show_about) {

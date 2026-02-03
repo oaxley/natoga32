@@ -18,6 +18,7 @@
 #include <imgui.h>
 
 // program-specific includes
+#include "constants.h"
 #include "generic.h"
 
 
@@ -35,7 +36,7 @@ public:
             ImGui::Text("VCDebug");
             ImGui::Separator();
 
-            ImGui::Text("Version: %s", "0.1.0");
+            ImGui::Text("Version: %s", VERSION.c_str());
             ImGui::Text("Dear ImGui: %s", IMGUI_VERSION);
             ImGui::Text("GLFW: %s", glfwGetVersionString());
 
