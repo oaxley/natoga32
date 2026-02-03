@@ -26,7 +26,7 @@ class IGeneric
 {
 public:
     IGeneric(DebugClient& client, GLFWwindow* window, bool visible = false) :
-        client_{client}, childs_{}, window_{window}, visible_{visible}
+        client_{client}, window_{window}, visible_{visible}, children_{}, owned_{}
     { }
 
     virtual ~IGeneric() { }
@@ -35,14 +35,20 @@ public:
     virtual void render() {
         if (!isVisible()) return;
 
-        for (auto& child : childs_) {
+        for (auto* child : children_) {
             child->render();
         }
     }
 
-    // add a new child to this element
+    // add a new child and own it
     void addChild(std::unique_ptr<IGeneric> child) {
-        childs_.push_back(std::move(child));
+        children_.push_back(child.get());
+        owned_.push_back(std::move(child));
+    }
+
+    // add a new child (don't own it)
+    void addChild(IGeneric& child) {
+        children_.push_back(&child);
     }
 
     // visibility flag accessors
@@ -53,7 +59,10 @@ public:
 
 protected:
     DebugClient& client_;
-    std::vector<std::unique_ptr<IGeneric>> childs_;
     GLFWwindow* window_;
     bool visible_ = false;
+
+    // all children + owned
+    std::vector<IGeneric*> children_;
+    std::vector<std::unique_ptr<IGeneric>> owned_;
 };
