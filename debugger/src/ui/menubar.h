@@ -23,40 +23,194 @@
 
 
 // menubar definition
-void showMenubar(GLFWwindow* window, States* states)
+void showMenubar(States* states)
 {
     if (ImGui::BeginMainMenuBar()) {
+        // File Menu
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Open", "Ctrl+O")) {
-                // handle open
+            if (ImGui::MenuItem("Load Symbols")) {
             }
-            if (ImGui::MenuItem("Save", "Ctrl+S")) {
-                // handle save
+
+            ImGui::Separator();
+            if (ImGui::MenuItem("Preferences")) {
             }
+
             ImGui::Separator();
             if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
-                glfwSetWindowShouldClose(window, true);
+                states->quit = true;
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("View")) {
-            if (ImGui::MenuItem("Registers")) {
-                // toggle registers window
+
+        // Edit Menu
+        if (ImGui::BeginMenu("Edit")) {
+            if (ImGui::MenuItem("Undo", "Ctrl+Z")) {
             }
-            if (ImGui::MenuItem("Memory")) {
-                // toggle memory window
+            if (ImGui::MenuItem("Redo", "Ctrl+Y")) {
             }
-            if (ImGui::MenuItem("Disassembly")) {
-                // toggle disassembly window
+            ImGui::Separator();
+            if (ImGui::MenuItem("Copy", "Ctrl+C")) {
+            }
+            if (ImGui::MenuItem("Paste", "Ctrl+V")) {
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Find", "Ctrl+F")) {
+            }
+            if (ImGui::MenuItem("Replace", "Ctrl+H")) {
             }
             ImGui::EndMenu();
         }
+
+        // Window Menu
+        if (ImGui::BeginMenu("Window")) {
+
+            // memory
+            if (ImGui::BeginMenu("Memory")) {
+                if (ImGui::MenuItem("Heap")) {
+                }
+                if (ImGui::MenuItem(".BSS")) {
+                }
+                if (ImGui::MenuItem(".DATA")) {
+                }
+                if (ImGui::MenuItem(".TEXT")) {
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Explorer")) {
+                }
+                ImGui::EndMenu();
+            }
+
+            // Code
+            if (ImGui::BeginMenu("Code")) {
+                if (ImGui::MenuItem("Source")) {
+                }
+                ImGui::Separator();
+                if (ImGui::BeginMenu("Threads")) {
+                    if (ImGui::MenuItem("Info")) {
+                    }
+                    if (ImGui::MenuItem("Stack")) {
+                    }
+                    if (ImGui::MenuItem("Local Storage")) {
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Breakpoints")) {
+                }
+                ImGui::EndMenu();
+            }
+
+            // CSR & Signals
+            if (ImGui::BeginMenu("CSR/Signals")) {
+                if (ImGui::MenuItem("Control Status Reg.")) {
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Clock")) {
+                }
+                if (ImGui::MenuItem("Video VSYNC")) {
+                }
+                if (ImGui::MenuItem("Video HSYNC")) {
+                }
+                if (ImGui::MenuItem("Interrupts")) {
+                }
+                ImGui::EndMenu();
+            }
+
+            // Video
+            if (ImGui::BeginMenu("Video")) {
+                if (ImGui::BeginMenu("Buffer")) {
+                    if (ImGui::MenuItem("FrameBuffer A")) {
+                    }
+                    if (ImGui::MenuItem("FrameBuffer B")) {
+                    }
+                    if (ImGui::MenuItem("Z-Buffer")) {
+                    }
+                    if (ImGui::MenuItem("Text Layer")) {
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::Separator();
+                if (ImGui::BeginMenu("Sprites")) {
+                    if (ImGui::MenuItem("Viewer")) {
+                    }
+                    if (ImGui::MenuItem("Attributes")) {
+                    }
+                    if (ImGui::MenuItem("Palettes")) {
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::Separator();
+                if (ImGui::BeginMenu("BG")) {
+                    if (ImGui::MenuItem("Viewer")) {
+                    }
+                    if (ImGui::MenuItem("Map")) {
+                    }
+                    if (ImGui::MenuItem("Palettes")) {
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::Separator();
+                if (ImGui::BeginMenu("Fonts")) {
+                    if (ImGui::MenuItem("Viewer")) {
+                    }
+                    if (ImGui::MenuItem("Palettes")) {
+                    }
+                    ImGui::EndMenu();
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Affine Matrices")) {
+                }
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenu();
+        }
+
+        // Console
+        if (ImGui::BeginMenu("Console")) {
+            if (ImGui::BeginMenu("Run")) {
+                if (ImGui::MenuItem("Step")) {
+
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Pause")) {
+
+                }
+                if (ImGui::MenuItem("Resume")) {
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Reset")) {
+
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::MenuItem("Audio")) {
+            }
+            if (ImGui::MenuItem("Input")) {
+            }
+
+            ImGui::EndMenu();
+        }
+
+        // Tools
+        if (ImGui::BeginMenu("Tools")) {
+            if (ImGui::MenuItem("Hex Converter")) {
+            }
+
+            if (ImGui::MenuItem("Instr. Encoder")) {
+            }
+
+            ImGui::EndMenu();
+        }
+
+        // Help
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem("About")) {
                 states->show_about = true;
             }
             ImGui::EndMenu();
         }
+
         ImGui::EndMainMenuBar();
     }
 }

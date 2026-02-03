@@ -155,7 +155,12 @@ int main(int argc, char* argv[])
         }
 
         // show the menubar
-        showMenubar(window, &states);
+        showMenubar(&states);
+
+        if (states.quit) {
+            glfwSetWindowShouldClose(window, true);
+            continue;
+        }
 
         // about modal window
         if (states.show_about) {
