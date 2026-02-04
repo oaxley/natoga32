@@ -54,10 +54,9 @@ enum class States : uint16_t
     Interrupts = 0x3240,
 
     // Window > Video > Buffer
-    FrameBufferA = 0x3300,
-    FrameBufferB = 0x3301,
-    ZBuffer = 0x3302,
-    TextLayer = 0x3303,
+    FrameBuffer = 0x3300,
+    ZBuffer = 0x3301,
+    TextLayer = 0x3302,
 
     // Window > Video > Sprites
     SpriteViewer = 0x3310,

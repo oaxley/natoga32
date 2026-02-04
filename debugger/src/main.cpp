@@ -174,13 +174,13 @@ int main(int argc, char* argv[])
 
     // new window
     ClickMe clickme(client, window, "Click Me");
-    FrameBuffer fba(client, window, "FrameBuffer A");
+    FrameBuffer fb(client, window, "FrameBuffer");
 
     // widgets are by default visible
     IGeneric widgets(client, window, true);
     widgets.addChild(clickme);
     widgets.addChild(std::make_unique<About>(client, window));
-    widgets.addChild(fba);
+    widgets.addChild(fb);
 
     // mainloop
     States state;
@@ -212,8 +212,8 @@ int main(int argc, char* argv[])
                 clickme.toggleVisible();
                 break;
 
-            case States::FrameBufferA:
-                fba.toggleVisible();
+            case States::FrameBuffer:
+                fb.toggleVisible();
                 break;
 
             case States::Quit:

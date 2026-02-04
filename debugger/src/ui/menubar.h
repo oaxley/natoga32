@@ -142,11 +142,8 @@ void showMenubar(States& state)
             // Video
             if (ImGui::BeginMenu("Video")) {
                 if (ImGui::BeginMenu("Buffer")) {
-                    if (ImGui::MenuItem("FrameBuffer A")) {
-                        state = States::FrameBufferA;
-                    }
-                    if (ImGui::MenuItem("FrameBuffer B")) {
-                        state = States::FrameBufferB;
+                    if (ImGui::MenuItem("FrameBuffer")) {
+                        state = States::FrameBuffer;
                     }
                     if (ImGui::MenuItem("Z-Buffer")) {
                         state = States::ZBuffer;
