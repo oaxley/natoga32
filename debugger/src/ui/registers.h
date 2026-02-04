@@ -39,13 +39,25 @@ public:
             for (int y = 0; y < 16; y++) {
                 ImGui::TableNextColumn();
                 ImGui::Text("x%d", y);
+
                 ImGui::TableNextColumn();
-                ImGui::Text("%08X", regs_[y]);
+                // make the text selectable
+                char buffer[16];
+                snprintf(buffer, sizeof(buffer), "%08X", regs_[y]);
+                ImGui::PushID(y);
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::InputText("##v1", buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly);
+                ImGui::PopID();
 
                 ImGui::TableNextColumn();
                 ImGui::Text("x%d", y+16);
                 ImGui::TableNextColumn();
-                ImGui::Text("%08X", regs_[y+16]);
+
+                snprintf(buffer, sizeof(buffer), "%08X", regs_[y+16]);
+                ImGui::PushID(y + 100);
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::InputText("##v2", buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly);
+                ImGui::PopID();
 
                 if (y < 15)
                     ImGui::TableNextRow();
