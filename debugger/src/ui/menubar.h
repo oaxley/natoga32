@@ -87,6 +87,7 @@ void showMenubar(DebugState& state)
                 ImGui::Separator();
                 if (ImGui::BeginMenu("Threads")) {
                     if (ImGui::MenuItem("Info")) {
+                        state.toggleVisibility(THREADINFO_HWND);
                     }
                     if (ImGui::MenuItem("Stack")) {
                     }

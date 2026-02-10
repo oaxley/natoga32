@@ -28,6 +28,7 @@
 #include "ui/helpers.h"
 #include "ui/menubar.h"
 #include "ui/about.h"
+#include "ui/thread_info.h"
 
 
 //----- main entry point
@@ -89,7 +90,8 @@ int main(int argc, char* argv[])
 
     // UI components list
     std::vector<std::unique_ptr<IGeneric>> components;
-    components.push_back(std::make_unique<About>(state, window));
+    components.push_back(std::make_unique<UIAbout>(state, window));
+    components.push_back(std::make_unique<UIThreadInfo>(state, window));
 
     // mainloop
     while (!glfwWindowShouldClose(window))
