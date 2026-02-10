@@ -16,13 +16,16 @@
 // standard library headers
 #include <string>
 #include <array>
-#include <stdint.h>
+#include <span>
+#include <cstdint>
+#include <cassert>
 
 // program-specific includes
 #include "debug_client.h"
+#include "constants.h"
 
-// maximum number of windows in the debugger
-constexpr uint8_t WindowCount = 10;
+#include "console/cpu_threads.h"
+
 
 // class definition
 class DebugState
@@ -39,10 +42,39 @@ public:
     void hide(uint8_t id) { set(id, false); }
     void toggleVisibility(uint8_t id) { visibility_[id] = !visibility_[id]; }
 
+
+
+    int getActiveThreadID() const { return active_thread_id_; }
+    void setActiveThreadID(int tid) { active_thread_id_ = tid; }
+
+    // ThreadInfo accessors
+    std::span<uint32_t> getThreadRegisters(int tid) {
+        assert(tid >= 0 && tid < ThreadCount);
+        return std::span(threads_[tid].regs);
+    }
+
+    std::span<const uint32_t> getThreadRegisters(int tid) const {
+        assert(tid >= 0 && tid < ThreadCount);
+        return std::span(threads_[tid].regs);
+    }
+
+    ThreadInfo& getThreadInfo(int tid) {
+        assert(tid >= 0 && tid < ThreadCount);
+        return threads_[tid];
+    }
+
+    const ThreadInfo& getThreadInfo(int tid) const {
+        assert(tid >= 0 && tid < ThreadCount);
+        return threads_[tid];
+    }
+
 private:
     //----- members
     DebugClient& client_;               //< TCP/IP debug client
 
     // visibility array for debugger windows
     std::array<bool, WindowCount> visibility_{};
+
+    int active_thread_id_ = 0;
+    std::array<struct ThreadInfo, ThreadCount> threads_ = {};
 };
