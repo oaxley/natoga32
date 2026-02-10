@@ -26,8 +26,8 @@
 class About : public IGeneric
 {
 public:
-    About(DebugClient& client, GLFWwindow* window) :
-        IGeneric(client, window)
+    About(DebugState& state, GLFWwindow* window) :
+        IGeneric(state, window, ABOUT_HWND)
     { }
 
     void render()
