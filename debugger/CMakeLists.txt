@@ -28,6 +28,7 @@ add_executable(vcdebug
     src/main.cpp
     src/config.cpp
     src/debug_client.cpp
+    src/debug_state.cpp
 
     ${IMGUI_DIR}/imgui.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
