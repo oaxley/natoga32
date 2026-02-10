@@ -23,10 +23,10 @@
 
 
 // about window
-class About : public IGeneric
+class UIAbout : public IGeneric
 {
 public:
-    About(DebugState& state, GLFWwindow* window) :
+    UIAbout(DebugState& state, GLFWwindow* window) :
         IGeneric(state, window, ABOUT_HWND)
     { }
 
@@ -55,6 +55,7 @@ public:
             }
 
             ImGui::EndPopup();
+            state_.hide(id_);
         }
     }
 };
