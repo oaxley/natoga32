@@ -19,21 +19,21 @@
 #include <GLFW/glfw3.h>
 
 // program-specific includes
-#include "debug_client.h"
+#include "debug_state.h"
 
 //----- Class definition
 class IGeneric
 {
 public:
-    IGeneric(DebugClient& client, GLFWwindow* window, bool visible = false) :
-        client_{client}, window_{window}, visible_{visible}, children_{}, owned_{}
+    IGeneric(DebugState& state, GLFWwindow* window, uint8_t id) :
+        state_{state}, window_{window}, id_{id}, children_{}, owned_{}
     { }
 
     virtual ~IGeneric() { }
 
     // render the UI element
     virtual void render() {
-        if (!isVisible()) return;
+        if (!state_.isVisible(id_)) return;
 
         for (auto* child : children_) {
             child->render();
@@ -51,16 +51,10 @@ public:
         children_.push_back(&child);
     }
 
-    // visibility flag accessors
-    bool isVisible() const { return visible_; }
-    void show() { visible_ = true; }
-    void hide() { visible_ = false; }
-    void toggleVisible() { visible_ = !visible_; }
-
 protected:
-    DebugClient& client_;
+    DebugState& state_;
     GLFWwindow* window_;
-    bool visible_ = false;
+    uint8_t id_;
 
     // all children + owned
     std::vector<IGeneric*> children_;
