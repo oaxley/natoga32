@@ -37,6 +37,7 @@ public:
     // visibility accessors for windows
     void set(uint8_t id, bool value) { visibility_[id] = value; }
     bool get(uint8_t id) const { return visibility_[id]; }
+    bool& get(uint8_t id) { return visibility_[id]; }
     bool isVisible(uint8_t id) const { return get(id); }
     void show(uint8_t id) { set(id, true); }
     void hide(uint8_t id) { set(id, false); }
