@@ -21,7 +21,17 @@
 // constructor
 DebugState::DebugState(DebugClient& client) :
     client_{client}
-{ }
+{
+    for (int i = 0; i < ThreadCount; i++)
+    {
+        threads_[i].regs[i+1] = 0xDEADC0DE;
+    }
+
+    threads_[5].state = ThreadState::Running;
+    threads_[5].cycles = 1 << 13;
+    threads_[5].waitkey = 0xCAFEBABE;
+    threads_[5].sleep_until = 1 << 18;
+}
 
 /*virtual*/ DebugState::~DebugState()
 { }
