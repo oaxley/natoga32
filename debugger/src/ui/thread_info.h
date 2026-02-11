@@ -38,7 +38,7 @@ public:
     {
         if (!state_.isVisible(id_)) return;
 
-        if (ImGui::Begin("ThreadInfo")) {
+        if (ImGui::Begin("ThreadInfo", &state_.get(id_))) {
             ImGui::Text("Active Thread:");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(80.0f);
