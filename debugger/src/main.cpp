@@ -29,7 +29,7 @@
 #include "ui/menubar.h"
 #include "ui/about.h"
 #include "ui/thread_info.h"
-
+#include "ui/memory_viewer.h"
 
 //----- main entry point
 int main(int argc, char* argv[])
@@ -92,6 +92,7 @@ int main(int argc, char* argv[])
     std::vector<std::unique_ptr<IGeneric>> components;
     components.push_back(std::make_unique<UIAbout>(state, window));
     components.push_back(std::make_unique<UIThreadInfo>(state, window));
+    components.push_back(std::make_unique<UIMemoryView>(state, window));
 
     // mainloop
     while (!glfwWindowShouldClose(window))
