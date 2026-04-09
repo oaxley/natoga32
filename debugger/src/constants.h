@@ -36,3 +36,4 @@ constexpr uint8_t QUIT_HWND = 0x00;
 
 constexpr uint8_t ABOUT_HWND = 0x01;
 constexpr uint8_t THREADINFO_HWND = 0x02;
+constexpr uint8_t MEMORYVIEW_HWND = 0x03;

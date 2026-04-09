@@ -76,6 +76,7 @@ void showMenubar(DebugState& state)
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem("Explorer")) {
+                    state.set(MEMORYVIEW_HWND, true);
                 }
                 ImGui::EndMenu();
             }
