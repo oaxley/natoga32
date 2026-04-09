@@ -19,6 +19,7 @@
 #include <span>
 #include <cstdint>
 #include <cassert>
+#include <vector>
 
 // program-specific includes
 #include "debug_client.h"
@@ -26,6 +27,7 @@
 
 #include "console/cpu_threads.h"
 
+constexpr int ram_size = 8*1024*1024;
 
 // class definition
 class DebugState
@@ -69,6 +71,12 @@ public:
         return threads_[tid];
     }
 
+    // return a RW view on a specific memory area
+    template<typename T>
+    std::span<T> memview(size_t offset, size_t count) {
+        return { reinterpret_cast<T*>(ram_.data() + offset), count };
+    }
+
 private:
     //----- members
     DebugClient& client_;               //< TCP/IP debug client
@@ -78,4 +86,6 @@ private:
 
     int active_thread_id_ = 0;
     std::array<struct ThreadInfo, ThreadCount> threads_ = {};
+
+    std::vector<uint8_t> ram_;
 };

@@ -13,6 +13,7 @@
  */
 
 // standard library headers
+#include <random>
 
 // program-specific includes
 #include "debug_state.h"
@@ -20,8 +21,16 @@
 
 // constructor
 DebugState::DebugState(DebugClient& client) :
-    client_{client}
+    client_{client}, ram_(ram_size)
 {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 255);
+
+    for (size_t x = 0; x < ram_size; x++) {
+        ram_[x] = dis(gen);
+    }
+
     for (int i = 0; i < ThreadCount; i++)
     {
         threads_[i].regs[i+1] = 0xDEADC0DE;
