@@ -12,244 +12,57 @@
  * @brief	Virtual Console - Basic Host Program
  */
 
+// standard library headers
 #include <iostream>
-#include <iomanip>
-#include <cstdint>
 #include <vector>
 
-// Use the C API
+
+// program-specific includes
+#include <argparse/argparse.hpp>
 #include "vc/vc.h"
 
 
-//----- Helper functions
+//----- functions
 
-void print_separator()
-{
-    std::cout << "----------------------------------------\n";
-}
-
-void print_console_state(VC_Console_t* console)
-{
-    std::cout << "Console State: ";
-    auto state = vc_getState(console);
-    switch (state) {
-        case VC_STATE_UNINITIALIZED:
-            std::cout << "UNINITIALIZED\n";
-            break;
-        case VC_STATE_READY:
-            std::cout << "READY\n";
-            break;
-        case VC_STATE_RUNNING:
-            std::cout << "RUNNING\n";
-            break;
-        case VC_STATE_PAUSED:
-            std::cout << "PAUSED\n";
-            break;
-        case VC_STATE_ERROR:
-            std::cout << "ERROR\n";
-            break;
-    }
-
-    std::cout << "CPU State: ";
-    auto cpu_state = vc_getCpuState(console);
-    switch (cpu_state) {
-        case VC_CPU_RUNNING:
-            std::cout << "RUNNING\n";
-            break;
-        case VC_CPU_IDLE:
-            std::cout << "IDLE\n";
-            break;
-        case VC_CPU_HALTED:
-            std::cout << "HALTED\n";
-            break;
-    }
-
-    std::cout << "Current Thread: " << vc_getCurrentThreadId(console) << "\n";
-    std::cout << "Total Cycles: " << vc_getTotalCycles(console) << "\n";
-}
-
-void print_thread_info(VC_Console_t* console, int thread_id)
-{
-    std::cout << "Thread " << thread_id << ": ";
-
-    auto state = vc_getThreadState(console, thread_id);
-    switch (state) {
-        case VC_THREAD_FREE:
-            std::cout << "FREE";
-            break;
-        case VC_THREAD_READY:
-            std::cout << "READY";
-            break;
-        case VC_THREAD_RUNNING:
-            std::cout << "RUNNING";
-            break;
-        case VC_THREAD_SLEEPING:
-            std::cout << "SLEEPING";
-            break;
-        case VC_THREAD_DEAD:
-            std::cout << "DEAD";
-            break;
-    }
-
-    if (state != VC_THREAD_FREE) {
-        uint32_t pc = vc_getThreadPc(console, thread_id);
-        std::cout << " | PC: 0x" << std::hex << std::setfill('0') << std::setw(8) << pc << std::dec;
-    }
-
-    std::cout << "\n";
-}
-
-void print_all_threads(VC_Console_t* console)
-{
-    std::cout << "\nThread Status:\n";
-    for (int i = 0; i < 8; i++) {
-        print_thread_info(console, i);
-    }
-}
-
-void print_registers(VC_Console_t* console, int thread_id)
-{
-    std::cout << "\nThread " << thread_id << " Registers:\n";
-    for (int i = 0; i < 32; i++) {
-        if (i % 4 == 0 && i > 0) {
-            std::cout << "\n";
-        }
-        uint32_t value = vc_getThreadRegister(console, thread_id, i);
-        std::cout << "x" << std::setw(2) << i << ": 0x"
-                  << std::hex << std::setfill('0') << std::setw(8) << value
-                  << std::dec << "  ";
-    }
-    std::cout << "\n";
-}
-
-
-//----- Test ROM creation
-
-std::vector<uint8_t> create_test_rom()
-{
-    std::vector<uint8_t> rom;
-
-    // CPU starts at address 0x100, so we need to pad the ROM
-    // Fill first 0x100 bytes with zeros (or could be boot loader code)
-    for (int i = 0; i < 0x100; i++) {
-        rom.push_back(0x00);
-    }
-
-    // Now add our test program at offset 0x100
-    // Simple test program that will:
-    // 1. Set some registers
-    // 2. Add values
-    // 3. Loop forever
-
-    // LUI x12, 0x12345000    - Load upper immediate
-    rom.push_back(0x37); rom.push_back(0x56); rom.push_back(0x34); rom.push_back(0x12);
-
-    // ADDI x16 x0, 0x678    - Add immediate
-    rom.push_back(0x13); rom.push_back(0x08); rom.push_back(0x80); rom.push_back(0x67);
-
-    // ADD x20, x12, x16      - Add registers
-    rom.push_back(0x33); rom.push_back(0x0a); rom.push_back(0x06); rom.push_back(0x01);
-
-    // JAL x0, -12           - Jump back (infinite loop)
-    rom.push_back(0x6F); rom.push_back(0xf0); rom.push_back(0x5f); rom.push_back(0xFF);
-
-    return rom;
-}
-
-
-//----- Main program
-
+//----- main entry
 int main(int argc, char* argv[])
 {
-    std::cout << "Virtual Console - Host Integration Test\n";
-    print_separator();
+    //--- command line parser
+    argparse::ArgumentParser program("vchost", "0.1.0");
 
-    // Step 1: Create console
-    std::cout << "\n1. Creating console...\n";
-    VC_Console_t* console = vc_create();
-    if (!console) {
-        std::cerr << "ERROR: Failed to create console\n";
-        return 1;
+    // debug flag
+    program.add_argument("--debug")
+        .flag()     // .default_value(false).implicit_value(true)
+        .help("Enable debug server");
+
+    // debug port
+    program.add_argument("--debug-port")
+        .metavar("PORT")
+        .nargs(1)
+        .scan<'i', int>()
+        .default_value(2600)
+        .help("Debug listening port");
+
+    // rombios
+    program.add_argument("--rombios")
+        .metavar("FILENAME")
+        .default_value(std::string{"rombios.sys"})
+        .required()
+        .help("ROM-BIOS file");
+
+    // name of the cartridge
+    program.add_argument("file")
+        .nargs(1)
+        .remaining();
+
+    // read the arguments
+    try {
+        program.parse_args(argc, argv);
+    } catch (const std::exception& err) {
+        std::cerr << err.what() << "\n";
+        std::cerr << program;
+        return EXIT_FAILURE;
     }
-    std::cout << "   ✓ Console created\n";
 
-    // Step 2: Initialize console
-    std::cout << "\n2. Initializing console...\n";
-    if (!vc_initialize(console)) {
-        std::cerr << "ERROR: Failed to initialize console\n";
-        std::cerr << "       " << vc_getLastError(console) << "\n";
-        vc_destroy(console);
-        return 1;
-    }
-    std::cout << "   ✓ Console initialized\n";
-    print_console_state(console);
-
-    // Step 3: Create and load test ROM
-    std::cout << "\n3. Loading test ROM...\n";
-    auto rom = create_test_rom();
-    if (!vc_loadRomData(console, rom.data(), rom.size())) {
-        std::cerr << "ERROR: Failed to load ROM\n";
-        std::cerr << "       " << vc_getLastError(console) << "\n";
-        vc_destroy(console);
-        return 1;
-    }
-    std::cout << "   ✓ ROM loaded (" << rom.size() << " bytes)\n";
-
-    // Step 4: Reset console to start execution
-    std::cout << "\n4. Resetting console...\n";
-    vc_reset(console);
-    std::cout << "   ✓ Console reset\n";
-    print_console_state(console);
-    print_all_threads(console);
-
-    // Step 5: Change state to running
-    std::cout << "\n5. Starting execution...\n";
-    vc_resume(console);
-    std::cout << "   ✓ Console resumed\n";
-
-    // Step 6: Run a few cycles
-    std::cout << "\n6. Executing 10 cycles...\n";
-    vc_run(console, 10);
-    print_console_state(console);
-    print_all_threads(console);
-    print_registers(console, 0);
-
-    // Step 7: Memory read test
-    std::cout << "\n7. Memory read test...\n";
-    std::cout << "   Reading first 16 bytes at 0x00000000 (should be zeros):\n   ";
-    for (int i = 0; i < 16; i++) {
-        uint8_t byte = vc_memRead8(console, 0x00000000 + i);
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)byte << " ";
-    }
-    std::cout << "\n";
-
-    std::cout << "   Reading 16 bytes at 0x00000100 (program code):\n   ";
-    for (int i = 0; i < 16; i++) {
-        uint8_t byte = vc_memRead8(console, 0x00000100 + i);
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)byte << " ";
-    }
-    std::cout << std::dec << "\n";
-
-    // Step 8: Pause and resume test
-    std::cout << "\n8. Pause/Resume test...\n";
-    vc_pause(console);
-    std::cout << "   Paused: " << (vc_isPaused(console) ? "YES" : "NO") << "\n";
-    vc_resume(console);
-    std::cout << "   Running: " << (vc_isRunning(console) ? "YES" : "NO") << "\n";
-
-    // Step 9: Run more cycles
-    std::cout << "\n9. Running 1000 more cycles...\n";
-    vc_run(console, 1000);
-    print_console_state(console);
-    print_registers(console, 0);
-
-    // Step 10: Cleanup
-    std::cout << "\n10. Cleaning up...\n";
-    vc_destroy(console);
-    std::cout << "    ✓ Console destroyed\n";
-
-    print_separator();
-    std::cout << "Test completed successfully!\n";
-
-    return 0;
+    return EXIT_SUCCESS;
 }
