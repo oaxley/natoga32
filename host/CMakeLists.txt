@@ -14,6 +14,8 @@ FetchContent_MakeAvailable(argparse)
 # create the Virtual Console host binary
 add_executable(vchost
     src/main.cpp
+    src/host_config.h
+    src/console_runner.h
 )
 
 # include directories
