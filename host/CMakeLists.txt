@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 # SDL2 required for the host
-find_package(SDL2 REQUIRED)
+find_package(SDL3 REQUIRED)
 
 # CMake fetch argparse library
 include(FetchContent)
@@ -21,7 +21,7 @@ add_executable(vchost
 # include directories
 target_include_directories(vchost
     PUBLIC
-        ${SDL2_INCLUDE_DIRS}
+        ${SDL3_INCLUDE_DIRS}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -29,7 +29,7 @@ target_include_directories(vchost
 # link targets
 target_link_libraries(vchost
     PUBLIC
-        ${SDL2_LIBRARIES}
+        ${SDL3_LIBRARIES}
     PRIVATE
         argparse
         vc
