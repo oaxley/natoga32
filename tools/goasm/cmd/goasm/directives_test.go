@@ -1,6 +1,10 @@
 package main
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/natoga32/goasm/internal/ast"
@@ -132,5 +136,143 @@ func TestOrgDirectivePass3BackwardError(t *testing.T) {
 	err := emitDirective(dir, symbols, sections)
 	if err == nil {
 		t.Error("expected error for backward .org, got nil")
+	}
+}
+
+func TestUnknownDirectiveIsAnError(t *testing.T) {
+	symbols := symbol.New()
+	sections := section.NewManager()
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+
+	// a typo of .word must not be silently ignored
+	dir := &ast.Directive{
+		Name: ".wrod",
+		Args: []ast.Expression{&ast.Number{Value: 1}},
+	}
+
+	err := handleDirective(dir, symbols, sections)
+	if err == nil {
+		t.Fatal("expected error for unknown directive .wrod, got nil")
+	}
+	if !strings.Contains(err.Error(), "unknown directive '.wrod'") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestRodataDirectiveIsNotSupported(t *testing.T) {
+	symbols := symbol.New()
+	sections := section.NewManager()
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+
+	dir := &ast.Directive{Name: ".rodata"}
+
+	err := handleDirective(dir, symbols, sections)
+	if err == nil {
+		t.Fatal("expected error for .rodata, got nil")
+	}
+	if !strings.Contains(err.Error(), ".rodata is not supported") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+// TestAllDocumentedDirectivesAssemble makes sure that rejecting unknown
+// directives does not break any directive documented in README.md,
+// including the preprocessor ones.
+func TestAllDocumentedDirectivesAssemble(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "inc.asm"), []byte("    nop\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "blob.bin"), []byte{1, 2, 3, 4}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	src := `
+.define SIZE 4
+.equ ANSWER, 42
+.set OTHER, 7
+.macro push reg
+    addi sp, sp, -4
+    sw   \reg, 0(sp)
+.endmacro
+.global main
+.globl helper
+
+.rom
+    nop
+
+.text
+main:
+    push a0
+.include "inc.asm"
+.ifdef SIZE
+    nop
+.endif
+.ifndef UNDEFINED_SYMBOL
+    nop
+.endif
+.if SIZE == 4
+    nop
+.else
+    addi a0, a0, 1
+.endif
+.for i = 0, 2
+    nop
+.endf
+helper:
+    ret
+
+.data
+    .byte 1, 2
+    .half 3
+    .short 4
+    .word 5
+    .word .dup 2 0
+    .string "abc"
+    .asciz "def"
+    .ascii "gh"
+    .align 2
+    .space 4
+    .skip 4
+    .incbin "blob.bin"
+    .org 0x01200040
+
+.bss
+    .space 16
+`
+	input := filepath.Join(dir, "all.asm")
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-o", filepath.Join(dir, "all.on32"))
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("assembling all documented directives failed: %v\n%s", err, out)
+	}
+}
+
+// TestRodataIsRejectedEndToEnd checks that goasm stops with an error
+// instead of silently placing the data in .text.
+func TestRodataIsRejectedEndToEnd(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "rodata.asm")
+	src := ".rodata\nvalue: .word 1\n.text\nmain: nop\n"
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-o", filepath.Join(dir, "rodata.on32"))
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected goasm to fail on .rodata, it succeeded:\n%s", out)
+	}
+	if !strings.Contains(string(out), ".rodata is not supported") {
+		t.Errorf("expected '.rodata is not supported' in output, got:\n%s", out)
 	}
 }
