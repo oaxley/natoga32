@@ -204,6 +204,8 @@ handler##COUNT:                  ; Produces: handler5:
 | `.align N` | Align to 2^N byte boundary |
 | `.org addr` | Set location counter to absolute address |
 
+Any other directive is rejected with an `unknown directive` error, so a typo (e.g. `.wrod`) never silently puts data in the wrong section. There is no `.rodata` section: goasm reports `.rodata is not supported`, place read-only data in `.data` or `.text`.
+
 ### The `.org` Directive
 
 The `.org` directive sets the location counter to an absolute address. This is useful for placing code or data at specific memory locations:

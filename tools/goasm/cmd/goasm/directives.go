@@ -100,6 +100,13 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 				sections.Current().Size += gap
 			}
 		}
+
+	case ".rodata":
+		return fmt.Errorf("%s: error: .rodata is not supported, place read-only data in .data or .text", dir.Location)
+
+	default:
+		// never silently ignore a directive: a typo would put data in the wrong section
+		return fmt.Errorf("%s: error: unknown directive '%s'", dir.Location, dir.Name)
 	}
 
 	return nil
