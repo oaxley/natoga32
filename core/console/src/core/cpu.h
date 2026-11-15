@@ -61,6 +61,7 @@ private:
     int current_thread_ = 0;
     u64 total_cycles_ = 0;
     u64 virtual_time_ = 0;
+    bool trap_taken_ = false;       //< set by triggerTrap during the current instruction
 
     Memory& mem_;
     CPUState cpu_state_;
@@ -84,6 +85,7 @@ private:
     void execute_instruction();
 
     // CSR read/write
+    static bool isReadOnlyCSR(u16 csr);
     u32 readCSR(u16 csr);
     void writeCSR(u16 csr, u32 value);
 };

@@ -92,3 +92,34 @@ TEST_CASE("Private thread zone is protected from programs", "[cpu][memory][prote
         REQUIRE(test.mem.read32(0x0020'6000) == 0x1234'5678);
     }
 }
+
+TEST_CASE("Invalid load/store encodings are illegal instructions", "[cpu][memory][illegal]") {
+    InstructionTest test;
+
+    // unused funct3 values, both far from and near the private zone
+    const u32 addr = GENERATE(as<u32>{}, MMAP_DATA, 0x0020'4FFC);
+
+    SECTION("load with funct3 = 011") {
+        runAccess(test, 0x0000B183, addr);                              // funct3 011, x3, 0(x1)
+        REQUIRE(csr(test, CSR_MCAUSE) == CPU_MAIN_ILLEGAL_INSTRUCTION);
+        REQUIRE(test.getPC() == TRAP_HANDLER);
+    }
+
+    SECTION("load with funct3 = 110") {
+        runAccess(test, 0x0000E183, addr);                              // funct3 110
+        REQUIRE(csr(test, CSR_MCAUSE) == CPU_MAIN_ILLEGAL_INSTRUCTION);
+        REQUIRE(test.getPC() == TRAP_HANDLER);
+    }
+
+    SECTION("store with funct3 = 011") {
+        runAccess(test, 0x0020B023, addr, 0xDEAD'BEEF);                 // funct3 011
+        REQUIRE(csr(test, CSR_MCAUSE) == CPU_MAIN_ILLEGAL_INSTRUCTION);
+        REQUIRE(test.getPC() == TRAP_HANDLER);
+    }
+
+    SECTION("store with funct3 = 100") {
+        runAccess(test, 0x0020C023, addr, 0xDEAD'BEEF);                 // funct3 100
+        REQUIRE(csr(test, CSR_MCAUSE) == CPU_MAIN_ILLEGAL_INSTRUCTION);
+        REQUIRE(test.mem.read32(addr) == 0);
+    }
+}

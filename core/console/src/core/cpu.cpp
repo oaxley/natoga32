@@ -261,6 +261,9 @@ void CPU::triggerTrap(bool is_interrupt, u32 cause, u32 trap_value)
     // jump to handler
     u32 addr_handler = readCSR(CSR_MTVEC);
     threads_[current_thread_].setPC(addr_handler);
+
+    // the current instruction must not write back its PC
+    trap_taken_ = true;
 }
 
 
@@ -288,6 +291,7 @@ void CPU::execute_instruction()
     CPUThread& thread = threads_[current_thread_];
     auto& registers = thread.getRegisters();
     u32 pc = thread.getPC();
+    trap_taken_ = false;
 
     // fetch the instruction
     u32 instruction = mem_.read32(pc);
@@ -379,6 +383,12 @@ void CPU::execute_instruction()
             i32 imm = decoder::immTypeI(instruction);
             u32 addr = urs1 + imm;
 
+            // only LB, LH, LW, LBU, LHU exist
+            if (funct3 == 0b011 || funct3 >= 0b110) {
+                triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                return;
+            }
+
             // programs cannot read the private thread zone
             if (isPrivateAccess(addr, accessSize(funct3))) {
                 triggerTrap(false, CPU_LOAD_ACCESS_FAULT, addr);
@@ -411,6 +421,12 @@ void CPU::execute_instruction()
         {
             i32 imm = decoder::immTypeS(instruction);
             u32 addr = urs1 + imm;
+
+            // only SB, SH, SW exist
+            if (funct3 > 0b010) {
+                triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                return;
+            }
 
             // programs cannot write the private thread zone
             if (isPrivateAccess(addr, accessSize(funct3))) {
@@ -786,6 +802,16 @@ void CPU::execute_instruction()
         case OP_SYSTEM:     // system instructions
         {
             u32 csr = (instruction >> 20) & 0xFFF;
+
+            // a CSR instruction that writes a read-only CSR is illegal, nothing is written (not even rd)
+            // CSRRW/CSRRWI always write, the set/clear variants only when rs1 (or uimm) != 0
+            bool csr_write = (funct3 == 0b001 || funct3 == 0b101) ||
+                             ((funct3 == 0b010 || funct3 == 0b011 || funct3 == 0b110 || funct3 == 0b111) && rs1 != 0);
+            if (csr_write && isReadOnlyCSR(csr)) {
+                triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                return;
+            }
+
             u32 csr_val = readCSR(csr);
 
             switch (funct3)
@@ -876,6 +902,12 @@ void CPU::execute_instruction()
             break;
     }
 
+    // a trap already moved the PC to the handler: the instruction has no other effect
+    if (trap_taken_) {
+        registers[0] = 0;
+        return;
+    }
+
     // write back the PC to the thread
     thread.setPC(pc);
 
@@ -884,6 +916,12 @@ void CPU::execute_instruction()
 
     // ensure x0 remains at 0 as per specification
     registers[0] = 0;
+}
+
+// read-only CSR are the one starting with 0b11
+bool CPU::isReadOnlyCSR(u16 csr)
+{
+    return (csr >> 10) == 3;
 }
 
 // CSR read/write
@@ -914,8 +952,7 @@ u32 CPU::readCSR(u16 csr)
 
 void CPU::writeCSR(u16 csr, u32 value)
 {
-    // read-only CSR are the one starting with 0b11
-    if ((csr >> 10) == 3) {
+    if (isReadOnlyCSR(csr)) {
         triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
         return;
     }

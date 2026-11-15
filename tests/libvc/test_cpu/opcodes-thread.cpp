@@ -215,3 +215,25 @@ TEST_CASE("Thread instructions", "[cpu][instruction][thread]") {
         REQUIRE(test.getCtx(0).getState() == ThreadState::Running);
     }
 }
+
+TEST_CASE("NEW.T resets the Thread Control Block of the reused slot", "[cpu][instruction][thread]") {
+    InstructionTest test;
+
+    // dirty the TCB of thread 1 (the first Free slot), as a previous use would
+    u32 tcb = MMAP_THREADS_TCB_BASE + 1 * MMAP_THREAD_TCB_SIZE;
+    test.mem.write32(tcb + 0x08, 0x1234);       // waitkey
+    test.mem.write32(tcb + 0x10, 77);           // sleep_until
+    test.mem.write32(tcb + 0x18, 88);           // total_cycles
+
+    u32 entry = MMAP_CODE + 0x100;
+    test.setReg(3, entry);
+    test.loadInstruction(0x0001810b);           // NEW.T x2, x3
+    test.execute();
+
+    REQUIRE(test.getReg(2) == 1);
+    REQUIRE(test.mem.read8(tcb) == static_cast<u8>(ThreadState::Ready));
+    REQUIRE(test.mem.read32(tcb + 0x04) == entry);
+    REQUIRE(test.mem.read32(tcb + 0x08) == 0);
+    REQUIRE(test.mem.read32(tcb + 0x10) == 0);
+    REQUIRE(test.mem.read32(tcb + 0x18) == 0);
+}
