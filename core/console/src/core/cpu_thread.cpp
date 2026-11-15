@@ -34,27 +34,17 @@ CPUThread::CPUThread()
 
 void CPUThread::init(Memory& mem, int tid, u32 entrypoint)
 {
-    // thread id / cycles counter
+    // thread id
     id_ = tid;
-    total_cycles_ = 0;
 
-    // stack: SP starts at the top of the thread stack (16-byte aligned, grows downward)
-    sp_base_ = MMAP_STACK_BASE + (tid + 1) * MMAP_THREAD_STACK_SIZE;
-    sp_ = sp_base_;
+    // thread control block: reset all the private state
+    tcb_ = mem.memview<ThreadControlBlock>(MMAP_THREADS_TCB_BASE + tid * MMAP_THREAD_TCB_SIZE, 1).data();
+    *tcb_ = ThreadControlBlock{};
+    tcb_->state = static_cast<u8>(ThreadState::Free);
+    tcb_->pc = entrypoint;
 
     // set the canary at the bottom of the thread stack
-    canary_addr_ = MMAP_STACK_BASE + tid * MMAP_THREAD_STACK_SIZE;
-    mem.write32(canary_addr_, STACK_CANARY_VALUE);
-
-    // thread local storage
-    tp_ = MMAP_THREADS_TLS_BASE + tid * MMAP_THREAD_TLS_SIZE;
-
-    // thread initial state
-    state_ = ThreadState::Free;
-
-    // events reset
-    waitkey_ = 0;
-    sleep_until_ = 0;
+    mem.write32(getCanaryAddr(), STACK_CANARY_VALUE);
 
     // set registers
     int regsize = THREADS_REGISTERS * sizeof(u32);
@@ -63,43 +53,40 @@ void CPUThread::init(Memory& mem, int tid, u32 entrypoint)
         reg = 0;
     }
 
-    // program counter
-    pc_ = entrypoint;
-
-    // ensure sp and tp are mirror properly in the registers
-    registers_[SP_REG] = sp_;
-    registers_[TP_REG] = tp_;
+    // SP starts at the top of the thread stack (16-byte aligned, grows downward), TP on the TLS
+    registers_[SP_REG] = getSP();
+    registers_[TP_REG] = getTP();
 }
 
 bool CPUThread::checkStackCanary(Memory& mem) const
 {
-    u32 value = mem.read32(canary_addr_);
+    u32 value = mem.read32(getCanaryAddr());
     return value == STACK_CANARY_VALUE;
 }
 
 void CPUThread::sleep(u64 current_cycles, u32 waitkey_value, u32 sleep_cycles)
 {
     if (waitkey_value > 0) {
-        waitkey_ = waitkey_value;
+        tcb_->waitkey = waitkey_value;
     }
 
     if (sleep_cycles > 0) {
-        sleep_until_ = current_cycles + static_cast<u64>(sleep_cycles);
+        tcb_->sleep_until = current_cycles + static_cast<u64>(sleep_cycles);
     }
 
-    state_ = ThreadState::Sleeping;
+    setState(ThreadState::Sleeping);
 }
 
 void CPUThread::wake()
 {
-    state_ = ThreadState::Ready;
-    waitkey_ = 0;
-    sleep_until_ = 0;
+    setState(ThreadState::Ready);
+    tcb_->waitkey = 0;
+    tcb_->sleep_until = 0;
 }
 
 void CPUThread::end()
 {
-    state_ = ThreadState::Dead;
+    setState(ThreadState::Dead);
 }
 
 

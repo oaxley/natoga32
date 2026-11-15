@@ -76,6 +76,10 @@ private:
     // interruption / exception trigger
     void triggerTrap(bool is_interrupt, u32 cause, u32 trap_value = 0);
 
+    // memory protection of the private thread zone
+    bool isPrivateAccess(u32 addr, u32 size) const;
+    static u32 accessSize(u32 funct3);
+
     // instruction executor
     void execute_instruction();
 
