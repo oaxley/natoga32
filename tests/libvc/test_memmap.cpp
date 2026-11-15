@@ -58,6 +58,17 @@ TEST_CASE("Memory Segments match the memory map", "[memory]") {
         REQUIRE( MMAP_THREAD_TLS_SIZE == 256 );
         REQUIRE( MMAP_THREAD_TLS_SIZE * THREADS_COUNT == MMAP_TTLS_SIZE );
     }
+
+    SECTION("Thread Control Blocks fit between Registers Save and TLS") {
+        REQUIRE( MMAP_THREAD_TCB_SIZE == 32 );
+        REQUIRE( MMAP_THREADS_TCB_BASE == MMAP_THREADS_REG_BASE + MMAP_TREG_SIZE );
+        REQUIRE( MMAP_THREADS_TCB_BASE + THREADS_COUNT * MMAP_THREAD_TCB_SIZE <= MMAP_THREADS_TLS_BASE );
+    }
+
+    SECTION("Private thread zone covers Registers Save up to the TLS") {
+        REQUIRE( MMAP_THREADS_PRIVATE_BASE == MMAP_THREADS_REG_BASE );
+        REQUIRE( MMAP_THREADS_PRIVATE_BASE + MMAP_THREADS_PRIVATE_SIZE == MMAP_THREADS_TLS_BASE );
+    }
 }
 
 // check that the size of all the segments is less than the total ram size

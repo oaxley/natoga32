@@ -22,6 +22,8 @@ namespace vc
 {
 
 // CPU Exceptions
+constexpr u32 CPU_LOAD_ACCESS_FAULT             = 5;
+constexpr u32 CPU_STORE_ACCESS_FAULT            = 7;
 constexpr u32 CPU_ECALL_FROM_M_MODE             = 11;
 
 constexpr u32 CPU_THREAD_MAIN_EXIT_ERROR        = 24;

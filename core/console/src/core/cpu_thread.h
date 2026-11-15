@@ -14,6 +14,7 @@
 #pragma once
 
 // standard library headers
+#include <cstddef>
 #include <span>
 
 // program-specific headers
@@ -35,6 +36,28 @@ enum class ThreadState : u8
     Sleeping = 4,
     Dead = 8
 };
+
+
+//----- structures
+// Thread Control Block: private state of a thread, stored in console memory
+// at MMAP_THREADS_TCB_BASE + tid * MMAP_THREAD_TCB_SIZE
+struct ThreadControlBlock
+{
+    u8  state;              //< ThreadState
+    u8  reserved0[3];
+    u32 pc;                 //< Program Counter
+    u32 waitkey;            //< Waitkey value
+    u32 reserved1;
+    u64 sleep_until;        //< Wake-up cycle (0 = none)
+    u64 total_cycles;       //< Thread total cycles
+};
+
+static_assert(sizeof(ThreadControlBlock) == MMAP_THREAD_TCB_SIZE);
+static_assert(offsetof(ThreadControlBlock, state) == 0x00);
+static_assert(offsetof(ThreadControlBlock, pc) == 0x04);
+static_assert(offsetof(ThreadControlBlock, waitkey) == 0x08);
+static_assert(offsetof(ThreadControlBlock, sleep_until) == 0x10);
+static_assert(offsetof(ThreadControlBlock, total_cycles) == 0x18);
 
 
 //----- class

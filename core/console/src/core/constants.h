@@ -69,6 +69,15 @@ constexpr int THREADS_REGISTERS = 32;
 constexpr size_t MMAP_THREAD_STACK_SIZE = MMAP_STACK_SIZE / THREADS_COUNT;
 constexpr size_t MMAP_THREAD_TLS_SIZE   = 256;
 
+// per-thread control block (private thread state), right after the Registers Save
+constexpr u32 MMAP_THREADS_TCB_BASE     = MMAP_THREADS_REG_BASE + MMAP_TREG_SIZE;
+constexpr size_t MMAP_THREAD_TCB_SIZE   = 32;
+
+// private thread zone (Registers Save + Control Blocks + reserved): emulator only,
+// any program load/store in this zone raises an access fault
+constexpr u32 MMAP_THREADS_PRIVATE_BASE     = MMAP_THREADS_REG_BASE;
+constexpr size_t MMAP_THREADS_PRIVATE_SIZE  = 4 * 1024;
+
 // stack canary value
 constexpr u32 STACK_CANARY_VALUE = 0xBAADF00D;
 
