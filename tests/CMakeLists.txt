@@ -41,3 +41,14 @@ target_include_directories(vctests
 include(CTest)
 include(Catch)
 catch_discover_tests(vctests)
+
+# vchost command line: a missing cartridge must print the usage, not crash
+if(TARGET vchost)
+    add_test(NAME vchost_missing_file COMMAND vchost)
+    set_tests_properties(vchost_missing_file PROPERTIES
+        PASS_REGULAR_EXPRESSION "Usage: vchost"
+        FAIL_REGULAR_EXPRESSION "terminate called")
+    add_test(NAME vchost_with_file COMMAND vchost game.on32)
+    set_tests_properties(vchost_with_file PROPERTIES
+        PASS_REGULAR_EXPRESSION "File    : game.on32")
+endif()
