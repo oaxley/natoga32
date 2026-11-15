@@ -1,0 +1,15 @@
+# remove workspace directory (plans, designs, notes)
+workspace/**
+
+# graphify knowledge graph output
+graphify-out/**
+**/graphify-out/
+.graphifyignore
+
+# opencode config
+opencode.json
+
+# misc
+.vscode/**
+build/**
+.envrc
