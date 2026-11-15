@@ -14,6 +14,7 @@
 #pragma once
 
 // standard library headers
+#include <bit>
 #include <cstddef>
 #include <span>
 
@@ -52,6 +53,8 @@ struct ThreadControlBlock
     u64 total_cycles;       //< Thread total cycles
 };
 
+// the TCB is defined as little-endian and is accessed in place in console memory
+static_assert(std::endian::native == std::endian::little, "the Thread Control Block requires a little-endian host");
 static_assert(sizeof(ThreadControlBlock) == MMAP_THREAD_TCB_SIZE);
 static_assert(offsetof(ThreadControlBlock, state) == 0x00);
 static_assert(offsetof(ThreadControlBlock, pc) == 0x04);

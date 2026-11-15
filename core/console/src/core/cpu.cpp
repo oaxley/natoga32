@@ -379,6 +379,12 @@ void CPU::execute_instruction()
             i32 imm = decoder::immTypeI(instruction);
             u32 addr = urs1 + imm;
 
+            // only LB, LH, LW, LBU, LHU exist
+            if (funct3 == 0b011 || funct3 >= 0b110) {
+                triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                return;
+            }
+
             // programs cannot read the private thread zone
             if (isPrivateAccess(addr, accessSize(funct3))) {
                 triggerTrap(false, CPU_LOAD_ACCESS_FAULT, addr);
@@ -411,6 +417,12 @@ void CPU::execute_instruction()
         {
             i32 imm = decoder::immTypeS(instruction);
             u32 addr = urs1 + imm;
+
+            // only SB, SH, SW exist
+            if (funct3 > 0b010) {
+                triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                return;
+            }
 
             // programs cannot write the private thread zone
             if (isPrivateAccess(addr, accessSize(funct3))) {
