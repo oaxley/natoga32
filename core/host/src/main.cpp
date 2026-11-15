@@ -54,8 +54,7 @@ int main(int argc, char* argv[])
 
     // name of the cartridge
     program.add_argument("file")
-        .nargs(1)
-        .remaining();
+        .help("cartridge file");
 
     // read the arguments
     try {
