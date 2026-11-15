@@ -23,6 +23,7 @@ add_executable(vctests
     libvc/test_cpu/opcodes_51.cpp
     libvc/test_cpu/opcodes-csr.cpp
     libvc/test_cpu/opcodes-thread.cpp
+    libvc/test_cpu/private-zone.cpp
 )
 
 # link targets

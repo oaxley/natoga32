@@ -265,6 +265,23 @@ void CPU::triggerTrap(bool is_interrupt, u32 cause, u32 trap_value)
 
 
 
+// true when the access [addr, addr + size) touches the private thread zone
+bool CPU::isPrivateAccess(u32 addr, u32 size) const
+{
+    u64 start = addr;
+    u64 end = start + size;
+    u64 zone_start = MMAP_THREADS_PRIVATE_BASE;
+    u64 zone_end = zone_start + MMAP_THREADS_PRIVATE_SIZE;
+    return start < zone_end && end > zone_start;
+}
+
+// access size in bytes of a load/store, from its funct3 (bits 1..0: 0 = byte, 1 = half, 2 = word)
+u32 CPU::accessSize(u32 funct3)
+{
+    return 1u << (funct3 & 0b11);
+}
+
+
 void CPU::execute_instruction()
 {
     // thread accessor
@@ -362,6 +379,12 @@ void CPU::execute_instruction()
             i32 imm = decoder::immTypeI(instruction);
             u32 addr = urs1 + imm;
 
+            // programs cannot read the private thread zone
+            if (isPrivateAccess(addr, accessSize(funct3))) {
+                triggerTrap(false, CPU_LOAD_ACCESS_FAULT, addr);
+                return;     // don't do PC+4, rd is unchanged
+            }
+
             switch(funct3)
             {
                 case 0b000:     // LB
@@ -388,6 +411,12 @@ void CPU::execute_instruction()
         {
             i32 imm = decoder::immTypeS(instruction);
             u32 addr = urs1 + imm;
+
+            // programs cannot write the private thread zone
+            if (isPrivateAccess(addr, accessSize(funct3))) {
+                triggerTrap(false, CPU_STORE_ACCESS_FAULT, addr);
+                return;     // don't do PC+4, memory is unchanged
+            }
 
             switch(funct3)
             {
