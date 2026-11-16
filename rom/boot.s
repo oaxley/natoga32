@@ -38,6 +38,7 @@
 .equ LOGO_DEST,         0x00392C50      ; VIDEO_RAM + 60 * 1280 + 40 * 2
 
 .equ FADE_STEPS,        15
+.equ FADE_FRAMES,       3               ; frames shown per fade step
 .equ BLINK_FRAMES,      30
 .equ WAITKEY_VBLANK,    0x80000001
 
@@ -67,14 +68,18 @@ _start:
     li a2, 384
     call fill_rows
 
-    ; logo fade-in, one step per frame at least
+    ; logo fade-in, FADE_FRAMES frames per step
     li s0, 1
     li s1, FADE_STEPS
 fade_loop:
     mv a0, s0
     call build_fade_table
     call draw_logo
+    li s2, FADE_FRAMES
+fade_wait:
     call wait_vblank
+    addi s2, s2, -1
+    bnez s2, fade_wait
     addi s0, s0, 1
     ble s0, s1, fade_loop
 
