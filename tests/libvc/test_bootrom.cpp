@@ -36,6 +36,7 @@ constexpr u32 LOGO_H = 205;
 constexpr u16 COLOR_BACKGROUND = 0x0843;
 constexpr u16 COLOR_MESSAGE = 0xCE5A;
 constexpr u16 COLOR_ERROR = 0xF800;
+constexpr u16 COLOR_WHITE = 0xFFFF;
 
 // read the boot ROM image built by the rombios target (empty when unavailable)
 std::vector<u8> readBootRom()
@@ -55,6 +56,19 @@ bool messageVisible(const u16* fb)
     for (u32 y = 310; y <= 325; ++y) {
         for (u32 x = 48; x <= 591; ++x) {
             if (fb[y * VIDEO_WIDTH + x] == COLOR_MESSAGE) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// true when rows [y0, y1] hold at least one white pixel
+bool whiteInRows(const u16* fb, u32 y0, u32 y1)
+{
+    for (u32 y = y0; y <= y1; ++y) {
+        for (u32 x = 0; x < VIDEO_WIDTH; ++x) {
+            if (fb[y * VIDEO_WIDTH + x] == COLOR_WHITE) {
                 return true;
             }
         }
@@ -134,5 +148,9 @@ TEST_CASE("Boot ROM", "[rom]") {
 
         REQUIRE(c.getCPU().getState() != CPUState::Halted);
         REQUIRE(c.getFramebuffer()[0] == COLOR_ERROR);
+
+        // "SYSTEM ERROR" text, then the mcause hex digits
+        REQUIRE(whiteInRows(c.getFramebuffer(), 16, 31));
+        REQUIRE(whiteInRows(c.getFramebuffer(), 40, 55));
     }
 }
