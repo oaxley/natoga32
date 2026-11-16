@@ -34,3 +34,8 @@ target_link_libraries(vchost
         argparse
         vc
 )
+
+# the host loads the boot ROM built next to it
+if(TARGET rombios)
+    add_dependencies(vchost rombios)
+endif()

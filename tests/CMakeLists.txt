@@ -15,6 +15,7 @@ add_executable(vctests
     libvc/test_memory.cpp
     libvc/test_decoder.cpp
     libvc/test_console.cpp
+    libvc/test_bootrom.cpp
 
     libvc/test_cpu/basic.cpp
     libvc/test_cpu/opcode-memory.cpp
@@ -38,6 +39,12 @@ target_include_directories(vctests
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/src
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/include
 )
+
+# boot ROM image (built by the rombios target when Go and Python+Pillow are available)
+if(TARGET rombios)
+    target_compile_definitions(vctests PRIVATE VC_ROMBIOS_PATH="${VC_ROMBIOS_FILE}")
+    add_dependencies(vctests rombios)
+endif()
 
 # Catch2 tests auto-discovery
 include(CTest)
