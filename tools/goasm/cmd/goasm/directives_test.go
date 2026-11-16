@@ -361,3 +361,38 @@ func TestCsrPseudoEndToEnd(t *testing.T) {
 		t.Errorf("csr words = % x, want % x", data, want)
 	}
 }
+
+// la and call expand to auipc + addi/jalr: %pcrel_lo is relative to the auipc
+func TestPCRelPairEndToEnd(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "pcrel.s")
+	output := filepath.Join(dir, "pcrel.bin")
+	src := ".rom\nla t0, target\ncall target\nnop\ntarget: nop\n"
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-f", "rom", "-o", output)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("assembling la/call failed: %v\n%s", err, out)
+	}
+
+	data, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []byte{
+		0x97, 0x02, 0x00, 0x00, // auipc t0, 0
+		0x93, 0x82, 0x42, 0x01, // addi  t0, t0, 20  (0x00 + 20 = target)
+		0x97, 0x00, 0x00, 0x00, // auipc ra, 0
+		0xE7, 0x80, 0xC0, 0x00, // jalr  ra, ra, 12  (0x08 + 12 = target)
+		0x13, 0x00, 0x00, 0x00, // nop
+		0x13, 0x00, 0x00, 0x00, // target: nop
+	}
+	if !bytes.Equal(data, want) {
+		t.Errorf("la/call words = % x, want % x", data, want)
+	}
+}

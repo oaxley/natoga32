@@ -76,7 +76,8 @@ func evalImmediateWithError(expr ast.Expression, symbols *symbol.Table, pc int64
 		if err != nil {
 			return 0, err
 		}
-		offset := val - pc
+		// the paired auipc is the previous instruction: the offset is relative to it
+		offset := val - (pc - 4)
 		return int32(offset & 0xFFF), nil
 
 	case *ast.UnaryOp:
