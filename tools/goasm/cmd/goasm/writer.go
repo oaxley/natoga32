@@ -12,6 +12,17 @@ const maxRomSize = 2 * 1024 * 1024
 
 // writeOutput writes the assembled output to a file
 func writeOutput(sections *section.Manager, filename, format string) error {
+	// validate the ROM image before creating the output file
+	if format == "rom" {
+		romSec := sections.Get(".rom")
+		if romSec == nil || len(romSec.Data) == 0 {
+			return fmt.Errorf("no .rom section: -f rom needs code or data in a .rom section")
+		}
+		if len(romSec.Data) > maxRomSize {
+			return fmt.Errorf("ROM image exceeds 2 MiB (%d bytes)", len(romSec.Data))
+		}
+	}
+
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -28,13 +39,7 @@ func writeOutput(sections *section.Manager, filename, format string) error {
 
 	case "rom":
 		// ROM image - the .rom section bytes, starting at address 0
-		romSec := sections.Get(".rom")
-		if romSec != nil {
-			if len(romSec.Data) > maxRomSize {
-				return fmt.Errorf("ROM image exceeds 2 MiB (%d bytes)", len(romSec.Data))
-			}
-			_, err = file.Write(romSec.Data)
-		}
+		_, err = file.Write(sections.Get(".rom").Data)
 
 	case "on32":
 		// ON32 format with header

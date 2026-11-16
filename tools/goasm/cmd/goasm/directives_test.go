@@ -335,6 +335,30 @@ func TestRomFormatTooLarge(t *testing.T) {
 	}
 }
 
+func TestRomFormatWithoutRomSection(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "norom.s")
+	output := filepath.Join(dir, "norom.sys")
+	if err := os.WriteFile(input, []byte(".text\nstart: nop\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-f", "rom", "-o", output)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected goasm to fail without a .rom section, it succeeded:\n%s", out)
+	}
+	if !strings.Contains(string(out), "no .rom section") {
+		t.Errorf("expected 'no .rom section' in output, got:\n%s", out)
+	}
+	if _, statErr := os.Stat(output); !os.IsNotExist(statErr) {
+		t.Errorf("output file %s should not have been created", output)
+	}
+}
+
 func TestCsrPseudoEndToEnd(t *testing.T) {
 	goasm := buildGoasm(t)
 	defer os.Remove(goasm)
