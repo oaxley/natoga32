@@ -14,6 +14,8 @@ add_executable(vctests
     libvc/test_memmap.cpp
     libvc/test_memory.cpp
     libvc/test_decoder.cpp
+    libvc/test_console.cpp
+    libvc/test_bootrom.cpp
 
     libvc/test_cpu/basic.cpp
     libvc/test_cpu/opcode-memory.cpp
@@ -22,6 +24,7 @@ add_executable(vctests
     libvc/test_cpu/opcodes_19.cpp
     libvc/test_cpu/opcodes_51.cpp
     libvc/test_cpu/opcodes-csr.cpp
+    libvc/test_cpu/idle.cpp
     libvc/test_cpu/opcodes-thread.cpp
     libvc/test_cpu/private-zone.cpp
     libvc/test_cpu/traps.cpp
@@ -37,18 +40,37 @@ target_include_directories(vctests
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/include
 )
 
+# boot ROM image (built by the rombios target when Go and Python+Pillow are available)
+if(TARGET rombios)
+    target_compile_definitions(vctests PRIVATE VC_ROMBIOS_PATH="${VC_ROMBIOS_FILE}")
+    add_dependencies(vctests rombios)
+endif()
+
 # Catch2 tests auto-discovery
 include(CTest)
 include(Catch)
 catch_discover_tests(vctests)
 
-# vchost command line: a missing cartridge must print the usage, not crash
+# vchost headless runs (no SDL call when --frames is given)
 if(TARGET vchost)
-    add_test(NAME vchost_missing_file COMMAND vchost)
-    set_tests_properties(vchost_missing_file PROPERTIES
-        PASS_REGULAR_EXPRESSION "Usage: vchost"
-        FAIL_REGULAR_EXPRESSION "terminate called")
-    add_test(NAME vchost_with_file COMMAND vchost game.on32)
-    set_tests_properties(vchost_with_file PROPERTIES
-        PASS_REGULAR_EXPRESSION "File    : game.on32")
+    add_test(NAME vchost_missing_rom
+        COMMAND vchost --rombios /nonexistent/rom.sys --frames 1)
+    set_tests_properties(vchost_missing_rom PROPERTIES WILL_FAIL TRUE)
+    add_test(NAME vchost_missing_rom_message
+        COMMAND vchost --rombios /nonexistent/rom.sys --frames 1)
+    set_tests_properties(vchost_missing_rom_message PROPERTIES
+        PASS_REGULAR_EXPRESSION "Failed to load ROM")
+    add_test(NAME vchost_negative_frames
+        COMMAND vchost --frames -1)
+    set_tests_properties(vchost_negative_frames PROPERTIES WILL_FAIL TRUE)
+    add_test(NAME vchost_negative_frames_message
+        COMMAND vchost --frames -1)
+    set_tests_properties(vchost_negative_frames_message PROPERTIES
+        PASS_REGULAR_EXPRESSION "--frames must be >= 0")
+    if(TARGET rombios)
+        add_test(NAME vchost_headless
+            COMMAND vchost --rombios ${VC_ROMBIOS_FILE} --frames 5)
+        add_test(NAME vchost_headless_superscalar
+            COMMAND vchost --rombios ${VC_ROMBIOS_FILE} --superscalar --frames 5)
+    endif()
 endif()

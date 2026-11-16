@@ -13,3 +13,5 @@ opencode.json
 .vscode/**
 build/**
 .envrc
+# python
+__pycache__/

@@ -24,6 +24,10 @@ extern "C" {
 //----- Opaque handle for console instance
 typedef struct VC_Console_t VC_Console_t;
 
+//----- Video
+#define VC_VIDEO_WIDTH  640
+#define VC_VIDEO_HEIGHT 384
+
 //----- Console states
 typedef enum {
     VC_STATE_UNINITIALIZED = 0,
@@ -207,6 +211,18 @@ const char* vc_getLastError(VC_Console_t* console);
  * @param console Console instance
  */
 void vc_clearError(VC_Console_t* console);
+
+
+//----- Video functions
+
+/**
+ * Get framebuffer A (VC_VIDEO_WIDTH x VC_VIDEO_HEIGHT pixels, RGB565
+ * little-endian, row-major). The pointer stays valid until the console is
+ * shut down or destroyed.
+ * @param console Console instance
+ * @return Pointer to the first pixel, or NULL if not initialized
+ */
+const uint16_t* vc_getFramebuffer(VC_Console_t* console);
 
 
 //----- Memory access functions (for debugging)

@@ -1,6 +1,7 @@
 package pseudo
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/natoga32/goasm/internal/ast"
@@ -308,5 +309,45 @@ func TestNonPseudoInstruction(t *testing.T) {
 	}
 	if result[0] != i {
 		t.Error("expected same instruction object")
+	}
+}
+
+// goasm encodes CSR instructions as "op rd, rs1, csr", so the register
+// expansions must put the source register before the CSR number.
+func TestExpandCsrOperandOrder(t *testing.T) {
+	e := New()
+	id := func(n string) ast.Expression { return &ast.Identifier{Name: n} }
+	csr := &ast.Number{Value: 0x305}
+
+	tests := []struct {
+		opcode   string
+		operands []ast.Expression
+		want     string
+		wantOps  []ast.Expression
+	}{
+		{"csrr", []ast.Expression{id("t1"), csr}, "csrrs", []ast.Expression{id("t1"), id("x0"), csr}},
+		{"csrw", []ast.Expression{csr, id("t0")}, "csrrw", []ast.Expression{id("x0"), id("t0"), csr}},
+		{"csrs", []ast.Expression{csr, id("t0")}, "csrrs", []ast.Expression{id("x0"), id("t0"), csr}},
+		{"csrc", []ast.Expression{csr, id("t0")}, "csrrc", []ast.Expression{id("x0"), id("t0"), csr}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.opcode, func(t *testing.T) {
+			result := e.ExpandInstruction(&ast.Instruction{Opcode: tt.opcode, Operands: tt.operands})
+			if len(result) != 1 {
+				t.Fatalf("expected 1 instruction, got %d", len(result))
+			}
+			if result[0].Opcode != tt.want {
+				t.Errorf("opcode = %q, want %q", result[0].Opcode, tt.want)
+			}
+			if len(result[0].Operands) != 3 {
+				t.Fatalf("expected 3 operands, got %d", len(result[0].Operands))
+			}
+			for i, w := range tt.wantOps {
+				if got := result[0].Operands[i]; !reflect.DeepEqual(got, w) {
+					t.Errorf("operand %d = %#v, want %#v", i, got, w)
+				}
+			}
+		})
 	}
 }

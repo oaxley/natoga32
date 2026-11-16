@@ -26,6 +26,9 @@ endif()
 # Subdirectories
 add_subdirectory(core/console)
 
+# boot ROM (needs Go and Python+Pillow, must come before host and tests)
+add_subdirectory(rom)
+
 if(VC_BUILD_DEBUGGER)
     # the debugger needs the imgui target, provided by third_party/
     if(TARGET imgui)

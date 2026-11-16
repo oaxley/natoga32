@@ -18,6 +18,9 @@ go build -o goasm ./cmd/goasm/
 # Assembly to raw binary
 ./goasm input.asm -o output.bin -f bin
 
+# Boot ROM image (.rom section, from address 0)
+./goasm boot.s -o rombios.sys -f rom
+
 # Debug modes (stop after specific phase)
 ./goasm input.asm -d 1  # Show tokens
 ./goasm input.asm -d 2  # Show preprocessed tokens
@@ -32,7 +35,7 @@ go build -o goasm ./cmd/goasm/
 | Option | Description |
 |--------|-------------|
 | `-o, --output` | Output file path (default: `a.out`) |
-| `-f, --format` | Output format: `on32` or `bin` (default: `on32`) |
+| `-f, --format` | Output format: `on32`, `bin` or `rom` (default: `on32`) |
 | `-d, --debug` | Debug level 1-8 to stop after specific phase |
 
 ## Assembly Syntax
@@ -81,6 +84,10 @@ Standard RISC-V register names and ABI aliases are supported:
 .word 0o52        ; Octal
 .word 'A'         ; Character literal (ASCII value)
 ```
+
+> **Known issue:** character literals such as `'0'` used as instruction
+> immediates (e.g. `li a0, '0'`, `addi a0, a0, '0'`) currently assemble as 0.
+> Use the numeric value (`48`) instead.
 
 ## Preprocessor Directives
 
@@ -244,6 +251,9 @@ addi  a0, a0, %pcrel_lo(symbol)
 | `%pcrel_hi(sym)` | Upper 20 bits of PC-relative offset |
 | `%pcrel_lo(sym)` | Lower 12 bits of PC-relative offset |
 
+> **Caveat:** the `auipc` must immediately precede the instruction using
+> `%pcrel_lo(symbol)`, since the low part is computed from the previous instruction's PC.
+
 ## Supported Instructions
 
 ### RV32I Base Integer Instructions
@@ -301,6 +311,8 @@ addi  a0, a0, %pcrel_lo(symbol)
 - `csrrw`, `csrrs`, `csrrc`
 - `csrrwi`, `csrrsi`, `csrrci`
 
+goasm's CSR operand order is `csrrw rd, rs1, csr` (the standard RISC-V syntax is `csrrw rd, csr, rs1`).
+
 ### Custom Thread Instructions (NATOGA32)
 
 | Instruction | Description |
@@ -354,13 +366,17 @@ The assembler automatically expands these into real instructions:
 **CSR Pseudo-Instructions:**
 | Pseudo | Expansion |
 |--------|-----------|
-| `csrr rd, csr` | `csrrs rd, csr, x0` |
-| `csrw csr, rs` | `csrrw x0, csr, rs` |
-| `csrs csr, rs` | `csrrs x0, csr, rs` |
-| `csrc csr, rs` | `csrrc x0, csr, rs` |
+| `csrr rd, csr` | `csrrs rd, x0, csr` |
+| `csrw csr, rs` | `csrrw x0, rs, csr` |
+| `csrs csr, rs` | `csrrs x0, rs, csr` |
+| `csrc csr, rs` | `csrrc x0, rs, csr` |
 | `csrwi csr, imm` | `csrrwi x0, csr, imm` |
 | `csrsi csr, imm` | `csrrsi x0, csr, imm` |
 | `csrci csr, imm` | `csrrci x0, csr, imm` |
+
+> **Known issue:** `csrwi`/`csrsi`/`csrci` and the raw `csrrwi`/`csrrsi`/`csrrci`
+> currently mis-encode (the immediate is dropped or the wrong CSR is used).
+> Use `li` + `csrw` until this is fixed.
 
 ## Example Program
 
@@ -392,6 +408,11 @@ message:
 
 ### Binary (`-f bin`)
 Raw machine code output, suitable for direct ROM loading.
+
+### ROM (`-f rom`)
+Writes the `.rom` section bytes starting at address 0 (gaps created by `.org`
+are zero-filled). Fails with `ROM image exceeds 2 MiB` if the image is larger
+than the 2 MiB ROM window, and with `no .rom section` if nothing was emitted in `.rom`.
 
 ### ON32 (`-f on32`)
 NATOGA32 object format with header containing:

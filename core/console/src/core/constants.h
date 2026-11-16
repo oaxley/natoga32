@@ -61,6 +61,16 @@ constexpr size_t MMAP_RAM_SIZE       = 32 * 1024 * 1024;
 // console default address on reset
 constexpr u32 RESET_DEFAULT_ADDR     = MMAP_ROM_BOOT_LOADER + 0x100;
 
+// framebuffer A: 640x384, RGB565 little-endian, row-major (1280 bytes per row)
+constexpr u32 MMAP_FRAMEBUFFER_A     = MMAP_VIDEO_RAM;
+constexpr u32 VIDEO_WIDTH            = 640;
+constexpr u32 VIDEO_HEIGHT           = 384;
+
+// console clock: 25 MHz CPU, 60 frames per second
+constexpr u32 CPU_FREQUENCY_HZ       = 25'000'000;
+constexpr u32 FRAMES_PER_SECOND      = 60;
+constexpr u32 CYCLES_PER_FRAME       = CPU_FREQUENCY_HZ / FRAMES_PER_SECOND;
+
 // threads count + number of registers
 constexpr int THREADS_COUNT = 8;
 constexpr int THREADS_REGISTERS = 32;

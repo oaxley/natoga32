@@ -17,6 +17,7 @@
 #include <array>
 #include <span>
 #include <bit>
+#include <algorithm>
 
 // program-specific headers
 #include "vc/exceptions.h"
@@ -63,6 +64,14 @@ void CPU::reset()
 
 void CPU::tick()
 {
+    if (cpu_state_ == CPUState::Idle) {
+        // time keeps going while every thread sleeps
+        total_cycles_++;
+        wakeExpiredSleepers();
+        resumeFromIdle();
+        return;
+    }
+
     if (cpu_state_ != CPUState::Running) {
         return;
     }
@@ -74,6 +83,30 @@ void CPU::tick()
     total_cycles_++;
 }
 
+// same result as calling tick() repeatedly while idle, in a single jump
+u64 CPU::skipIdle(u64 max_cycles)
+{
+    if (cpu_state_ != CPUState::Idle || max_cycles == 0) {
+        return 0;
+    }
+
+    // an idle tick always consumes one cycle before checking the sleepers
+    u64 cycles = max_cycles;
+    for (const auto& t : threads_) {
+        if (t.getState() == ThreadState::Sleeping && t.getSleepUntil() > 0) {
+            u64 until = t.getSleepUntil();
+            u64 needed = (until > total_cycles_) ? until - total_cycles_ : 1;
+            cycles = std::min(cycles, needed);
+        }
+    }
+
+    total_cycles_ += cycles;
+    wakeExpiredSleepers();
+    resumeFromIdle();
+
+    return cycles;
+}
+
 // wake any threads waiting for this event
 void CPU::wakeThreadOnEvent(u32 event)
 {
@@ -82,6 +115,8 @@ void CPU::wakeThreadOnEvent(u32 event)
             t.wake();
         }
     }
+
+    resumeFromIdle();
 }
 
 // debug access
@@ -100,8 +135,41 @@ CPUState CPU::getState() const
     return cpu_state_;
 }
 
+u64 CPU::getTotalCycles() const
+{
+    return total_cycles_;
+}
+
 
 //----- private methods
+
+// wake the threads whose timed sleep has expired
+void CPU::wakeExpiredSleepers()
+{
+    for (auto& t : threads_) {
+        if (t.getState() == ThreadState::Sleeping && t.getSleepUntil() > 0 && total_cycles_ >= t.getSleepUntil()) {
+            t.wake();
+        }
+    }
+}
+
+// leave the idle state when a thread is ready (round robin search)
+void CPU::resumeFromIdle()
+{
+    if (cpu_state_ != CPUState::Idle) {
+        return;
+    }
+
+    for (int i = 1; i <= THREADS_COUNT; i++) {
+        int tid = (current_thread_ + i) % THREADS_COUNT;
+        if (threads_[tid].getState() == ThreadState::Ready) {
+            current_thread_ = tid;
+            threads_[tid].setState(ThreadState::Running);
+            cpu_state_ = CPUState::Running;
+            return;
+        }
+    }
+}
 
 // yield the current thread
 void CPU::yieldT()
@@ -119,13 +187,7 @@ void CPU::yieldT()
     }
 
     // step 2 : update cycle-based sleepers
-    for (auto& t : threads_) {
-        if (t.getState() == ThreadState::Sleeping && t.getSleepUntil() > 0) {
-            if (total_cycles_ >= t.getSleepUntil()) {
-                t.wake();
-            }
-        }
-    }
+    wakeExpiredSleepers();
 
     // step 3 : find the next READY thread (round robin search)
     int start = current_thread_;
