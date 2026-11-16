@@ -85,7 +85,7 @@ public:
     // Execute N CPU cycles
     void run(u32 cycles);
 
-    // Run until a frame is complete (future: based on vsync)
+    // Run one frame (CYCLES_PER_FRAME cycles) then trigger the vblank event
     void runFrame();
 
     // Pause execution
@@ -122,6 +122,12 @@ public:
 
     // Trigger a hardware event (keyboard, gamepad, etc.)
     void triggerEvent(u32 event);
+
+    //----- Video
+
+    // Get framebuffer A (VIDEO_WIDTH x VIDEO_HEIGHT, RGB565 little-endian, row-major),
+    // nullptr if the console is not initialized
+    const u16* getFramebuffer() const;
 
     //----- Error handling
 

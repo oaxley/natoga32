@@ -233,6 +233,17 @@ void vc_clearError(VC_Console_t* console)
 }
 
 
+//----- Video functions
+
+const uint16_t* vc_getFramebuffer(VC_Console_t* console)
+{
+    if (!console || !console->ptr) {
+        return nullptr;
+    }
+    return console->ptr->getFramebuffer();
+}
+
+
 //----- Memory access functions
 
 uint8_t vc_memRead8(VC_Console_t* console, uint32_t addr)

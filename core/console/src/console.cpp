@@ -22,6 +22,7 @@
 #include "core/cpu.h"
 #include "core/constants.h"
 #include "console.h"
+#include "vc/events.h"
 
 
 namespace vc
@@ -213,12 +214,9 @@ void Console::runFrame()
         return;
     }
 
-    // For now, we'll define a frame as a fixed number of cycles
-    // Future: This should be based on vsync signal from video subsystem
-    // Assuming 60 FPS and a hypothetical CPU speed
-    constexpr u32 CYCLES_PER_FRAME = 100000;  // placeholder value
-
+    // A frame is CYCLES_PER_FRAME cycles of the 25 MHz clock, then the vblank event
     run(CYCLES_PER_FRAME);
+    triggerEvent(HW_VBLANK);
 }
 
 void Console::pause()
@@ -287,6 +285,20 @@ void Console::triggerEvent(u32 event)
 
     // Wake any threads waiting for this event
     cpu_->wakeThreadOnEvent(event);
+}
+
+
+//----- Video
+
+const u16* Console::getFramebuffer() const
+{
+    if (!is_initialized_) {
+        return nullptr;
+    }
+
+    // the memory view API is non-const, the pixels are only exposed read-only
+    auto view = const_cast<Memory&>(*memory_).memview<u16>(MMAP_FRAMEBUFFER_A, VIDEO_WIDTH * VIDEO_HEIGHT);
+    return view.data();
 }
 
 
