@@ -23,8 +23,10 @@
 
 struct HostConfig
 {
-    bool debug;
-    int debug_port;
+    bool debug = false;
+    int debug_port = 2600;
     std::string rombios;
     std::string cartridge;
+    bool superscalar = false;   // host-only: window scaled x2
+    int frames = 0;             // 0 = windowed, unlimited; N > 0 = headless, N frames
 };

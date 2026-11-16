@@ -51,13 +51,19 @@ include(CTest)
 include(Catch)
 catch_discover_tests(vctests)
 
-# vchost command line: a missing cartridge must print the usage, not crash
+# vchost headless runs (no SDL call when --frames is given)
 if(TARGET vchost)
-    add_test(NAME vchost_missing_file COMMAND vchost)
-    set_tests_properties(vchost_missing_file PROPERTIES
-        PASS_REGULAR_EXPRESSION "Usage: vchost"
-        FAIL_REGULAR_EXPRESSION "terminate called")
-    add_test(NAME vchost_with_file COMMAND vchost game.on32)
-    set_tests_properties(vchost_with_file PROPERTIES
-        PASS_REGULAR_EXPRESSION "File    : game.on32")
+    add_test(NAME vchost_missing_rom
+        COMMAND vchost --rombios /nonexistent/rom.sys --frames 1)
+    set_tests_properties(vchost_missing_rom PROPERTIES WILL_FAIL TRUE)
+    add_test(NAME vchost_missing_rom_message
+        COMMAND vchost --rombios /nonexistent/rom.sys --frames 1)
+    set_tests_properties(vchost_missing_rom_message PROPERTIES
+        PASS_REGULAR_EXPRESSION "Failed to load ROM")
+    if(TARGET rombios)
+        add_test(NAME vchost_headless
+            COMMAND vchost --rombios ${VC_ROMBIOS_FILE} --frames 5)
+        add_test(NAME vchost_headless_superscalar
+            COMMAND vchost --rombios ${VC_ROMBIOS_FILE} --superscalar --frames 5)
+    endif()
 endif()

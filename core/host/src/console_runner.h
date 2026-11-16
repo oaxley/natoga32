@@ -13,30 +13,16 @@
  */
 #pragma once
 
-// standard library headers
-#include <mutex>
-#include <thread>
-#include <atomic>
-
-
 // program-specific headers
 #include <vc/vc.h>
-
-
-//----- constants
-
-// target CPU frequency: 10 MHz
-constexpr int CPU_FREQUENCY_HZ = 10'000'000;
-
-//----- globals
-std::atomic<bool> g_running { true };
+#include "host_config.h"
 
 
 //----- ConsoleRunner
 class ConsoleRunner
 {
 public:
-    ConsoleRunner();
+    explicit ConsoleRunner(const HostConfig& config);
     ~ConsoleRunner();
 
     // prevent copy/move
@@ -45,10 +31,15 @@ public:
     ConsoleRunner(ConsoleRunner&&) = delete;
     ConsoleRunner& operator=(ConsoleRunner&&) = delete;
 
-    bool initialize();
-    void run();
+    // load the ROM, then run headless (frames > 0) or in a window;
+    // returns the process exit code
+    int run();
 
 private:
+    bool boot();
+    int runHeadless();
+    int runWindowed();
+
+    HostConfig config_;
     VC_Console_t* console_ = nullptr;
 };
-
