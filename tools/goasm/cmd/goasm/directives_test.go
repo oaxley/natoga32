@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -274,5 +275,89 @@ func TestRodataIsRejectedEndToEnd(t *testing.T) {
 	}
 	if !strings.Contains(string(out), ".rodata is not supported") {
 		t.Errorf("expected '.rodata is not supported' in output, got:\n%s", out)
+	}
+}
+
+func TestRomFormatEndToEnd(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "boot.s")
+	output := filepath.Join(dir, "rombios.sys")
+	src := ".rom\n.ascii \"N32R\"\n.org 0x100\nstart: nop\n"
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-f", "rom", "-o", output)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("assembling rom failed: %v\n%s", err, out)
+	}
+
+	data, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) != 0x104 {
+		t.Fatalf("rom length = %#x, want 0x104", len(data))
+	}
+	if string(data[:4]) != "N32R" {
+		t.Errorf("magic = %q, want N32R", data[:4])
+	}
+	for i := 4; i < 0x100; i++ {
+		if data[i] != 0 {
+			t.Fatalf("byte %#x = %#x, want 0", i, data[i])
+		}
+	}
+	if want := []byte{0x13, 0, 0, 0}; !bytes.Equal(data[0x100:], want) {
+		t.Errorf("nop = % x, want % x", data[0x100:], want)
+	}
+}
+
+func TestRomFormatTooLarge(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "big.s")
+	if err := os.WriteFile(input, []byte(".rom\n.space 2097153\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-f", "rom", "-o", filepath.Join(dir, "big.sys"))
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected goasm to fail on oversized ROM, it succeeded:\n%s", out)
+	}
+	if !strings.Contains(string(out), "exceeds 2 MiB") {
+		t.Errorf("expected 'exceeds 2 MiB' in output, got:\n%s", out)
+	}
+}
+
+func TestCsrPseudoEndToEnd(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "csr.s")
+	output := filepath.Join(dir, "csr.bin")
+	src := ".text\nmain:\n csrw 0x305, t0\n csrr t1, 0x342\n"
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-f", "bin", "-o", output)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("assembling csr pseudos failed: %v\n%s", err, out)
+	}
+
+	data, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []byte{0x73, 0x90, 0x52, 0x30, 0x73, 0x23, 0x20, 0x34}
+	if !bytes.Equal(data, want) {
+		t.Errorf("csr words = % x, want % x", data, want)
 	}
 }

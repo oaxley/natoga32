@@ -18,6 +18,9 @@ go build -o goasm ./cmd/goasm/
 # Assembly to raw binary
 ./goasm input.asm -o output.bin -f bin
 
+# Boot ROM image (.rom section, from address 0)
+./goasm boot.s -o rombios.sys -f rom
+
 # Debug modes (stop after specific phase)
 ./goasm input.asm -d 1  # Show tokens
 ./goasm input.asm -d 2  # Show preprocessed tokens
@@ -32,7 +35,7 @@ go build -o goasm ./cmd/goasm/
 | Option | Description |
 |--------|-------------|
 | `-o, --output` | Output file path (default: `a.out`) |
-| `-f, --format` | Output format: `on32` or `bin` (default: `on32`) |
+| `-f, --format` | Output format: `on32`, `bin` or `rom` (default: `on32`) |
 | `-d, --debug` | Debug level 1-8 to stop after specific phase |
 
 ## Assembly Syntax
@@ -354,10 +357,10 @@ The assembler automatically expands these into real instructions:
 **CSR Pseudo-Instructions:**
 | Pseudo | Expansion |
 |--------|-----------|
-| `csrr rd, csr` | `csrrs rd, csr, x0` |
-| `csrw csr, rs` | `csrrw x0, csr, rs` |
-| `csrs csr, rs` | `csrrs x0, csr, rs` |
-| `csrc csr, rs` | `csrrc x0, csr, rs` |
+| `csrr rd, csr` | `csrrs rd, x0, csr` |
+| `csrw csr, rs` | `csrrw x0, rs, csr` |
+| `csrs csr, rs` | `csrrs x0, rs, csr` |
+| `csrc csr, rs` | `csrrc x0, rs, csr` |
 | `csrwi csr, imm` | `csrrwi x0, csr, imm` |
 | `csrsi csr, imm` | `csrrsi x0, csr, imm` |
 | `csrci csr, imm` | `csrrci x0, csr, imm` |
@@ -392,6 +395,11 @@ message:
 
 ### Binary (`-f bin`)
 Raw machine code output, suitable for direct ROM loading.
+
+### ROM (`-f rom`)
+Writes the `.rom` section bytes starting at address 0 (gaps created by `.org`
+are zero-filled). Fails with `ROM image exceeds 2 MiB` if the image is larger
+than the 2 MiB ROM window.
 
 ### ON32 (`-f on32`)
 NATOGA32 object format with header containing:

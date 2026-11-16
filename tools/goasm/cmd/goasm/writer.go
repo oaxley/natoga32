@@ -7,6 +7,9 @@ import (
 	"github.com/natoga32/goasm/internal/section"
 )
 
+// maxRomSize is the size of the ROM address window (2 MiB)
+const maxRomSize = 2 * 1024 * 1024
+
 // writeOutput writes the assembled output to a file
 func writeOutput(sections *section.Manager, filename, format string) error {
 	file, err := os.Create(filename)
@@ -21,6 +24,16 @@ func writeOutput(sections *section.Manager, filename, format string) error {
 		textSec := sections.Get(".text")
 		if textSec != nil {
 			_, err = file.Write(textSec.Data)
+		}
+
+	case "rom":
+		// ROM image - the .rom section bytes, starting at address 0
+		romSec := sections.Get(".rom")
+		if romSec != nil {
+			if len(romSec.Data) > maxRomSize {
+				return fmt.Errorf("ROM image exceeds 2 MiB (%d bytes)", len(romSec.Data))
+			}
+			_, err = file.Write(romSec.Data)
 		}
 
 	case "on32":
