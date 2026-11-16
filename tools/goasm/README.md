@@ -85,6 +85,10 @@ Standard RISC-V register names and ABI aliases are supported:
 .word 'A'         ; Character literal (ASCII value)
 ```
 
+> **Known issue:** character literals such as `'0'` used as instruction
+> immediates (e.g. `li a0, '0'`, `addi a0, a0, '0'`) currently assemble as 0.
+> Use the numeric value (`48`) instead.
+
 ## Preprocessor Directives
 
 ### Constants and Symbols
@@ -247,6 +251,9 @@ addi  a0, a0, %pcrel_lo(symbol)
 | `%pcrel_hi(sym)` | Upper 20 bits of PC-relative offset |
 | `%pcrel_lo(sym)` | Lower 12 bits of PC-relative offset |
 
+> **Caveat:** the `auipc` must immediately precede the instruction using
+> `%pcrel_lo(symbol)`, since the low part is computed from the previous instruction's PC.
+
 ## Supported Instructions
 
 ### RV32I Base Integer Instructions
@@ -303,6 +310,8 @@ addi  a0, a0, %pcrel_lo(symbol)
 **CSR Access:**
 - `csrrw`, `csrrs`, `csrrc`
 - `csrrwi`, `csrrsi`, `csrrci`
+
+goasm's CSR operand order is `csrrw rd, rs1, csr` (the standard RISC-V syntax is `csrrw rd, csr, rs1`).
 
 ### Custom Thread Instructions (NATOGA32)
 
@@ -365,6 +374,10 @@ The assembler automatically expands these into real instructions:
 | `csrsi csr, imm` | `csrrsi x0, csr, imm` |
 | `csrci csr, imm` | `csrrci x0, csr, imm` |
 
+> **Known issue:** `csrwi`/`csrsi`/`csrci` and the raw `csrrwi`/`csrrsi`/`csrrci`
+> currently mis-encode (the immediate is dropped or the wrong CSR is used).
+> Use `li` + `csrw` until this is fixed.
+
 ## Example Program
 
 ```asm
@@ -399,7 +412,7 @@ Raw machine code output, suitable for direct ROM loading.
 ### ROM (`-f rom`)
 Writes the `.rom` section bytes starting at address 0 (gaps created by `.org`
 are zero-filled). Fails with `ROM image exceeds 2 MiB` if the image is larger
-than the 2 MiB ROM window.
+than the 2 MiB ROM window, and with `no .rom section` if nothing was emitted in `.rom`.
 
 ### ON32 (`-f on32`)
 NATOGA32 object format with header containing:
