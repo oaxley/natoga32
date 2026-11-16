@@ -54,6 +54,7 @@ public:
     CPUThread& getThread(int id);
     int getCurrentThreadID() const;
     CPUState getState() const;
+    u64 getTotalCycles() const;
 
 private:
     //----- private members
@@ -69,6 +70,7 @@ private:
     //----- private methods
     // threads methods
     void yieldT();
+    void resumeFromIdle();
     void sleepT(u8 rs1, u8 rs2);
     void wakeT(u8 rs1);
     void endT();

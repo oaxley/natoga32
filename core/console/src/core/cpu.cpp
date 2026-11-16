@@ -63,6 +63,20 @@ void CPU::reset()
 
 void CPU::tick()
 {
+    if (cpu_state_ == CPUState::Idle) {
+        // time keeps going while every thread sleeps
+        total_cycles_++;
+
+        for (auto& t : threads_) {
+            if (t.getState() == ThreadState::Sleeping && t.getSleepUntil() > 0 && total_cycles_ >= t.getSleepUntil()) {
+                t.wake();
+            }
+        }
+
+        resumeFromIdle();
+        return;
+    }
+
     if (cpu_state_ != CPUState::Running) {
         return;
     }
@@ -82,6 +96,8 @@ void CPU::wakeThreadOnEvent(u32 event)
             t.wake();
         }
     }
+
+    resumeFromIdle();
 }
 
 // debug access
@@ -100,8 +116,31 @@ CPUState CPU::getState() const
     return cpu_state_;
 }
 
+u64 CPU::getTotalCycles() const
+{
+    return total_cycles_;
+}
+
 
 //----- private methods
+
+// leave the idle state when a thread is ready (round robin search)
+void CPU::resumeFromIdle()
+{
+    if (cpu_state_ != CPUState::Idle) {
+        return;
+    }
+
+    for (int i = 1; i <= THREADS_COUNT; i++) {
+        int tid = (current_thread_ + i) % THREADS_COUNT;
+        if (threads_[tid].getState() == ThreadState::Ready) {
+            current_thread_ = tid;
+            threads_[tid].setState(ThreadState::Running);
+            cpu_state_ = CPUState::Running;
+            return;
+        }
+    }
+}
 
 // yield the current thread
 void CPU::yieldT()
