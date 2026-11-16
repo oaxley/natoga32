@@ -60,6 +60,13 @@ if(TARGET vchost)
         COMMAND vchost --rombios /nonexistent/rom.sys --frames 1)
     set_tests_properties(vchost_missing_rom_message PROPERTIES
         PASS_REGULAR_EXPRESSION "Failed to load ROM")
+    add_test(NAME vchost_negative_frames
+        COMMAND vchost --frames -1)
+    set_tests_properties(vchost_negative_frames PROPERTIES WILL_FAIL TRUE)
+    add_test(NAME vchost_negative_frames_message
+        COMMAND vchost --frames -1)
+    set_tests_properties(vchost_negative_frames_message PROPERTIES
+        PASS_REGULAR_EXPRESSION "--frames must be >= 0")
     if(TARGET rombios)
         add_test(NAME vchost_headless
             COMMAND vchost --rombios ${VC_ROMBIOS_FILE} --frames 5)

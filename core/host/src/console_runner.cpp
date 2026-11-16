@@ -81,6 +81,11 @@ int ConsoleRunner::runHeadless()
     for (int i = 0; i < config_.frames; ++i) {
         vc_runFrame(console_);
     }
+
+    if (vc_getState(console_) == VC_STATE_ERROR) {
+        std::cerr << "Console error: " << vc_getLastError(console_) << "\n";
+        return EXIT_FAILURE;
+    }
     return EXIT_SUCCESS;
 }
 

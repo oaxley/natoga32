@@ -92,6 +92,10 @@ int main(int argc, char* argv[])
     config.cartridge = program.get<std::string>("file");
     config.superscalar = program.get<bool>("--superscalar");
     config.frames = program.get<int>("--frames");
+    if (config.frames < 0) {
+        std::cerr << "--frames must be >= 0 (got " << config.frames << ")\n";
+        return EXIT_FAILURE;
+    }
 
     ConsoleRunner runner(config);
     return runner.run();
