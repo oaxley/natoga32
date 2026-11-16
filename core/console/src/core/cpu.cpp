@@ -17,6 +17,7 @@
 #include <array>
 #include <span>
 #include <bit>
+#include <algorithm>
 
 // program-specific headers
 #include "vc/exceptions.h"
@@ -66,13 +67,7 @@ void CPU::tick()
     if (cpu_state_ == CPUState::Idle) {
         // time keeps going while every thread sleeps
         total_cycles_++;
-
-        for (auto& t : threads_) {
-            if (t.getState() == ThreadState::Sleeping && t.getSleepUntil() > 0 && total_cycles_ >= t.getSleepUntil()) {
-                t.wake();
-            }
-        }
-
+        wakeExpiredSleepers();
         resumeFromIdle();
         return;
     }
@@ -86,6 +81,30 @@ void CPU::tick()
 
     // increment the global instructions cycle counter
     total_cycles_++;
+}
+
+// same result as calling tick() repeatedly while idle, in a single jump
+u64 CPU::skipIdle(u64 max_cycles)
+{
+    if (cpu_state_ != CPUState::Idle || max_cycles == 0) {
+        return 0;
+    }
+
+    // an idle tick always consumes one cycle before checking the sleepers
+    u64 cycles = max_cycles;
+    for (const auto& t : threads_) {
+        if (t.getState() == ThreadState::Sleeping && t.getSleepUntil() > 0) {
+            u64 until = t.getSleepUntil();
+            u64 needed = (until > total_cycles_) ? until - total_cycles_ : 1;
+            cycles = std::min(cycles, needed);
+        }
+    }
+
+    total_cycles_ += cycles;
+    wakeExpiredSleepers();
+    resumeFromIdle();
+
+    return cycles;
 }
 
 // wake any threads waiting for this event
@@ -124,6 +143,16 @@ u64 CPU::getTotalCycles() const
 
 //----- private methods
 
+// wake the threads whose timed sleep has expired
+void CPU::wakeExpiredSleepers()
+{
+    for (auto& t : threads_) {
+        if (t.getState() == ThreadState::Sleeping && t.getSleepUntil() > 0 && total_cycles_ >= t.getSleepUntil()) {
+            t.wake();
+        }
+    }
+}
+
 // leave the idle state when a thread is ready (round robin search)
 void CPU::resumeFromIdle()
 {
@@ -158,13 +187,7 @@ void CPU::yieldT()
     }
 
     // step 2 : update cycle-based sleepers
-    for (auto& t : threads_) {
-        if (t.getState() == ThreadState::Sleeping && t.getSleepUntil() > 0) {
-            if (total_cycles_ >= t.getSleepUntil()) {
-                t.wake();
-            }
-        }
-    }
+    wakeExpiredSleepers();
 
     // step 3 : find the next READY thread (round robin search)
     int start = current_thread_;

@@ -44,6 +44,32 @@ std::vector<u8> makeSleepLoopRom()
     return rom;
 }
 
+// 0x110-byte ROM: a loop counting in a2 after each 1000-cycle timed sleep
+std::vector<u8> makeTimedSleepRom()
+{
+    std::vector<u8> rom(0x110, 0);
+    const u32 code[] = {
+        0x3E800593,     // addi  a1, zero, 1000
+        0x00B0400B,     // sleep.t zero, a1
+        0x00160613,     // addi  a2, a2, 1
+        0xFF5FF06F,     // jal   zero, -12
+    };
+    for (size_t i = 0; i < 4; ++i) {
+        for (size_t b = 0; b < 4; ++b) {
+            rom[0x100 + i * 4 + b] = static_cast<u8>(code[i] >> (8 * b));
+        }
+    }
+    return rom;
+}
+
+void startConsole(Console& c, const std::vector<u8>& rom)
+{
+    REQUIRE(c.initialize());
+    REQUIRE(c.loadROM(rom.data(), rom.size()));
+    c.reset();
+    c.resume();
+}
+
 } // namespace
 
 
@@ -87,4 +113,41 @@ TEST_CASE("Console frame", "[console]") {
         REQUIRE(c.getCPU().getThread(0).getPC() == RESET_DEFAULT_ADDR);
         REQUIRE(c.getCPU().getState() == CPUState::Running);
     }
+}
+
+
+TEST_CASE("Console idle fast-forward matches cycle-by-cycle execution", "[console][idle]") {
+    auto rom = makeTimedSleepRom();
+    auto budget = GENERATE(as<u32>{}, 1u, 2u, 3u, 999u, 1000u, 1001u, 1002u, 1003u, 1004u, 5000u, 12345u, CYCLES_PER_FRAME);
+
+    Console fast;
+    Console slow;
+    startConsole(fast, rom);
+    startConsole(slow, rom);
+
+    fast.run(budget);
+    for (u32 i = 0; i < budget; ++i) {
+        slow.tick();
+    }
+
+    CPU& f = fast.getCPU();
+    CPU& s = slow.getCPU();
+    REQUIRE(f.getTotalCycles() == budget);
+    REQUIRE(f.getTotalCycles() == s.getTotalCycles());
+    REQUIRE(f.getState() == s.getState());
+    REQUIRE(f.getThread(0).getState() == s.getThread(0).getState());
+    REQUIRE(f.getThread(0).getPC() == s.getThread(0).getPC());
+    REQUIRE(f.getThread(0).getSleepUntil() == s.getThread(0).getSleepUntil());
+    REQUIRE(f.getThread(0).getRegisters()[12] == s.getThread(0).getRegisters()[12]);
+}
+
+TEST_CASE("Console timed sleeper frame", "[console][idle]") {
+    Console c;
+    startConsole(c, makeTimedSleepRom());
+
+    c.runFrame();
+
+    // a loop lasts 4 instructions + 999 idle cycles, the first increment lands on cycle 1002
+    REQUIRE(c.getCPU().getTotalCycles() == CYCLES_PER_FRAME);
+    REQUIRE(c.getCPU().getThread(0).getRegisters()[12] == (CYCLES_PER_FRAME + 1) / 1003);
 }

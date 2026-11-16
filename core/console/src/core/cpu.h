@@ -48,6 +48,9 @@ public:
     void reset();
     void tick();
 
+    // fast-forward an idle CPU by up to max_cycles, returns the cycles consumed
+    u64 skipIdle(u64 max_cycles);
+
     void wakeThreadOnEvent(u32 event);
 
     // debug access
@@ -71,6 +74,7 @@ private:
     // threads methods
     void yieldT();
     void resumeFromIdle();
+    void wakeExpiredSleepers();
     void sleepT(u8 rs1, u8 rs2);
     void wakeT(u8 rs1);
     void endT();

@@ -197,8 +197,14 @@ void Console::run(u32 cycles)
         return;
     }
 
-    // Execute N cycles
+    // Execute N cycles, idle stretches are skipped in a single jump
     for (u32 i = 0; i < cycles; ++i) {
+        u64 skipped = cpu_->skipIdle(cycles - i);
+        if (skipped > 0) {
+            i += static_cast<u32>(skipped) - 1;
+            continue;
+        }
+
         tick();
 
         // Stop if we hit an error or paused
