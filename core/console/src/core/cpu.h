@@ -35,7 +35,7 @@ enum class CPUState
 {
     Running,        // CPU is actively executing instructions
     Idle,           // All threads sleeping on events/timers
-    Halted          // Exception occured, stopped permanently
+    Halted          // trap without a handler (mtvec = 0), stopped until reset
 };
 
 

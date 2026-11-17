@@ -63,17 +63,49 @@ bool messageVisible(const u16* fb)
     return false;
 }
 
-// true when rows [y0, y1] hold at least one white pixel
-bool whiteInRows(const u16* fb, u32 y0, u32 y1)
+// a text box: draw_text glyphs are 16x16 pixels (font 8x8 scaled x2)
+struct TextBox
 {
-    for (u32 y = y0; y <= y1; ++y) {
-        for (u32 x = 0; x < VIDEO_WIDTH; ++x) {
+    u32 x, y, chars;
+
+    bool contains(u32 px, u32 py) const
+    {
+        return px >= x && px < x + chars * 16 && py >= y && py < y + 16;
+    }
+};
+
+// "SYSTEM ERROR" and the 8 mcause hex digits drawn by the trap handler
+constexpr TextBox ERROR_TEXT = {16, 16, 12};
+constexpr TextBox ERROR_CAUSE = {16, 40, 8};
+constexpr u32 ERROR_BAND_ROWS = 64;
+
+// number of white pixels inside the box
+u32 whiteInBox(const u16* fb, const TextBox& box)
+{
+    u32 count = 0;
+    for (u32 y = box.y; y < box.y + 16; ++y) {
+        for (u32 x = box.x; x < box.x + box.chars * 16; ++x) {
             if (fb[y * VIDEO_WIDTH + x] == COLOR_WHITE) {
-                return true;
+                ++count;
             }
         }
     }
-    return false;
+    return count;
+}
+
+// number of white pixels in the error band, outside both text boxes
+u32 whiteOutsideText(const u16* fb)
+{
+    u32 count = 0;
+    for (u32 y = 0; y < ERROR_BAND_ROWS; ++y) {
+        for (u32 x = 0; x < VIDEO_WIDTH; ++x) {
+            if (!ERROR_TEXT.contains(x, y) && !ERROR_CAUSE.contains(x, y) &&
+                fb[y * VIDEO_WIDTH + x] == COLOR_WHITE) {
+                ++count;
+            }
+        }
+    }
+    return count;
 }
 
 } // namespace
@@ -149,8 +181,10 @@ TEST_CASE("Boot ROM", "[rom]") {
         REQUIRE(c.getCPU().getState() != CPUState::Halted);
         REQUIRE(c.getFramebuffer()[0] == COLOR_ERROR);
 
-        // "SYSTEM ERROR" text, then the mcause hex digits
-        REQUIRE(whiteInRows(c.getFramebuffer(), 16, 31));
-        REQUIRE(whiteInRows(c.getFramebuffer(), 40, 55));
+        // "SYSTEM ERROR" text, then the mcause hex digits, nothing else in white
+        const u16* fb = c.getFramebuffer();
+        REQUIRE(whiteInBox(fb, ERROR_TEXT) > 0);
+        REQUIRE(whiteInBox(fb, ERROR_CAUSE) > 0);
+        REQUIRE(whiteOutsideText(fb) == 0);
     }
 }

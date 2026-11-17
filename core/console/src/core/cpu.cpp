@@ -320,12 +320,18 @@ void CPU::triggerTrap(bool is_interrupt, u32 cause, u32 trap_value)
     // set trap value
     writeCSR(CSR_MTVAL, trap_value);
 
-    // jump to handler
-    u32 addr_handler = readCSR(CSR_MTVEC);
-    threads_[current_thread_].setPC(addr_handler);
-
     // the current instruction must not write back its PC
     trap_taken_ = true;
+
+    // no handler installed (mtvec = 0): stop the CPU on the faulting instruction
+    u32 addr_handler = readCSR(CSR_MTVEC);
+    if (addr_handler == 0) {
+        cpu_state_ = CPUState::Halted;
+        return;
+    }
+
+    // jump to handler
+    threads_[current_thread_].setPC(addr_handler);
 }
 
 
