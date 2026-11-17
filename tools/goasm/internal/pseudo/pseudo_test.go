@@ -312,12 +312,13 @@ func TestNonPseudoInstruction(t *testing.T) {
 	}
 }
 
-// goasm encodes CSR instructions as "op rd, rs1, csr", so the register
-// expansions must put the source register before the CSR number.
+// goasm encodes CSR instructions as "op rd, rs1/uimm, csr", so the
+// expansions must put the source register or immediate before the CSR number.
 func TestExpandCsrOperandOrder(t *testing.T) {
 	e := New()
 	id := func(n string) ast.Expression { return &ast.Identifier{Name: n} }
 	csr := &ast.Number{Value: 0x305}
+	uimm := &ast.Number{Value: 5}
 
 	tests := []struct {
 		opcode   string
@@ -329,6 +330,10 @@ func TestExpandCsrOperandOrder(t *testing.T) {
 		{"csrw", []ast.Expression{csr, id("t0")}, "csrrw", []ast.Expression{id("x0"), id("t0"), csr}},
 		{"csrs", []ast.Expression{csr, id("t0")}, "csrrs", []ast.Expression{id("x0"), id("t0"), csr}},
 		{"csrc", []ast.Expression{csr, id("t0")}, "csrrc", []ast.Expression{id("x0"), id("t0"), csr}},
+		// immediate forms: "op rd, uimm, csr"
+		{"csrwi", []ast.Expression{csr, uimm}, "csrrwi", []ast.Expression{id("x0"), uimm, csr}},
+		{"csrsi", []ast.Expression{csr, uimm}, "csrrsi", []ast.Expression{id("x0"), uimm, csr}},
+		{"csrci", []ast.Expression{csr, uimm}, "csrrci", []ast.Expression{id("x0"), uimm, csr}},
 	}
 
 	for _, tt := range tests {

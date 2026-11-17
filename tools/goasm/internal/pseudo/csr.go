@@ -5,6 +5,8 @@ import (
 )
 
 // CSR pseudo-instructions
+//
+// goasm's CSR operand order is "op rd, rs1/uimm, csr".
 
 // csrr rd, csr - Read CSR
 func (e *Expander) expandCsrr(i *ast.Instruction) []*ast.Instruction {
@@ -52,7 +54,7 @@ func (e *Expander) expandCsrwi(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrwi", x(0), i.Operands[0], i.Operands[1]),
+		instr("csrrwi", x(0), i.Operands[1], i.Operands[0]),
 	}
 }
 
@@ -62,7 +64,7 @@ func (e *Expander) expandCsrsi(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrsi", x(0), i.Operands[0], i.Operands[1]),
+		instr("csrrsi", x(0), i.Operands[1], i.Operands[0]),
 	}
 }
 
@@ -72,6 +74,6 @@ func (e *Expander) expandCsrci(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrci", x(0), i.Operands[0], i.Operands[1]),
+		instr("csrrci", x(0), i.Operands[1], i.Operands[0]),
 	}
 }

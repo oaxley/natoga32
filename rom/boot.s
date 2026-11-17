@@ -288,9 +288,9 @@ trap_handler:
 trap_hex_loop:
     srli t4, t0, 28
     slli t0, t0, 4
-    addi t5, t4, 48                     ; '0'
+    addi t5, t4, '0'
     blt t4, t3, trap_hex_store
-    addi t5, t4, 55                     ; 'A' - 10
+    addi t5, t4, 'A' - 10
 trap_hex_store:
     sb t5, 0(t1)
     addi t1, t1, 1

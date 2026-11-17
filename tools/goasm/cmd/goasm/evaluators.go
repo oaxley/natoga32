@@ -43,6 +43,9 @@ func evalImmediateWithError(expr ast.Expression, symbols *symbol.Table, pc int64
 	case *ast.Number:
 		return int32(e.Value), nil
 
+	case *ast.CharLiteral:
+		return int32(e.Char), nil
+
 	case *ast.Identifier:
 		if sym := symbols.Lookup(e.Name); sym != nil {
 			return int32(sym.Value), nil
@@ -72,13 +75,8 @@ func evalImmediateWithError(expr ast.Expression, symbols *symbol.Table, pc int64
 		return int32((offset + 0x800) >> 12), nil
 
 	case *ast.PCRelLo:
-		val, err := evalExpressionWithError(e.Expr, symbols, pc)
-		if err != nil {
-			return 0, err
-		}
-		// the paired auipc is the previous instruction: the offset is relative to it
-		offset := val - (pc - 4)
-		return int32(offset & 0xFFF), nil
+		// resolved by evalIImmediate, which knows the paired auipc
+		return 0, fmt.Errorf("%s: error: %%pcrel_lo must be the whole immediate of an I-type or S-type instruction", e.Location)
 
 	case *ast.UnaryOp:
 		operand, err := evalImmediateWithError(e.Operand, symbols, pc)
@@ -132,6 +130,9 @@ func evalExpressionWithError(expr ast.Expression, symbols *symbol.Table, pc int6
 	switch e := expr.(type) {
 	case *ast.Number:
 		return e.Value, nil
+
+	case *ast.CharLiteral:
+		return int64(e.Char), nil
 
 	case *ast.Identifier:
 		if sym := symbols.Lookup(e.Name); sym != nil {
