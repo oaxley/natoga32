@@ -141,6 +141,17 @@ TEST_CASE("Console idle fast-forward matches cycle-by-cycle execution", "[consol
     REQUIRE(f.getThread(0).getRegisters()[12] == s.getThread(0).getRegisters()[12]);
 }
 
+TEST_CASE("Console total cycles is the CPU global counter", "[console]") {
+    Console c;
+    startConsole(c, makeTimedSleepRom());
+
+    // the thread executes a few instructions then sleeps: idle cycles count too
+    c.run(5000);
+
+    REQUIRE(c.getCPU().getTotalCycles() == 5000);
+    REQUIRE(c.getTotalCycles() == 5000);
+}
+
 TEST_CASE("Console timed sleeper frame", "[console][idle]") {
     Console c;
     startConsole(c, makeTimedSleepRom());

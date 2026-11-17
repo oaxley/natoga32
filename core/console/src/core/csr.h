@@ -32,5 +32,13 @@ constexpr u16 CSR_MIP      = 0x344;      // interrupt pending
 // scratch register
 constexpr u16 CSR_MSCRATCH = 0x340;      // scratch register
 
+// counters (read-only)
+constexpr u16 CSR_CYCLE    = 0xC00;      // CPU global cycle counter, low 32 bits
+constexpr u16 CSR_TIME     = 0xC01;      // virtual time, low 32 bits
+constexpr u16 CSR_INSTRET  = 0xC02;      // completed instructions of the current thread, low 32 bits
+constexpr u16 CSR_CYCLEH   = 0xC80;      // high 32 bits of cycle
+constexpr u16 CSR_TIMEH    = 0xC81;      // high 32 bits of time
+constexpr u16 CSR_INSTRETH = 0xC82;      // high 32 bits of instret
+
 
 } // namespace vc
