@@ -20,9 +20,13 @@
 
 // program-specific includes
 #include "console_runner.h"
+#include "frame_pacer.h"
 
 
 //----- constants
+
+// frame rate of the console (60 fps), used when vsync is not available
+constexpr uint32_t HOST_FRAMES_PER_SECOND = 60;
 
 // the window shows the console framebuffer, scaled x2 with --superscalar
 constexpr int WINDOW_SCALE_NORMAL = 1;
@@ -114,7 +118,14 @@ int ConsoleRunner::runWindowed()
             std::cerr << "SDL_CreateRenderer failed: " << SDL_GetError() << "\n";
             break;
         }
-        SDL_SetRenderVSync(renderer, 1);
+        // vsync paces the frames; without it, wait for the rest of each 1/60 s
+        const bool vsync = SDL_SetRenderVSync(renderer, 1);
+        if (!vsync) {
+            std::cerr << "VSync unavailable (" << SDL_GetError() << "), using a timer at "
+                      << HOST_FRAMES_PER_SECOND << " fps\n";
+        }
+        FramePacer pacer(HOST_FRAMES_PER_SECOND);
+        pacer.start(SDL_GetTicksNS());
 
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565,
                                     SDL_TEXTUREACCESS_STREAMING,
@@ -150,6 +161,13 @@ int ConsoleRunner::runWindowed()
             SDL_RenderClear(renderer);
             SDL_RenderTexture(renderer, texture, nullptr, nullptr);
             SDL_RenderPresent(renderer);
+
+            if (!vsync) {
+                const uint64_t delay = pacer.delayAfterFrame(SDL_GetTicksNS());
+                if (delay > 0) {
+                    SDL_DelayPrecise(delay);
+                }
+            }
         }
         result = EXIT_SUCCESS;
     } while (false);
