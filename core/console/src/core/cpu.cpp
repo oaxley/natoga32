@@ -1002,6 +1002,11 @@ u32 CPU::readCSR(u16 csr)
         case 0xC80: // cycleh (high 32 bits)
             return static_cast<u32>(total_cycles_ >> 32);
 
+        case 0xC02: // instret (low 32 bits): completed instructions of the current thread
+            return static_cast<u32>(threads_[current_thread_].getTotalCycles());
+        case 0xC82: // instreth (high 32 bits)
+            return static_cast<u32>(threads_[current_thread_].getTotalCycles() >> 32);
+
         case 0xC01: // time (low 32 bits)
             return static_cast<u32>(virtual_time_);
         case 0xC81: // timeh (high 32 bits)

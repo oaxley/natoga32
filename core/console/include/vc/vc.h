@@ -166,7 +166,7 @@ bool vc_isRunning(VC_Console_t* console);
 bool vc_isPaused(VC_Console_t* console);
 
 /**
- * Get total cycles executed
+ * Get total cycles executed (CPU global counter, idle cycles included)
  * @param console Console instance
  * @return Total cycles executed
  */

@@ -105,7 +105,7 @@ public:
     // Check if console is paused
     bool isPaused() const { return state_ == ConsoleState::Paused; }
 
-    // Get total cycles executed
+    // Get total cycles executed: the CPU global counter (cycle CSR), idle cycles included
     u64 getTotalCycles() const;
 
     //----- Subsystem access (for host/debugger)

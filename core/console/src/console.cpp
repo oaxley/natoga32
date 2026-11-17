@@ -248,13 +248,8 @@ u64 Console::getTotalCycles() const
         return 0;
     }
 
-    // Sum all thread cycles
-    u64 total = 0;
-    for (int i = 0; i < THREADS_COUNT; ++i) {
-        total += cpu_->getThread(i).getTotalCycles();
-    }
-
-    return total;
+    // the console sees the CPU global counter (every tick, idle and trapped ones included)
+    return cpu_->getTotalCycles();
 }
 
 

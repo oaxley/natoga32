@@ -61,6 +61,54 @@ TEST_CASE("CSR Instructions", "[cpu][instruction][csr]") {
     }
 }
 
+TEST_CASE("instret CSRs read the counter of the executing thread", "[cpu][instruction][csr]") {
+    InstructionTest test;
+
+    // thread 0 counter (TCB total_cycles) = 0x5'0000'0010, the CPU global counter is 0
+    u32 tcb0 = MMAP_THREADS_TCB_BASE + 0 * MMAP_THREAD_TCB_SIZE;
+    test.mem.write32(tcb0 + 0x18, 0x10);
+    test.mem.write32(tcb0 + 0x1C, 0x5);
+
+    test.loadInstruction(0xC02022F3);   // CSRRS x5, instret, x0
+    test.loadInstruction(0xC8202373);   // CSRRS x6, instreth, x0
+    test.execute(2);
+
+    // the value is read before the instruction itself is counted
+    REQUIRE(test.getReg(5) == 0x10);
+    REQUIRE(test.getReg(6) == 0x5);
+    REQUIRE(test.getCtx(0).getTotalCycles() == 0x5'0000'0012);
+}
+
+TEST_CASE("instret is per thread after a yield", "[cpu][instruction][csr]") {
+    InstructionTest test;
+
+    // T0: NEW.T x2, x3 then YIELD.T; T1 reads instret
+    u32 entry = MMAP_CODE + 0x100;
+    test.setReg(3, entry);
+    test.loadInstruction(0x0001810b);           // NEW.T x2, x3
+    test.loadInstruction(0x0000100b);           // YIELD.T
+    test.execute(2);
+    REQUIRE(test.cpu.getCurrentThreadID() == 1);
+
+    test.mem.write32(MMAP_THREADS_TCB_BASE + 1 * MMAP_THREAD_TCB_SIZE + 0x18, 1000);
+    test.loadInstruction(0xC02022F3, 0x100, 1); // CSRRS x5, instret, x0
+    test.execute();
+
+    REQUIRE(test.getReg(5, 1) == 1000);
+}
+
+TEST_CASE("cycle CSR reads the CPU global counter", "[cpu][instruction][csr]") {
+    InstructionTest test;
+
+    test.mem.write32(MMAP_THREADS_TCB_BASE + 0x18, 1000);  // thread 0 counter, not used
+    test.loadInstruction(0x00000013);   // NOP
+    test.loadInstruction(0x00000013);   // NOP
+    test.loadInstruction(0xC00022F3);   // CSRRS x5, cycle, x0
+    test.execute(3);
+
+    REQUIRE(test.getReg(5) == 2);
+}
+
 TEST_CASE("CSR Instructions Immediate", "[cpu][instruction][csr]") {
     InstructionTest test;
 
