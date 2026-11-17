@@ -74,3 +74,23 @@ TEST_CASE("Traps jump to the handler and the instruction has no effect", "[cpu][
         REQUIRE(test.getReg(2) == 0xAAAA);
     }
 }
+
+TEST_CASE("A trap without a handler halts the CPU", "[cpu][trap]") {
+    InstructionTest test;                               // mtvec = 0: no handler
+
+    test.loadInstruction(0x0000007F);                   // illegal instruction
+    test.loadInstruction(0x00100093);                   // ADDI x1, x0, 1 (never executed)
+    u32 instr_addr = test.getPC();
+    test.execute();
+
+    REQUIRE(test.cpu.getState() == CPUState::Halted);
+    REQUIRE(readCsr(test, CSR_MCAUSE) == CPU_MAIN_ILLEGAL_INSTRUCTION);
+    REQUIRE(readCsr(test, CSR_MEPC) == instr_addr);
+    REQUIRE(test.getPC() == instr_addr);
+
+    // a halted CPU stays stopped
+    test.execute(10);
+    REQUIRE(test.cpu.getState() == CPUState::Halted);
+    REQUIRE(test.getReg(1) == 0);
+    REQUIRE(test.cpu.skipIdle(100) == 0);
+}

@@ -70,6 +70,17 @@ if(TARGET vchost)
         COMMAND vchost --frames -1)
     set_tests_properties(vchost_negative_frames_message PROPERTIES
         PASS_REGULAR_EXPRESSION "--frames must be >= 0")
+
+    # a zero-filled ROM traps at 0x100 without a handler: the console stops in error
+    set(VC_BAD_ROM_CMD "head -c 260 /dev/zero > $0 && exec $<TARGET_FILE:vchost> --rombios $0 --frames 1")
+    add_test(NAME vchost_headless_console_error
+        COMMAND /bin/sh -c "${VC_BAD_ROM_CMD}" trap_rom_exit.sys)
+    set_tests_properties(vchost_headless_console_error PROPERTIES WILL_FAIL TRUE)
+    add_test(NAME vchost_headless_console_error_message
+        COMMAND /bin/sh -c "${VC_BAD_ROM_CMD}" trap_rom_message.sys)
+    set_tests_properties(vchost_headless_console_error_message PROPERTIES
+        PASS_REGULAR_EXPRESSION "Console error: CPU halted due to exception")
+
     if(TARGET rombios)
         add_test(NAME vchost_headless
             COMMAND vchost --rombios ${VC_ROMBIOS_FILE} --frames 5)
