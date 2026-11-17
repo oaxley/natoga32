@@ -28,6 +28,8 @@ add_executable(vctests
     libvc/test_cpu/opcodes-thread.cpp
     libvc/test_cpu/private-zone.cpp
     libvc/test_cpu/traps.cpp
+
+    host/test_frame_pacer.cpp
 )
 
 # link targets
@@ -38,6 +40,7 @@ target_include_directories(vctests
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/src
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../core/host/src
 )
 
 # boot ROM image (built by the rombios target when Go and Python+Pillow are available)
@@ -72,5 +75,14 @@ if(TARGET vchost)
             COMMAND vchost --rombios ${VC_ROMBIOS_FILE} --frames 5)
         add_test(NAME vchost_headless_superscalar
             COMMAND vchost --rombios ${VC_ROMBIOS_FILE} --superscalar --frames 5)
+
+        # run by name through PATH from another directory: the default ROM
+        # is still found next to the executable
+        get_filename_component(VC_VCHOST_DIR ${VC_ROMBIOS_FILE} DIRECTORY)
+        add_test(NAME vchost_default_rom_via_path
+            COMMAND /bin/sh -c "exec vchost --frames 1")
+        set_tests_properties(vchost_default_rom_via_path PROPERTIES
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            ENVIRONMENT "PATH=${VC_VCHOST_DIR}:/usr/bin:/bin")
     endif()
 endif()

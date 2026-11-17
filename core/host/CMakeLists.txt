@@ -17,6 +17,7 @@ add_executable(vchost
     src/host_config.h
     src/console_runner.h
     src/console_runner.cpp
+    src/frame_pacer.h
 )
 
 # include directories

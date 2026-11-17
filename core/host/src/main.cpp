@@ -18,6 +18,9 @@
 #include <string>
 
 
+// SDL
+#include <SDL3/SDL_filesystem.h>
+
 // program-specific includes
 #include <argparse/argparse.hpp>
 #include "vc/vc.h"
@@ -26,14 +29,24 @@
 
 //----- functions
 
+// directory of the executable, wherever it was started from (PATH, symlink...);
+// falls back to the argv[0] directory if SDL cannot tell
+static std::filesystem::path executableDir(const char* argv0)
+{
+    // SDL_GetBasePath needs no SDL_Init and no display
+    if (const char* base = SDL_GetBasePath()) {
+        return std::filesystem::path(base);
+    }
+    return std::filesystem::path(argv0).parent_path();
+}
+
 //----- main entry
 int main(int argc, char* argv[])
 {
     HostConfig config;
 
     // the ROM-BIOS lives next to the executable by default
-    const std::string defaultRom =
-        (std::filesystem::path(argv[0]).parent_path() / "rombios.sys").string();
+    const std::string defaultRom = (executableDir(argv[0]) / "rombios.sys").string();
 
     //--- command line parser
     argparse::ArgumentParser program("vchost", "0.1.0");
