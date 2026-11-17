@@ -13,6 +13,11 @@ func (e *Expander) expandLi(i *ast.Instruction) []*ast.Instruction {
 	rd := i.Operands[0]
 	imm := i.Operands[1]
 
+	// A char literal is a plain number
+	if ch, ok := imm.(*ast.CharLiteral); ok {
+		imm = &ast.Number{Value: int64(ch.Char), Location: ch.Location}
+	}
+
 	// If immediate is a number, check if it fits in 12 bits
 	if num, ok := imm.(*ast.Number); ok {
 		if num.Value >= -2048 && num.Value <= 2047 {

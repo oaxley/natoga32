@@ -88,6 +88,7 @@ func semanticPass1(program *ast.Program, symbols *symbol.Table, sections *sectio
 
 		case *ast.Instruction:
 			// Each instruction is 4 bytes
+			s.Address = int(sections.CurrentAddress())
 			sections.Current().Size += 4
 
 		case *ast.Directive:
@@ -102,17 +103,21 @@ func semanticPass1(program *ast.Program, symbols *symbol.Table, sections *sectio
 
 // semanticPass3 encodes instructions to binary
 func semanticPass3(program *ast.Program, symbols *symbol.Table, sections *section.Manager) error {
+	ctx := newEncodeContext(program)
 	for _, stmt := range program.Statements {
 		switch s := stmt.(type) {
 		case *ast.Instruction:
-			if err := encodeInstruction(s, symbols, sections); err != nil {
+			pc := sections.CurrentAddress()
+			if err := encodeInstruction(s, symbols, sections, ctx); err != nil {
 				return err
 			}
+			ctx.prev, ctx.prevAddr = s, pc
 
 		case *ast.Directive:
 			if err := emitDirective(s, symbols, sections); err != nil {
 				return err
 			}
+			ctx.prev = nil // data or a section switch breaks an adjacent auipc pair
 		}
 	}
 	return nil

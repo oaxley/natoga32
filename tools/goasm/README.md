@@ -35,7 +35,7 @@ go build -o goasm ./cmd/goasm/
 | Option | Description |
 |--------|-------------|
 | `-o, --output` | Output file path (default: `a.out`) |
-| `-f, --format` | Output format: `on32`, `bin` or `rom` (default: `on32`) |
+| `-f, --format` | Output format: `on32`, `bin` or `rom` (default: `on32`); any other value is an error and no output file is created |
 | `-d, --debug` | Debug level 1-8 to stop after specific phase |
 
 ## Assembly Syntax
@@ -85,9 +85,8 @@ Standard RISC-V register names and ABI aliases are supported:
 .word 'A'         ; Character literal (ASCII value)
 ```
 
-> **Known issue:** character literals such as `'0'` used as instruction
-> immediates (e.g. `li a0, '0'`, `addi a0, a0, '0'`) currently assemble as 0.
-> Use the numeric value (`48`) instead.
+Character literals work anywhere a number does, including instruction
+immediates and expressions (`li a0, '0'`, `addi a0, a0, 'A' - 10`).
 
 ## Preprocessor Directives
 
@@ -251,8 +250,20 @@ addi  a0, a0, %pcrel_lo(symbol)
 | `%pcrel_hi(sym)` | Upper 20 bits of PC-relative offset |
 | `%pcrel_lo(sym)` | Lower 12 bits of PC-relative offset |
 
-> **Caveat:** the `auipc` must immediately precede the instruction using
-> `%pcrel_lo(symbol)`, since the low part is computed from the previous instruction's PC.
+`%pcrel_lo` is relative to its paired `auipc`, which is found in this order:
+
+1. the instruction just before it, if it is `auipc rd, %pcrel_hi(<same expression>)`
+   (this is what `la` and `call` expand to);
+2. otherwise, GNU style: the argument is the label of an `auipc`, wherever it is:
+
+```asm
+here: auipc t0, %pcrel_hi(table)
+      ; ... other instructions ...
+      lw    t1, %pcrel_lo(here)(t0)
+```
+
+A `%pcrel_lo` with no paired `auipc` is an error. `%pcrel_lo` must be the
+whole immediate (no `%pcrel_lo(x) + 4`).
 
 ## Supported Instructions
 
@@ -312,6 +323,9 @@ addi  a0, a0, %pcrel_lo(symbol)
 - `csrrwi`, `csrrsi`, `csrrci`
 
 goasm's CSR operand order is `csrrw rd, rs1, csr` (the standard RISC-V syntax is `csrrw rd, csr, rs1`).
+The immediate forms follow the same order: `csrrwi rd, uimm, csr`, where `uimm`
+is an expression (0..31) or, as printed by the disassembler, a register name
+standing for its number (`x5` = 5).
 
 ### Custom Thread Instructions (NATOGA32)
 
@@ -370,13 +384,12 @@ The assembler automatically expands these into real instructions:
 | `csrw csr, rs` | `csrrw x0, rs, csr` |
 | `csrs csr, rs` | `csrrs x0, rs, csr` |
 | `csrc csr, rs` | `csrrc x0, rs, csr` |
-| `csrwi csr, imm` | `csrrwi x0, csr, imm` |
-| `csrsi csr, imm` | `csrrsi x0, csr, imm` |
-| `csrci csr, imm` | `csrrci x0, csr, imm` |
+| `csrwi csr, imm` | `csrrwi x0, imm, csr` |
+| `csrsi csr, imm` | `csrrsi x0, imm, csr` |
+| `csrci csr, imm` | `csrrci x0, imm, csr` |
 
-> **Known issue:** `csrwi`/`csrsi`/`csrci` and the raw `csrrwi`/`csrrsi`/`csrrci`
-> currently mis-encode (the immediate is dropped or the wrong CSR is used).
-> Use `li` + `csrw` until this is fixed.
+The immediate of the `i` forms is a 5-bit unsigned value (0..31); anything
+else is an `out of range` error.
 
 ## Example Program
 

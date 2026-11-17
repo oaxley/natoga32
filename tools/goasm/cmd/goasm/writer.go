@@ -12,7 +12,12 @@ const maxRomSize = 2 * 1024 * 1024
 
 // writeOutput writes the assembled output to a file
 func writeOutput(sections *section.Manager, filename, format string) error {
-	// validate the ROM image before creating the output file
+	// validate the format and the ROM image before creating the output file
+	switch format {
+	case "bin", "rom", "on32":
+	default:
+		return fmt.Errorf("unknown output format: %s", format)
+	}
 	if format == "rom" {
 		romSec := sections.Get(".rom")
 		if romSec == nil || len(romSec.Data) == 0 {
@@ -93,9 +98,6 @@ func writeOutput(sections *section.Manager, filename, format string) error {
 				return err
 			}
 		}
-
-	default:
-		return fmt.Errorf("unknown output format: %s", format)
 	}
 
 	return err

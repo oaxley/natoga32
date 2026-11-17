@@ -10,7 +10,7 @@ import (
 )
 
 // encodeInstruction encodes a single instruction
-func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *section.Manager) error {
+func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *section.Manager, ctx *encodeContext) error {
 	op, ok := arch.LookupOpcode(instr.Opcode)
 	if !ok {
 		return fmt.Errorf("%s: error: unknown instruction '%s'", instr.Location, instr.Opcode)
@@ -19,6 +19,15 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 	pc := sections.CurrentAddress()
 	var encoded []byte
 	var err error
+
+	if isCSRImmediate(instr.Opcode) {
+		encoded, err = encodeCSRImmediate(op, instr, symbols, pc)
+		if err != nil {
+			return err
+		}
+		sections.Emit(encoded)
+		return nil
+	}
 
 	switch op.Type {
 	case arch.TypeR:
@@ -67,7 +76,7 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		if len(instr.Operands) == 2 {
 			if offsetBase, ok := instr.Operands[1].(*ast.OffsetBase); ok {
 				rs1 = evalRegister(offsetBase.Base)
-				imm, err = evalImmediateWithError(offsetBase.Offset, symbols, pc)
+				imm, err = evalIImmediate(offsetBase.Offset, symbols, pc, ctx)
 				if err != nil {
 					return err
 				}
@@ -77,7 +86,7 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		} else if len(instr.Operands) >= 3 {
 			// Legacy syntax: lw rd, rs1, offset
 			rs1 = evalRegister(instr.Operands[1])
-			imm, err = evalImmediateWithError(instr.Operands[2], symbols, pc)
+			imm, err = evalIImmediate(instr.Operands[2], symbols, pc, ctx)
 			if err != nil {
 				return err
 			}
@@ -113,7 +122,7 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		if len(instr.Operands) == 2 {
 			if offsetBase, ok := instr.Operands[1].(*ast.OffsetBase); ok {
 				rs1 = evalRegister(offsetBase.Base)
-				imm, err = evalImmediateWithError(offsetBase.Offset, symbols, pc)
+				imm, err = evalIImmediate(offsetBase.Offset, symbols, pc, ctx)
 				if err != nil {
 					return err
 				}
@@ -122,7 +131,7 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			}
 		} else if len(instr.Operands) >= 3 {
 			// Legacy syntax: sw rs2, offset, rs1
-			imm, err = evalImmediateWithError(instr.Operands[1], symbols, pc)
+			imm, err = evalIImmediate(instr.Operands[1], symbols, pc, ctx)
 			if err != nil {
 				return err
 			}
@@ -183,4 +192,48 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 
 	sections.Emit(encoded)
 	return nil
+}
+
+// isCSRImmediate reports whether mnemonic is a CSR immediate instruction
+func isCSRImmediate(mnemonic string) bool {
+	switch mnemonic {
+	case "csrrwi", "csrrsi", "csrrci":
+		return true
+	}
+	return false
+}
+
+// encodeCSRImmediate encodes "csrrXi rd, uimm, csr": the 5-bit uimm goes in
+// the rs1 field and the CSR number in the I-type immediate field.
+// The uimm can be an expression or, as emitted by the disassembler, a
+// register name whose number is the uimm (e.g. x5 for 5).
+func encodeCSRImmediate(op arch.InstrOpcode, instr *ast.Instruction, symbols *symbol.Table, pc int64) ([]byte, error) {
+	if len(instr.Operands) != 3 {
+		return nil, fmt.Errorf("%s: error: %s expects 3 operands (rd, uimm, csr)", instr.Location, instr.Opcode)
+	}
+	rd := evalRegister(instr.Operands[0])
+
+	var uimm int32
+	if ident, ok := instr.Operands[1].(*ast.Identifier); ok && arch.IsRegister(ident.Name) {
+		uimm = int32(evalRegister(ident))
+	} else {
+		val, err := evalImmediateWithError(instr.Operands[1], symbols, pc)
+		if err != nil {
+			return nil, err
+		}
+		uimm = val
+	}
+	if uimm < 0 || uimm > 31 {
+		return nil, fmt.Errorf("%s: error: %s immediate %d out of range (0..31)", instr.Location, instr.Opcode, uimm)
+	}
+
+	csr, err := evalImmediateWithError(instr.Operands[2], symbols, pc)
+	if err != nil {
+		return nil, err
+	}
+	if csr < 0 || csr > 0xFFF {
+		return nil, fmt.Errorf("%s: error: CSR number %#x out of range (0..0xfff)", instr.Location, csr)
+	}
+
+	return arch.EncodeTypeI(op, rd, uint32(uimm), csr), nil
 }
