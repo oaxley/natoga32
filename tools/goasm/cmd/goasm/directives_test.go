@@ -433,3 +433,36 @@ func TestPCRelPairEndToEnd(t *testing.T) {
 		t.Errorf("la/call words = % x, want % x", data, want)
 	}
 }
+
+// TestRodataNotWrittenWarns checks that goasm warns when .rodata bytes
+// are dropped because the output format does not support them yet.
+func TestRodataNotWrittenWarns(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "rodata.asm")
+	output := filepath.Join(dir, "rodata.on32")
+	src := ".rodata\n.word 1\n.text\nnop\n"
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-o", output)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("assembling failed: %v\n%s", err, out)
+	}
+	want := "warning: .rodata section (4 bytes) is not written to on32 output yet"
+	if !strings.Contains(string(out), want) {
+		t.Errorf("expected %q in output, got:\n%s", want, out)
+	}
+
+	info, err := os.Stat(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Size() != 16+4 {
+		t.Errorf("expected on32 file of 20 bytes (header + nop), got %d", info.Size())
+	}
+}

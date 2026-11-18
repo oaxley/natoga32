@@ -34,6 +34,13 @@ func writeOutput(sections *section.Manager, filename, format string) error {
 	}
 	defer file.Close()
 
+	// .rodata is not part of the on32/bin output yet: never drop it silently
+	if format == "on32" || format == "bin" {
+		if ro := sections.Get(".rodata"); ro != nil && ro.Size > 0 {
+			fmt.Fprintf(os.Stderr, "warning: .rodata section (%d bytes) is not written to %s output yet\n", ro.Size, format)
+		}
+	}
+
 	switch format {
 	case "bin":
 		// Raw binary - just write .text section
