@@ -106,6 +106,9 @@ func assemble(inputFile string) error {
 	if err := semanticPass1(program, symbols, sections); err != nil {
 		return fmt.Errorf("semantic pass 1 error: %v", err)
 	}
+	if err := checkSectionSizes(sections); err != nil {
+		return err
+	}
 
 	if debugLevel == 5 {
 		fmt.Println("=== SYMBOLS ===")

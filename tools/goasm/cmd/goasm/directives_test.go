@@ -343,8 +343,9 @@ func TestRomFormatTooLarge(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected goasm to fail on oversized ROM, it succeeded:\n%s", out)
 	}
-	if !strings.Contains(string(out), "exceeds 2 MiB") {
-		t.Errorf("expected 'exceeds 2 MiB' in output, got:\n%s", out)
+	want := "section .rom is 2097153 bytes, exceeds its 2MiB window (0x00000000-0x001FFFFF)"
+	if !strings.Contains(string(out), want) {
+		t.Errorf("expected %q in output, got:\n%s", want, out)
 	}
 }
 

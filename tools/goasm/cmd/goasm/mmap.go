@@ -7,3 +7,12 @@ const (
 	MMAP_DATA_SEGMENT   = 0x01400000
 	MMAP_TEXT_SEGMENT   = 0x01A00000
 )
+
+// size of each section window in the memory map
+const (
+	MMAP_ROM_SIZE    = 2 * 1024 * 1024
+	MMAP_BSS_SIZE    = 2 * 1024 * 1024
+	MMAP_RODATA_SIZE = 2 * 1024 * 1024
+	MMAP_DATA_SIZE   = 6 * 1024 * 1024
+	MMAP_TEXT_SIZE   = 6 * 1024 * 1024
+)

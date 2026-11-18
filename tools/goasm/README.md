@@ -213,6 +213,8 @@ handler##COUNT:                  ; Produces: handler5:
 
 Any other directive is rejected with an `unknown directive` error, so a typo (e.g. `.wrod`) never silently puts data in the wrong section. The `.rodata` section lives at `0x01200000`. It is read-only by convention (the emulator does not enforce it), and its bytes are not written to `on32`/`bin` output yet: goasm prints `warning: .rodata section (N bytes) is not written to <format> output yet` when it holds data.
 
+Each section must fit in its memory map window (`.rom` 2MiB, `.bss` 2MiB, `.rodata` 2MiB, `.data` 6MiB, `.text` 6MiB). A section that grows past its window (including via `.org`) stops assembly with `section <name> is N bytes, exceeds its XMiB window (start-end)`, before any output is written.
+
 ### The `.org` Directive
 
 The `.org` directive sets the location counter to an absolute address. This is useful for placing code or data at specific memory locations:
