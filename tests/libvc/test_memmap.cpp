@@ -78,7 +78,8 @@ TEST_CASE("Sum of segments less or equal total RAM", "[memory]") {
         MMAP_TREG_SIZE, MMAP_TTLS_SIZE, MMAP_CARTIO_SIZE,
         MMAP_SRAM_SIZE, MMAP_ARAM_SIZE, MMAP_VRAM_SIZE,
         MMAP_HEAP_SIZE, MMAP_STACK_SIZE, MMAP_BSS_SIZE,
-        MMAP_DATA_SIZE, MMAP_CODE_SIZE, MMAP_UNUSED_SIZE
+        MMAP_RODATA_SIZE, MMAP_DATA_SIZE, MMAP_CODE_SIZE,
+        MMAP_UNUSED_SIZE
     };
 
     u32 sum = 0;
@@ -87,4 +88,12 @@ TEST_CASE("Sum of segments less or equal total RAM", "[memory]") {
     }
 
     REQUIRE( sum == MMAP_RAM_SIZE );
+}
+
+// check that .bss, .rodata, .data and .text follow each other up to the end of RAM
+TEST_CASE("Program sections are contiguous", "[memory]") {
+    REQUIRE( MMAP_BSS + MMAP_BSS_SIZE == MMAP_RODATA );
+    REQUIRE( MMAP_RODATA + MMAP_RODATA_SIZE == MMAP_DATA );
+    REQUIRE( MMAP_DATA + MMAP_DATA_SIZE == MMAP_CODE );
+    REQUIRE( MMAP_CODE + MMAP_CODE_SIZE == MMAP_RAM_SIZE );
 }

@@ -35,7 +35,8 @@ constexpr u32 MMAP_VIDEO_RAM         = 0x0038'0000;
 constexpr u32 MMAP_STACK_BASE        = 0x0078'0000;
 constexpr u32 MMAP_HEAP              = 0x0080'0000;
 constexpr u32 MMAP_BSS               = 0x0100'0000;
-constexpr u32 MMAP_DATA              = 0x0120'0000;
+constexpr u32 MMAP_RODATA            = 0x0120'0000;
+constexpr u32 MMAP_DATA              = 0x0140'0000;
 constexpr u32 MMAP_CODE              = 0x01A0'0000;
 
 // segments size
@@ -51,7 +52,8 @@ constexpr size_t MMAP_VRAM_SIZE      = 4 * 1024 * 1024;
 constexpr size_t MMAP_HEAP_SIZE      = 8 * 1024 * 1024;
 constexpr size_t MMAP_STACK_SIZE     = 512 * 1024;
 constexpr size_t MMAP_BSS_SIZE       = 2 * 1024 * 1024;
-constexpr size_t MMAP_DATA_SIZE      = 8 * 1024 * 1024;
+constexpr size_t MMAP_RODATA_SIZE    = 2 * 1024 * 1024;
+constexpr size_t MMAP_DATA_SIZE      = 6 * 1024 * 1024;
 constexpr size_t MMAP_CODE_SIZE      = 6 * 1024 * 1024;
 constexpr size_t MMAP_UNUSED_SIZE    = 1024 * (3 + 102 + 128) + 3968;
 
