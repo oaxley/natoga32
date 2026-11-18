@@ -200,6 +200,7 @@ handler##COUNT:                  ; Produces: handler5:
 | `.text` | Switch to code section |
 | `.data` | Switch to initialized data section |
 | `.bss` | Switch to uninitialized data section |
+| `.rodata` | Switch to read-only data section |
 | `.rom` | Switch to ROM section (for boot loader code) |
 | `.byte val [, val...]` | Emit 8-bit values |
 | `.half val [, val...]` | Emit 16-bit values |
@@ -210,7 +211,7 @@ handler##COUNT:                  ; Produces: handler5:
 | `.align N` | Align to 2^N byte boundary |
 | `.org addr` | Set location counter to absolute address |
 
-Any other directive is rejected with an `unknown directive` error, so a typo (e.g. `.wrod`) never silently puts data in the wrong section. There is no `.rodata` section: goasm reports `.rodata is not supported`, place read-only data in `.data` or `.text`.
+Any other directive is rejected with an `unknown directive` error, so a typo (e.g. `.wrod`) never silently puts data in the wrong section. The `.rodata` section lives at `0x01200000`. It is read-only by convention (the emulator does not enforce it), and its bytes are not written to `on32`/`bin` output yet: goasm prints `warning: .rodata section (N bytes) is not written to <format> output yet` when it holds data.
 
 ### The `.org` Directive
 
