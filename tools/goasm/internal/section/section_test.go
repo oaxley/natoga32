@@ -95,3 +95,9 @@ func TestSectionCurrentAddress(t *testing.T) {
 		t.Errorf("expected address 0x1004, got 0x%X", sec.CurrentAddress())
 	}
 }
+
+func TestSectionTypeString(t *testing.T) {
+	if SectionRodata.String() != ".rodata" {
+		t.Errorf("expected '.rodata', got '%s'", SectionRodata.String())
+	}
+}

@@ -10,7 +10,7 @@ func TestManagerDefault(t *testing.T) {
 	}
 
 	// Check default sections exist
-	sections := []string{".text", ".data", ".bss", ".rom"}
+	sections := []string{".text", ".data", ".bss", ".rom", ".rodata"}
 	for _, name := range sections {
 		if m.Get(name) == nil {
 			t.Errorf("default section '%s' not found", name)
@@ -73,12 +73,12 @@ func TestManagerAll(t *testing.T) {
 	m := NewManager()
 
 	all := m.All()
-	if len(all) != 4 {
-		t.Errorf("expected 4 sections, got %d", len(all))
+	if len(all) != 5 {
+		t.Errorf("expected 5 sections, got %d", len(all))
 	}
 
 	// Check order
-	expectedOrder := []string{".text", ".data", ".bss", ".rom"}
+	expectedOrder := []string{".text", ".data", ".bss", ".rom", ".rodata"}
 	for i, sec := range all {
 		if sec.Name != expectedOrder[i] {
 			t.Errorf("section %d: expected '%s', got '%s'", i, expectedOrder[i], sec.Name)
@@ -109,7 +109,7 @@ func TestSectionReserve(t *testing.T) {
 func TestManagerSetBaseAddresses(t *testing.T) {
 	m := NewManager()
 
-	m.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	m.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)
 
 	if m.Get(".text").BaseAddr != 0x1000 {
 		t.Errorf("expected .text base 0x1000, got 0x%X", m.Get(".text").BaseAddr)
@@ -121,7 +121,29 @@ func TestManagerSetBaseAddresses(t *testing.T) {
 		t.Errorf("expected .bss base 0x3000, got 0x%X", m.Get(".bss").BaseAddr)
 	}
 	if m.Get(".rom").BaseAddr != 0x4000 {
-		t.Errorf("expected .rom base 0x4000, got 0x%X", m.Get(".bss").BaseAddr)
+		t.Errorf("expected .rom base 0x4000, got 0x%X", m.Get(".rom").BaseAddr)
+	}
+	if m.Get(".rodata").BaseAddr != 0x5000 {
+		t.Errorf("expected .rodata base 0x5000, got 0x%X", m.Get(".rodata").BaseAddr)
 	}
 
+}
+
+func TestRodataSectionExists(t *testing.T) {
+	m := NewManager()
+
+	if err := m.SetSection(".rodata"); err != nil {
+		t.Fatalf("SetSection(.rodata) failed: %v", err)
+	}
+	if m.Get(".rodata").Type != SectionRodata {
+		t.Errorf("expected .rodata type SectionRodata, got %v", m.Get(".rodata").Type)
+	}
+}
+
+func TestRodataReserveZeroFills(t *testing.T) {
+	ro := NewSection(".rodata", SectionRodata)
+	ro.Reserve(8)
+	if len(ro.Data) != 8 {
+		t.Errorf("rodata section should have 8 bytes, got %d", len(ro.Data))
+	}
 }
