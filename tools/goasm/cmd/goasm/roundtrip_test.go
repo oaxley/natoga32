@@ -291,7 +291,7 @@ func TestDisasmOutputFormat(t *testing.T) {
 		".text",
 		".data",
 		"0x01A00000:", // First text address
-		"0x01200000:", // First data address
+		"0x01400000:", // First data address
 	}
 
 	for _, check := range checks {

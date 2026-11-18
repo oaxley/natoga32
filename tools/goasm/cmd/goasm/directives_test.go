@@ -16,7 +16,7 @@ import (
 func TestOrgDirectivePass1(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)
 
 	// Start in .text at 0x1000
 	// Emit 4 bytes first
@@ -42,7 +42,7 @@ func TestOrgDirectivePass1(t *testing.T) {
 func TestOrgDirectivePass1AtCurrentAddress(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)
 
 	// .org at current address should be a no-op
 	dir := &ast.Directive{
@@ -63,7 +63,7 @@ func TestOrgDirectivePass1AtCurrentAddress(t *testing.T) {
 func TestOrgDirectivePass1BackwardError(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)
 
 	// Emit 16 bytes first
 	sections.Current().Size += 16 // Current address is now 0x1010
@@ -83,7 +83,7 @@ func TestOrgDirectivePass1BackwardError(t *testing.T) {
 func TestOrgDirectivePass3(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)
 
 	// Emit 4 bytes first
 	sections.EmitWord(0xDEADBEEF)
@@ -121,7 +121,7 @@ func TestOrgDirectivePass3(t *testing.T) {
 func TestOrgDirectivePass3BackwardError(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)
 
 	// Emit 16 bytes first
 	for i := 0; i < 4; i++ {
@@ -143,7 +143,7 @@ func TestOrgDirectivePass3BackwardError(t *testing.T) {
 func TestUnknownDirectiveIsAnError(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)
 
 	// a typo of .word must not be silently ignored
 	dir := &ast.Directive{
@@ -160,19 +160,26 @@ func TestUnknownDirectiveIsAnError(t *testing.T) {
 	}
 }
 
-func TestRodataDirectiveIsNotSupported(t *testing.T) {
+func TestRodataDirectiveSwitchesSection(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
-	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000)
+	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)
 
 	dir := &ast.Directive{Name: ".rodata"}
 
-	err := handleDirective(dir, symbols, sections)
-	if err == nil {
-		t.Fatal("expected error for .rodata, got nil")
+	if err := handleDirective(dir, symbols, sections); err != nil {
+		t.Fatalf("handleDirective(.rodata) failed: %v", err)
 	}
-	if !strings.Contains(err.Error(), ".rodata is not supported") {
-		t.Errorf("unexpected error message: %v", err)
+	if sections.CurrentName() != ".rodata" {
+		t.Errorf("handleDirective: expected current section .rodata, got %s", sections.CurrentName())
+	}
+
+	sections.SetSection(".text")
+	if err := emitDirective(dir, symbols, sections); err != nil {
+		t.Fatalf("emitDirective(.rodata) failed: %v", err)
+	}
+	if sections.CurrentName() != ".rodata" {
+		t.Errorf("emitDirective: expected current section .rodata, got %s", sections.CurrentName())
 	}
 }
 
@@ -239,7 +246,10 @@ helper:
     .space 4
     .skip 4
     .incbin "blob.bin"
-    .org 0x01200040
+    .org 0x01400040
+
+.rodata
+    .string "ro"
 
 .bss
     .space 16
@@ -255,26 +265,29 @@ helper:
 	}
 }
 
-// TestRodataIsRejectedEndToEnd checks that goasm stops with an error
-// instead of silently placing the data in .text.
-func TestRodataIsRejectedEndToEnd(t *testing.T) {
+// TestRodataEndToEnd checks that .rodata labels resolve to the
+// .rodata segment of the memory map (0x01200000).
+func TestRodataEndToEnd(t *testing.T) {
 	goasm := buildGoasm(t)
 	defer os.Remove(goasm)
 
 	dir := t.TempDir()
 	input := filepath.Join(dir, "rodata.asm")
-	src := ".rodata\nvalue: .word 1\n.text\nmain: nop\n"
+	src := ".rodata\nmsg: .word 0x11223344\n.text\nmain: nop\n"
 	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	cmd := exec.Command(goasm, input, "-o", filepath.Join(dir, "rodata.on32"))
+	cmd := exec.Command(goasm, input, "-d", "5", "-o", filepath.Join(dir, "rodata.on32"))
 	out, err := cmd.CombinedOutput()
-	if err == nil {
-		t.Fatalf("expected goasm to fail on .rodata, it succeeded:\n%s", out)
+	if err != nil {
+		t.Fatalf("assembling .rodata failed: %v\n%s", err, out)
 	}
-	if !strings.Contains(string(out), ".rodata is not supported") {
-		t.Errorf("expected '.rodata is not supported' in output, got:\n%s", out)
+	if !strings.Contains(string(out), "msg: 0x01200000") {
+		t.Errorf("expected 'msg: 0x01200000' in output, got:\n%s", out)
+	}
+	if !strings.Contains(string(out), ".rodata: base=0x01200000 size=4") {
+		t.Errorf("expected '.rodata: base=0x01200000 size=4' in output, got:\n%s", out)
 	}
 }
 

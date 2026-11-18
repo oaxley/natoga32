@@ -19,6 +19,8 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 		return sections.SetSection(section.SectionData.String())
 	case ".bss":
 		return sections.SetSection(section.SectionBss.String())
+	case ".rodata":
+		return sections.SetSection(section.SectionRodata.String())
 	case ".rom":
 		return sections.SetSection(section.SectionRom.String())
 
@@ -101,9 +103,6 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 			}
 		}
 
-	case ".rodata":
-		return fmt.Errorf("%s: error: .rodata is not supported, place read-only data in .data or .text", dir.Location)
-
 	default:
 		// never silently ignore a directive: a typo would put data in the wrong section
 		return fmt.Errorf("%s: error: unknown directive '%s'", dir.Location, dir.Name)
@@ -121,6 +120,8 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 		return sections.SetSection(section.SectionData.String())
 	case ".bss":
 		return sections.SetSection(section.SectionBss.String())
+	case ".rodata":
+		return sections.SetSection(section.SectionRodata.String())
 	case ".rom":
 		return sections.SetSection(section.SectionRom.String())
 
