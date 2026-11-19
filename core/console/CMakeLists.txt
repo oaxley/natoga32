@@ -5,6 +5,7 @@ set(VC_NAME "vc")
 
 # source files
 set(VC_SOURCES
+    src/core/cartridge.cpp
     src/core/cpu.cpp
     src/core/cpu_thread.cpp
     src/core/crc32.cpp
@@ -20,6 +21,7 @@ set(VC_HEADERS
     include/vc/types.h
 
     src/core/constants.h
+    src/core/cartridge.h
     src/core/csr.h
     src/core/cpu.h
     src/core/cpu_thread.h

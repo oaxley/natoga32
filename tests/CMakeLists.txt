@@ -17,6 +17,7 @@ add_executable(vctests
     libvc/test_console.cpp
     libvc/test_bootrom.cpp
     libvc/test_crc32.cpp
+    libvc/test_cartridge.cpp
 
     libvc/test_cpu/basic.cpp
     libvc/test_cpu/opcode-memory.cpp
@@ -42,6 +43,7 @@ target_include_directories(vctests
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/src
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/host/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/libvc
 )
 
 # boot ROM image (built by the rombios target when Go and Python+Pillow are available)
