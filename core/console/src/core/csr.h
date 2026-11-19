@@ -40,5 +40,8 @@ constexpr u16 CSR_CYCLEH   = 0xC80;      // high 32 bits of cycle
 constexpr u16 CSR_TIMEH    = 0xC81;      // high 32 bits of time
 constexpr u16 CSR_INSTRETH = 0xC82;      // high 32 bits of instret
 
+// cartridge (per thread, stored in the Thread Control Block)
+constexpr u16 CSR_CARTBANK = 0x7C0;      // cartridge bank register, 16 bits
+
 
 } // namespace vc

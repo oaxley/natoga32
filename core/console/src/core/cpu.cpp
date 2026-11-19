@@ -1018,6 +1018,9 @@ u32 CPU::readCSR(u16 csr)
         case 0xC81: // timeh (high 32 bits)
             return static_cast<u32>(virtual_time_ >> 32);
 
+        case CSR_CARTBANK: // cartridge bank of the current thread
+            return threads_[current_thread_].getCartBank();
+
         default:
             return mem_.read32(MMAP_CSR_REGISTERS + csr * sizeof(u32));
     }
@@ -1027,6 +1030,12 @@ void CPU::writeCSR(u16 csr, u32 value)
 {
     if (isReadOnlyCSR(csr)) {
         triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+        return;
+    }
+
+    // the cartridge bank is private to the current thread
+    if (csr == CSR_CARTBANK) {
+        threads_[current_thread_].setCartBank(static_cast<u16>(value & 0xFFFF));
         return;
     }
 

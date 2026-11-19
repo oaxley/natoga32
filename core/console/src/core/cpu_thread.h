@@ -48,7 +48,7 @@ struct ThreadControlBlock
     u8  reserved0[3];
     u32 pc;                 //< Program Counter
     u32 waitkey;            //< Waitkey value
-    u32 reserved1;
+    u32 cartbank;           //< Cartridge bank register (16 bits used)
     u64 sleep_until;        //< Wake-up cycle (0 = none)
     u64 total_cycles;       //< Thread total cycles
 };
@@ -59,6 +59,7 @@ static_assert(sizeof(ThreadControlBlock) == MMAP_THREAD_TCB_SIZE);
 static_assert(offsetof(ThreadControlBlock, state) == 0x00);
 static_assert(offsetof(ThreadControlBlock, pc) == 0x04);
 static_assert(offsetof(ThreadControlBlock, waitkey) == 0x08);
+static_assert(offsetof(ThreadControlBlock, cartbank) == 0x0C);
 static_assert(offsetof(ThreadControlBlock, sleep_until) == 0x10);
 static_assert(offsetof(ThreadControlBlock, total_cycles) == 0x18);
 
@@ -85,11 +86,13 @@ public:
     u64 getSleepUntil() const { return tcb_->sleep_until; }
     u8 getID() const { return id_; }
     u64 getTotalCycles() const { return tcb_->total_cycles; }
+    u16 getCartBank() const { return static_cast<u16>(tcb_->cartbank); }
     std::span<u32>& getRegisters() { return registers_; }
 
     // Setters
     void setPC(u32 pc) { tcb_->pc = pc; }
     void setState(ThreadState state) { tcb_->state = static_cast<u8>(state); }
+    void setCartBank(u16 bank) { tcb_->cartbank = bank; }
     void incrementCycles() { tcb_->total_cycles++; }
     void incrementPC(u32 offset = 4) { tcb_->pc += offset; }
 
