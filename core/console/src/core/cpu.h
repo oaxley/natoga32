@@ -28,6 +28,7 @@ namespace vc
 {
 // forward declarations
 class Memory;
+class Cartridge;
 
 
 //----- enums
@@ -53,6 +54,9 @@ public:
 
     void wakeThreadOnEvent(u32 event);
 
+    // cartridge seen through the window (nullptr = none, the window reads 0)
+    void setCartridge(const Cartridge* cart);
+
     // debug access
     CPUThread& getThread(int id);
     int getCurrentThreadID() const;
@@ -68,6 +72,7 @@ private:
     bool trap_taken_ = false;       //< set by triggerTrap during the current instruction
 
     Memory& mem_;
+    const Cartridge* cartridge_ = nullptr;
     CPUState cpu_state_;
 
     //----- private methods
@@ -83,8 +88,11 @@ private:
     // interruption / exception trigger
     void triggerTrap(bool is_interrupt, u32 cause, u32 trap_value = 0);
 
-    // memory protection of the private thread zone
+    // memory protection of the private thread zone and the cartridge zones
+    static bool touchesZone(u32 addr, u32 size, u32 base, size_t zone_size);
+    static bool insideZone(u32 addr, u32 size, u32 base, size_t zone_size);
     bool isPrivateAccess(u32 addr, u32 size) const;
+    u32 readWindow(u32 addr, u32 size) const;
     static u32 accessSize(u32 funct3);
 
     // instruction executor

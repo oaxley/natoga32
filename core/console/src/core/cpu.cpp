@@ -24,6 +24,7 @@
 #include "vc/events.h"
 #include "constants.h"
 #include "memory.h"
+#include "cartridge.h"
 #include "decoders.h"
 #include "helpers.h"
 #include "cpu.h"
@@ -117,6 +118,11 @@ void CPU::wakeThreadOnEvent(u32 event)
     }
 
     resumeFromIdle();
+}
+
+void CPU::setCartridge(const Cartridge* cart)
+{
+    cartridge_ = cart;
 }
 
 // debug access
@@ -336,14 +342,45 @@ void CPU::triggerTrap(bool is_interrupt, u32 cause, u32 trap_value)
 
 
 
-// true when the access [addr, addr + size) touches the private thread zone
-bool CPU::isPrivateAccess(u32 addr, u32 size) const
+// true when the access [addr, addr + size) overlaps the zone [base, base + zone_size)
+bool CPU::touchesZone(u32 addr, u32 size, u32 base, size_t zone_size)
 {
     u64 start = addr;
     u64 end = start + size;
-    u64 zone_start = MMAP_THREADS_PRIVATE_BASE;
-    u64 zone_end = zone_start + MMAP_THREADS_PRIVATE_SIZE;
+    u64 zone_start = base;
+    u64 zone_end = zone_start + zone_size;
     return start < zone_end && end > zone_start;
+}
+
+// true when the access [addr, addr + size) is fully inside the zone [base, base + zone_size)
+bool CPU::insideZone(u32 addr, u32 size, u32 base, size_t zone_size)
+{
+    u64 start = addr;
+    u64 end = start + size;
+    u64 zone_start = base;
+    u64 zone_end = zone_start + zone_size;
+    return start >= zone_start && end <= zone_end;
+}
+
+// true when the access touches the private thread zone
+bool CPU::isPrivateAccess(u32 addr, u32 size) const
+{
+    return touchesZone(addr, size, MMAP_THREADS_PRIVATE_BASE, MMAP_THREADS_PRIVATE_SIZE);
+}
+
+// little-endian value of size bytes in the cartridge window, seen through the bank of the current thread
+u32 CPU::readWindow(u32 addr, u32 size) const
+{
+    if (cartridge_ == nullptr) {
+        return 0;
+    }
+
+    u16 bank = threads_[current_thread_].getCartBank();
+    u32 value = 0;
+    for (u32 i = 0; i < size; i++) {
+        value |= static_cast<u32>(cartridge_->readWindow(bank, addr - MMAP_CART_WINDOW + i)) << (8 * i);
+    }
+    return value;
 }
 
 // access size in bytes of a load/store, from its funct3 (bits 1..0: 0 = byte, 1 = half, 2 = word)
@@ -360,6 +397,13 @@ void CPU::execute_instruction()
     auto& registers = thread.getRegisters();
     u32 pc = thread.getPC();
     trap_taken_ = false;
+
+    // programs cannot run code from the cartridge zones
+    if (touchesZone(pc, sizeof(u32), MMAP_CART_CONTROL, MMAP_CART_CONTROL_SIZE) ||
+        touchesZone(pc, sizeof(u32), MMAP_CART_WINDOW, MMAP_CART_WINDOW_SIZE)) {
+        triggerTrap(false, CPU_INSTRUCTION_ACCESS_FAULT, pc);
+        return;
+    }
 
     // fetch the instruction
     u32 instruction = mem_.read32(pc);
@@ -457,28 +501,34 @@ void CPU::execute_instruction()
                 return;
             }
 
-            // programs cannot read the private thread zone
-            if (isPrivateAccess(addr, accessSize(funct3))) {
+            // programs cannot read the private thread zone, nor an access split on the edge of a cartridge zone
+            u32 size = accessSize(funct3);
+            bool in_window = insideZone(addr, size, MMAP_CART_WINDOW, MMAP_CART_WINDOW_SIZE);
+            bool in_control = insideZone(addr, size, MMAP_CART_CONTROL, MMAP_CART_CONTROL_SIZE);
+            bool split_window = !in_window && touchesZone(addr, size, MMAP_CART_WINDOW, MMAP_CART_WINDOW_SIZE);
+            bool split_control = !in_control && touchesZone(addr, size, MMAP_CART_CONTROL, MMAP_CART_CONTROL_SIZE);
+            if (isPrivateAccess(addr, size) || split_window || split_control) {
                 triggerTrap(false, CPU_LOAD_ACCESS_FAULT, addr);
                 return;     // don't do PC+4, rd is unchanged
             }
 
+            // the window is read through the cartridge, everything else is plain memory
             switch(funct3)
             {
                 case 0b000:     // LB
-                    registers[rd] = static_cast<i32>(static_cast<i8>(mem_.read8(addr)));
+                    registers[rd] = static_cast<i32>(static_cast<i8>(in_window ? readWindow(addr, 1) : mem_.read8(addr)));
                     break;
                 case 0b001:     // LH
-                    registers[rd] = static_cast<i32>(static_cast<i16>(mem_.read16(addr)));
+                    registers[rd] = static_cast<i32>(static_cast<i16>(in_window ? readWindow(addr, 2) : mem_.read16(addr)));
                     break;
                 case 0b010:     // LW
-                    registers[rd] = mem_.read32(addr);
+                    registers[rd] = in_window ? readWindow(addr, 4) : mem_.read32(addr);
                     break;
                 case 0b100:     // LBU
-                    registers[rd] = mem_.read8(addr);
+                    registers[rd] = in_window ? readWindow(addr, 1) : mem_.read8(addr);
                     break;
                 case 0b101:     // LWU
-                    registers[rd] = mem_.read16(addr);
+                    registers[rd] = in_window ? readWindow(addr, 2) : mem_.read16(addr);
                     break;
             }
             pc += 4;
@@ -496,8 +546,11 @@ void CPU::execute_instruction()
                 return;
             }
 
-            // programs cannot write the private thread zone
-            if (isPrivateAccess(addr, accessSize(funct3))) {
+            // programs cannot write the private thread zone, nor the cartridge zones
+            u32 size = accessSize(funct3);
+            if (isPrivateAccess(addr, size) ||
+                touchesZone(addr, size, MMAP_CART_CONTROL, MMAP_CART_CONTROL_SIZE) ||
+                touchesZone(addr, size, MMAP_CART_WINDOW, MMAP_CART_WINDOW_SIZE)) {
                 triggerTrap(false, CPU_STORE_ACCESS_FAULT, addr);
                 return;     // don't do PC+4, memory is unchanged
             }
