@@ -7,6 +7,7 @@ set(VC_NAME "vc")
 set(VC_SOURCES
     src/core/cpu.cpp
     src/core/cpu_thread.cpp
+    src/core/crc32.cpp
     src/core/memory.cpp
     src/console.cpp
     src/vc.cpp
@@ -22,6 +23,7 @@ set(VC_HEADERS
     src/core/csr.h
     src/core/cpu.h
     src/core/cpu_thread.h
+    src/core/crc32.h
     src/core/decoders.h
     src/core/helpers.h
     src/core/memory.h

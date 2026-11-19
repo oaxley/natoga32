@@ -16,6 +16,7 @@ add_executable(vctests
     libvc/test_decoder.cpp
     libvc/test_console.cpp
     libvc/test_bootrom.cpp
+    libvc/test_crc32.cpp
 
     libvc/test_cpu/basic.cpp
     libvc/test_cpu/opcode-memory.cpp
