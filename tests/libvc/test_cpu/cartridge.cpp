@@ -9,7 +9,7 @@
  * @author	Sebastien LEGRAND
  * @license	MIT License
  *
- * @brief	Tests - CPU cartridge bank CSR
+ * @brief	Tests - CPU cartridge bank CSR and cartridge zone accesses
  */
 
 #include <catch2/catch_all.hpp>

@@ -527,7 +527,7 @@ void CPU::execute_instruction()
                 case 0b100:     // LBU
                     registers[rd] = in_window ? readWindow(addr, 1) : mem_.read8(addr);
                     break;
-                case 0b101:     // LWU
+                case 0b101:     // LHU
                     registers[rd] = in_window ? readWindow(addr, 2) : mem_.read16(addr);
                     break;
             }
