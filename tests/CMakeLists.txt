@@ -91,6 +91,19 @@ if(TARGET vchost)
         add_test(NAME vchost_headless_superscalar
             COMMAND vchost --rombios ${VC_ROMBIOS_FILE} --superscalar --frames 5)
 
+        add_test(NAME vchost_missing_cartridge
+            COMMAND vchost --rombios ${VC_ROMBIOS_FILE} /nonexistent/game.n32 --frames 1)
+        set_tests_properties(vchost_missing_cartridge PROPERTIES WILL_FAIL TRUE)
+        add_test(NAME vchost_missing_cartridge_message
+            COMMAND vchost --rombios ${VC_ROMBIOS_FILE} /nonexistent/game.n32 --frames 1)
+        set_tests_properties(vchost_missing_cartridge_message PROPERTIES
+            PASS_REGULAR_EXPRESSION "Failed to load cartridge")
+
+        # an invalid cartridge does not stop the console: the ROM reads CART_STATUS
+        set(VC_BAD_CART_CMD "head -c 64 /dev/zero > $0 && exec $<TARGET_FILE:vchost> --rombios ${VC_ROMBIOS_FILE} $0 --frames 5")
+        add_test(NAME vchost_invalid_cartridge_boots
+            COMMAND /bin/sh -c "${VC_BAD_CART_CMD}" bad_cart.n32)
+
         # run by name through PATH from another directory: the default ROM
         # is still found next to the executable
         get_filename_component(VC_VCHOST_DIR ${VC_ROMBIOS_FILE} DIRECTORY)

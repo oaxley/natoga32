@@ -62,8 +62,10 @@ bool ConsoleRunner::boot()
         return false;
     }
 
-    if (!config_.cartridge.empty()) {
-        std::cerr << "Cartridge loading is not supported yet: " << config_.cartridge << "\n";
+    if (!config_.cartridge.empty() && !vc_loadCartridgeFile(console_, config_.cartridge.c_str())) {
+        std::cerr << "Failed to load cartridge: " << config_.cartridge << ": "
+                  << vc_getLastError(console_) << "\n";
+        return false;
     }
 
     vc_reset(console_);
