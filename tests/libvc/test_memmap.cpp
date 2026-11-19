@@ -14,7 +14,8 @@ TEST_CASE("Memory Segments validity", "[memory]") {
         REQUIRE( (MMAP_CSR_REGISTERS % alignof(u32)) == 0 );
         REQUIRE( (MMAP_THREADS_REG_BASE % alignof(u32)) == 0 );
         REQUIRE( (MMAP_THREADS_TLS_BASE % alignof(u32)) == 0 );
-        REQUIRE( (MMAP_CARTRIDGE_IO % alignof(u32)) == 0 );
+        REQUIRE( (MMAP_CART_CONTROL % alignof(u32)) == 0 );
+        REQUIRE( (MMAP_CART_WINDOW % alignof(u32)) == 0 );
         REQUIRE( (MMAP_HOST_S_RAM % alignof(u32)) == 0 );
         REQUIRE( (MMAP_AUDIO_RAM % alignof(u32)) == 0 );
         REQUIRE( (MMAP_VIDEO_RAM % alignof(u32)) == 0 );
@@ -69,13 +70,19 @@ TEST_CASE("Memory Segments match the memory map", "[memory]") {
         REQUIRE( MMAP_THREADS_PRIVATE_BASE == MMAP_THREADS_REG_BASE );
         REQUIRE( MMAP_THREADS_PRIVATE_BASE + MMAP_THREADS_PRIVATE_SIZE == MMAP_THREADS_TLS_BASE );
     }
+
+    SECTION("Cartridge window fills the gap before Video RAM") {
+        REQUIRE( MMAP_AUDIO_RAM + MMAP_ARAM_SIZE == MMAP_CART_WINDOW );
+        REQUIRE( MMAP_CART_WINDOW + MMAP_CART_WINDOW_SIZE == MMAP_VIDEO_RAM );
+        REQUIRE( MMAP_CART_CONTROL + MMAP_CART_CONTROL_SIZE == MMAP_HOST_S_RAM );
+    }
 }
 
 // check that the size of all the segments is less than the total ram size
 TEST_CASE("Sum of segments less or equal total RAM", "[memory]") {
     std::vector<u32> segments = {
         MMAP_ROM_SIZE, MMAP_IV_SIZE, MMAP_CSR_SIZE,
-        MMAP_TREG_SIZE, MMAP_TTLS_SIZE, MMAP_CARTIO_SIZE,
+        MMAP_TREG_SIZE, MMAP_TTLS_SIZE, MMAP_CART_CONTROL_SIZE, MMAP_CART_WINDOW_SIZE,
         MMAP_SRAM_SIZE, MMAP_ARAM_SIZE, MMAP_VRAM_SIZE,
         MMAP_HEAP_SIZE, MMAP_STACK_SIZE, MMAP_BSS_SIZE,
         MMAP_RODATA_SIZE, MMAP_DATA_SIZE, MMAP_CODE_SIZE,

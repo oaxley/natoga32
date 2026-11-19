@@ -124,8 +124,13 @@ bool Memory::isReadOnly(u32 addr) const
         return true;
     }
 
-    // CartRidge space
-    if (isInside(addr, MMAP_CARTRIDGE_IO, MMAP_CARTIO_SIZE)) {
+    // Cartridge control zone
+    if (isInside(addr, MMAP_CART_CONTROL, MMAP_CART_CONTROL_SIZE)) {
+        return true;
+    }
+
+    // Cartridge window
+    if (isInside(addr, MMAP_CART_WINDOW, MMAP_CART_WINDOW_SIZE)) {
         return true;
     }
 

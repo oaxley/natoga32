@@ -28,9 +28,10 @@ constexpr u32 MMAP_INTERRUPT_VECTOR  = 0x0020'0000;
 constexpr u32 MMAP_CSR_REGISTERS     = 0x0020'1000;
 constexpr u32 MMAP_THREADS_REG_BASE  = 0x0020'5000;
 constexpr u32 MMAP_THREADS_TLS_BASE  = 0x0020'6000;
-constexpr u32 MMAP_CARTRIDGE_IO      = 0x0022'0000;
+constexpr u32 MMAP_CART_CONTROL      = 0x0022'0000;
 constexpr u32 MMAP_HOST_S_RAM        = 0x0026'0000;
 constexpr u32 MMAP_AUDIO_RAM         = 0x002E'0000;
+constexpr u32 MMAP_CART_WINDOW       = 0x0036'0000;
 constexpr u32 MMAP_VIDEO_RAM         = 0x0038'0000;
 constexpr u32 MMAP_STACK_BASE        = 0x0078'0000;
 constexpr u32 MMAP_HEAP              = 0x0080'0000;
@@ -40,25 +41,26 @@ constexpr u32 MMAP_DATA              = 0x0140'0000;
 constexpr u32 MMAP_CODE              = 0x01A0'0000;
 
 // segments size
-constexpr size_t MMAP_ROM_SIZE       = 2 * 1024 * 1024;
-constexpr size_t MMAP_IV_SIZE        = 128;
-constexpr size_t MMAP_CSR_SIZE       = 16 * 1024;
-constexpr size_t MMAP_TREG_SIZE      = 1024;
-constexpr size_t MMAP_TTLS_SIZE      = 2 * 1024;
-constexpr size_t MMAP_CARTIO_SIZE    = 256 * 1024;
-constexpr size_t MMAP_SRAM_SIZE      = 512 * 1024;
-constexpr size_t MMAP_ARAM_SIZE      = 512 * 1024;
-constexpr size_t MMAP_VRAM_SIZE      = 4 * 1024 * 1024;
-constexpr size_t MMAP_HEAP_SIZE      = 8 * 1024 * 1024;
-constexpr size_t MMAP_STACK_SIZE     = 512 * 1024;
-constexpr size_t MMAP_BSS_SIZE       = 2 * 1024 * 1024;
-constexpr size_t MMAP_RODATA_SIZE    = 2 * 1024 * 1024;
-constexpr size_t MMAP_DATA_SIZE      = 6 * 1024 * 1024;
-constexpr size_t MMAP_CODE_SIZE      = 6 * 1024 * 1024;
-constexpr size_t MMAP_UNUSED_SIZE    = 1024 * (3 + 102 + 128) + 3968;
+constexpr size_t MMAP_ROM_SIZE          = 2 * 1024 * 1024;
+constexpr size_t MMAP_IV_SIZE           = 128;
+constexpr size_t MMAP_CSR_SIZE          = 16 * 1024;
+constexpr size_t MMAP_TREG_SIZE         = 1024;
+constexpr size_t MMAP_TTLS_SIZE         = 2 * 1024;
+constexpr size_t MMAP_CART_CONTROL_SIZE = 256 * 1024;
+constexpr size_t MMAP_CART_WINDOW_SIZE  = 128 * 1024;
+constexpr size_t MMAP_SRAM_SIZE         = 512 * 1024;
+constexpr size_t MMAP_ARAM_SIZE         = 512 * 1024;
+constexpr size_t MMAP_VRAM_SIZE         = 4 * 1024 * 1024;
+constexpr size_t MMAP_HEAP_SIZE         = 8 * 1024 * 1024;
+constexpr size_t MMAP_STACK_SIZE        = 512 * 1024;
+constexpr size_t MMAP_BSS_SIZE          = 2 * 1024 * 1024;
+constexpr size_t MMAP_RODATA_SIZE       = 2 * 1024 * 1024;
+constexpr size_t MMAP_DATA_SIZE         = 6 * 1024 * 1024;
+constexpr size_t MMAP_CODE_SIZE         = 6 * 1024 * 1024;
+constexpr size_t MMAP_UNUSED_SIZE       = 1024 * (3 + 102) + 3968;
 
 // total ram size
-constexpr size_t MMAP_RAM_SIZE       = 32 * 1024 * 1024;
+constexpr size_t MMAP_RAM_SIZE          = 32 * 1024 * 1024;
 
 // console default address on reset
 constexpr u32 RESET_DEFAULT_ADDR     = MMAP_ROM_BOOT_LOADER + 0x100;
