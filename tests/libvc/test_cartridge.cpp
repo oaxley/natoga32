@@ -17,6 +17,7 @@
 
 #include "cartridge_builder.h"
 #include "core/cartridge.h"
+#include "core/memory.h"
 
 using namespace vc;
 
@@ -326,5 +327,120 @@ TEST_CASE("Cartridge chunk checks", "[cartridge]")
         auto file = test::CartBuilder{}.build();
         test::breakChunkCrc(file, 2);
         CHECK(checkCartridge(file) == CartError::None);
+    }
+}
+
+TEST_CASE("Cartridge device", "[cartridge]")
+{
+    Memory mem;
+    Cartridge cart;
+
+    SECTION("absent") {
+        CHECK_FALSE(cart.isPresent());
+        cart.map(mem);
+        CHECK(mem.read32(CART_STATUS) == 0);
+        CHECK_FALSE(cart.isValid());
+        CHECK(cart.readWindow(0, 0) == 0);
+        CHECK(cart.read8(0) == 0);
+        CHECK(cart.size() == 0);
+    }
+
+    SECTION("valid cartridge fills the control zone") {
+        test::CartBuilder b;
+        b.ihdr[0x30] = 0xAB;
+        b.chunks.push_back({ "TILS", std::vector<u8>(8, 1), 0 });
+        const auto file = b.build();
+        cart.insert(file);
+        CHECK(cart.isPresent());
+        CHECK(cart.size() == file.size());
+        cart.map(mem);
+
+        CHECK(cart.isValid());
+        CHECK(mem.read32(CART_STATUS) == (CART_STATUS_PRESENT | CART_STATUS_VALID));
+        CHECK(mem.read32(CART_SIZE) == file.size());
+        CHECK(mem.read32(CART_INDX_COUNT) == b.chunks.size());
+        for (u32 i = 0; i < CART_HEADER_SIZE; ++i) {
+            CHECK(mem.read8(CART_HEADER_MIRROR + i) == file[i]);
+        }
+        for (u32 i = 0; i < CART_IHDR_SIZE; ++i) {
+            CHECK(mem.read8(CART_IHDR_MIRROR + i) == b.ihdr[i]);
+        }
+        CHECK(mem.read32(CART_INDX_MIRROR) == 0x5643'5352);     // "RSCV"
+        CHECK(mem.read32(CART_INDX_MIRROR + 8) == test::chunkOffset(file, 2) + 8);
+        CHECK(mem.read32(CART_INDX_MIRROR + CART_INDX_ENTRY_SIZE) == 0x534C'4954);     // "TILS"
+        for (u32 i = 0; i < b.chunks.size() * CART_INDX_ENTRY_SIZE; ++i) {
+            CHECK(mem.read8(CART_INDX_MIRROR + i) == file[test::chunkOffset(file, 1) + 8 + i]);
+        }
+    }
+
+    SECTION("invalid cartridge only sets status and size") {
+        auto file = test::CartBuilder{}.build();
+        file[0] = 0;
+        cart.insert(file);
+        cart.map(mem);
+
+        CHECK_FALSE(cart.isValid());
+        CHECK(mem.read32(CART_STATUS) == (1u | (1u << 8)));
+        CHECK(mem.read32(CART_SIZE) == file.size());
+        CHECK(mem.read32(CART_INDX_COUNT) == 0);
+        CHECK(mem.read32(CART_HEADER_MIRROR) == 0);
+        CHECK(mem.read32(CART_IHDR_MIRROR) == 0);
+        CHECK(cart.readWindow(0, 0) == 0);
+        CHECK(cart.read8(0) == file[0]);
+        CHECK(cart.read8(5) == file[5]);
+    }
+
+    SECTION("window reads") {
+        test::CartBuilder b;
+        std::vector<u8> pattern(8192);
+        for (size_t i = 0; i < pattern.size(); ++i) {
+            pattern[i] = static_cast<u8>(i * 7 + 1);
+        }
+        b.chunks.push_back({ "TILS", pattern, 0 });
+        const auto file = b.build();
+        REQUIRE(file.size() > 0x2000);
+        cart.insert(file);
+        cart.map(mem);
+        REQUIRE(cart.isValid());
+
+        CHECK(cart.readWindow(0, 0) == 0x7F);
+        CHECK(cart.readWindow(0, 0x1000 + 3) == file[0x1003]);
+        CHECK(cart.readWindow(1, 3) == file[0x1003]);
+        CHECK(cart.read8(0x1003) == file[0x1003]);
+
+        // no overflow of the 32-bit offset
+        CHECK(cart.readWindow(0xFFFF, 0x1FFFF) == 0);
+        CHECK(cart.readWindow(0xFFFF, 0) == 0);
+        CHECK(cart.readWindow(static_cast<u16>(file.size() >> 12) + 1, 0) == 0);
+
+        // last byte of the file, then the first one past the end
+        const u32 last = static_cast<u32>(file.size()) - 1;
+        CHECK(cart.readWindow(static_cast<u16>(last >> 12), last & 0xFFF) == file[last]);
+        CHECK(cart.readWindow(static_cast<u16>(last >> 12), (last & 0xFFF) + 1) == 0);
+        CHECK(cart.read8(last) == file[last]);
+        CHECK(cart.read8(last + 1) == 0);
+    }
+
+    SECTION("insert does not change validity until the next map") {
+        cart.insert(test::CartBuilder{}.build());
+        cart.map(mem);
+        REQUIRE(cart.isValid());
+
+        auto bad = test::CartBuilder{}.build();
+        bad[0] = 0;
+        cart.insert(bad);
+        CHECK(cart.isValid());
+        mem.reset();
+        cart.map(mem);
+        CHECK_FALSE(cart.isValid());
+        CHECK(mem.read32(CART_STATUS) == (1u | (1u << 8)));
+
+        cart.eject();
+        CHECK_FALSE(cart.isPresent());
+        CHECK(cart.size() == 0);
+        mem.reset();
+        cart.map(mem);
+        CHECK(mem.read32(CART_STATUS) == 0);
+        CHECK_FALSE(cart.isValid());
     }
 }

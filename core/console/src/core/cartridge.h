@@ -15,6 +15,7 @@
 
 // standard library headers
 #include <span>
+#include <vector>
 
 // program-specific headers
 #include "vc/types.h"
@@ -22,6 +23,8 @@
 
 
 namespace vc {
+
+class Memory;
 
 //----- file format constants
 
@@ -68,5 +71,35 @@ enum class CartError : u8 {
 
 /// Validate a cartridge file; returns the first error found, in check order
 CartError checkCartridge(std::span<const u8> file);
+
+//----- cartridge device
+
+class Cartridge
+{
+public:
+    /// Store a copy of the file; it is checked on the next map()
+    void insert(std::span<const u8> file);
+    void eject();
+
+    bool isPresent() const;
+    size_t size() const;
+
+    /// Check the file and fill the control zone of `mem` (expected zeroed, i.e. right after Memory::reset())
+    void map(Memory& mem);
+
+    /// Result of the check done by the last map()
+    bool isValid() const;
+
+    /// Raw file byte; 0 beyond the end or when absent
+    u8 read8(u32 offset) const;
+
+    /// Byte seen through a cartridge window; 0 unless the cartridge is valid
+    u8 readWindow(u16 bank, u32 window_offset) const;
+
+private:
+    std::vector<u8> file_;
+    bool present_ = false;
+    bool valid_ = false;
+};
 
 }

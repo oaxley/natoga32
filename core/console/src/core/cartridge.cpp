@@ -19,6 +19,7 @@
 // program-specific headers
 #include "cartridge.h"
 #include "crc32.h"
+#include "memory.h"
 
 
 namespace vc {
@@ -50,6 +51,12 @@ constexpr u32 IHDR_OFF_RESERVED_2 = 0x16;
 constexpr u32 IHDR_OFF_RESERVED_3 = 0x38;
 constexpr u32 IHDR_RESERVED_3_SIZE = 8;
 constexpr u8 IHDR_REGIONS_MASK = 0x07;
+
+constexpr u32 CART_BANK_SHIFT = 12;
+
+constexpr u32 IHDR_DATA_OFFSET = CART_HEADER_SIZE + CHUNK_HEADER_SIZE;
+constexpr u32 INDX_CHUNK_OFFSET = CART_HEADER_SIZE + CHUNK_OVERHEAD + CART_IHDR_SIZE;
+constexpr u32 INDX_DATA_OFFSET = INDX_CHUNK_OFFSET + CHUNK_HEADER_SIZE;
 
 constexpr u32 INDX_ENTRY_OFF_ID = 4;
 constexpr u32 INDX_ENTRY_OFF_FLAGS = 6;
@@ -244,6 +251,75 @@ CartError checkCartridge(std::span<const u8> file) {
         }
         off = end;
     }
+}
+
+//----- Cartridge
+
+void Cartridge::insert(std::span<const u8> file) {
+    file_.assign(file.begin(), file.end());
+    present_ = true;
+}
+
+void Cartridge::eject() {
+    file_.clear();
+    present_ = false;
+}
+
+bool Cartridge::isPresent() const {
+    return present_;
+}
+
+size_t Cartridge::size() const {
+    return file_.size();
+}
+
+void Cartridge::map(Memory& mem) {
+    valid_ = false;
+    if (!present_) {
+        return;
+    }
+
+    const CartError error = checkCartridge(file_);
+    const u32 status = CART_STATUS_PRESENT | (error == CartError::None ? CART_STATUS_VALID : static_cast<u32>(error) << 8);
+    const std::span<const u8> file = file_;
+
+    auto write32 = [&mem](u32 addr, u32 value) {
+        const auto dst = mem.memview<u8>(addr, 4);
+        for (u32 i = 0; i < 4; ++i) {
+            dst[i] = static_cast<u8>(value >> (8 * i));
+        }
+    };
+
+    write32(CART_STATUS, status);
+    write32(CART_SIZE, static_cast<u32>(file.size()));
+    if (error != CartError::None) {
+        return;
+    }
+    valid_ = true;
+
+    // the check guarantees IHDR first, then INDX, right after the header
+    const u32 indx_length = read32(file, INDX_CHUNK_OFFSET);
+    write32(CART_INDX_COUNT, indx_length / CART_INDX_ENTRY_SIZE);
+
+    std::copy_n(file.begin(), CART_HEADER_SIZE, mem.memview<u8>(CART_HEADER_MIRROR, CART_HEADER_SIZE).begin());
+    std::copy_n(file.begin() + IHDR_DATA_OFFSET, CART_IHDR_SIZE, mem.memview<u8>(CART_IHDR_MIRROR, CART_IHDR_SIZE).begin());
+    std::copy_n(file.begin() + INDX_DATA_OFFSET, indx_length, mem.memview<u8>(CART_INDX_MIRROR, indx_length).begin());
+}
+
+bool Cartridge::isValid() const {
+    return valid_;
+}
+
+u8 Cartridge::read8(u32 offset) const {
+    return offset < file_.size() ? file_[offset] : 0;
+}
+
+u8 Cartridge::readWindow(u16 bank, u32 window_offset) const {
+    if (!valid_) {
+        return 0;
+    }
+    const u64 offset = (static_cast<u64>(bank) << CART_BANK_SHIFT) + window_offset;
+    return offset < file_.size() ? file_[offset] : 0;
 }
 
 }
