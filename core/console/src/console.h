@@ -17,9 +17,11 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <vector>
 
 // program-specific headers
 #include "vc/types.h"
+#include "core/cartridge.h"
 
 namespace vc
 {
@@ -71,11 +73,22 @@ public:
     // Load ROM data from memory buffer
     bool loadROM(const u8* data, size_t size);
 
-    // Load cartridge from file
+    // Load cartridge from file; like inserting it, the device only sees it at the next reset()
     bool loadCartridge(const std::string& path);
 
-    // Load cartridge from memory buffer
+    // Load cartridge from memory buffer; an invalid file is accepted, its error shows in the
+    // cartridge status register after the next reset()
     bool loadCartridge(const u8* data, size_t size);
+
+    // Remove the cartridge; the device only notices it at the next reset()
+    void ejectCartridge();
+
+    // Byte of the inserted cartridge file (host/debugger view): 0 beyond the end or when none.
+    // A pending load or eject is not seen until reset(), like the console itself
+    u8 readCartridge(u32 offset) const;
+
+    // Size in bytes of the inserted cartridge file, 0 when none (same view as readCartridge)
+    size_t getCartridgeSize() const;
 
     //----- Execution control
 
@@ -141,7 +154,12 @@ private:
     //----- Private members
 
     std::unique_ptr<Memory> memory_;
+    Cartridge cartridge_;                   // outlives cpu_, which reads its window
     std::unique_ptr<CPU> cpu_;
+
+    // insertion or removal requested since the last reset(), applied to cartridge_ by reset()
+    bool cartridge_change_pending_;
+    std::vector<u8> pending_cartridge_;     // empty = eject
 
     ConsoleState state_;
     std::string last_error_;

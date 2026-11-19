@@ -15,11 +15,14 @@
 #include <catch2/catch_all.hpp>
 #include <vector>
 
+#include "cartridge_builder.h"
 #include "console.h"
+#include "core/cartridge.h"
 #include "core/cpu.h"
 #include "core/memory.h"
 #include "core/constants.h"
 #include "vc/events.h"
+#include "vc/vc.h"
 
 using namespace vc;
 
@@ -266,4 +269,127 @@ TEST_CASE("Console timed sleeper frame", "[console][idle]") {
     // a loop lasts 4 instructions + 999 idle cycles, the first increment lands on cycle 1002
     REQUIRE(c.getCPU().getTotalCycles() == CYCLES_PER_FRAME);
     REQUIRE(c.getCPU().getThread(0).getRegisters()[12] == (CYCLES_PER_FRAME + 1) / 1003);
+}
+
+
+TEST_CASE("Console cartridge", "[console][cartridge]") {
+    Console c;
+    REQUIRE(c.initialize());
+
+    const std::vector<u8> file = test::CartBuilder{}.build();
+
+    SECTION("a loaded cartridge is mapped at the next reset") {
+        REQUIRE(c.loadCartridge(file.data(), file.size()));
+
+        // nothing changes before the reset
+        REQUIRE(c.getMemory().read32(CART_STATUS) == 0);
+        REQUIRE(c.getCartridgeSize() == 0);
+
+        c.reset();
+        REQUIRE(c.getMemory().read32(CART_STATUS) == (CART_STATUS_PRESENT | CART_STATUS_VALID));
+        REQUIRE(c.getMemory().read32(CART_SIZE) == file.size());
+        REQUIRE(c.readCartridge(0) == 0x7F);
+        REQUIRE(c.getCartridgeSize() == file.size());
+    }
+
+    SECTION("an ejected cartridge disappears at the next reset") {
+        REQUIRE(c.loadCartridge(file.data(), file.size()));
+        c.reset();
+        REQUIRE(c.getMemory().read32(CART_STATUS) == 3);
+
+        c.ejectCartridge();
+        REQUIRE(c.getMemory().read32(CART_STATUS) == 3);
+        REQUIRE(c.readCartridge(0) == 0x7F);
+        REQUIRE(c.getCartridgeSize() == file.size());
+
+        c.reset();
+        REQUIRE(c.getMemory().read32(CART_STATUS) == 0);
+        REQUIRE(c.getMemory().read32(CART_HEADER_MIRROR) == 0);
+        REQUIRE(c.readCartridge(0) == 0);
+        REQUIRE(c.getCartridgeSize() == 0);
+    }
+
+    SECTION("a load after a reset is not seen until the next reset") {
+        c.reset();
+        REQUIRE(c.loadCartridge(file.data(), file.size()));
+        REQUIRE(c.getMemory().read32(CART_STATUS) == 0);
+        REQUIRE(c.getMemory().read32(CART_HEADER_MIRROR) == 0);
+        REQUIRE(c.readCartridge(0) == 0);
+
+        c.reset();
+        REQUIRE(c.getMemory().read32(CART_STATUS) == 3);
+        REQUIRE(c.getMemory().read32(CART_HEADER_MIRROR) != 0);
+    }
+
+    SECTION("replacing a cartridge keeps the old one until the next reset") {
+        test::CartBuilder a;
+        a.chunks[0].data[0] = 0xAA;
+        test::CartBuilder b;
+        b.chunks[0].data[0] = 0xBB;
+        const std::vector<u8> file_a = a.build();
+        const std::vector<u8> file_b = b.build();
+        const u32 data_at = test::chunkOffset(file_a, 2) + 8;
+
+        REQUIRE(c.loadCartridge(file_a.data(), file_a.size()));
+        c.reset();
+        REQUIRE(c.readCartridge(data_at) == 0xAA);
+
+        REQUIRE(c.loadCartridge(file_b.data(), file_b.size()));
+        REQUIRE(c.getMemory().read32(CART_STATUS) == 3);
+        REQUIRE(c.readCartridge(data_at) == 0xAA);
+
+        c.reset();
+        REQUIRE(c.getMemory().read32(CART_STATUS) == 3);
+        REQUIRE(c.readCartridge(data_at) == 0xBB);
+    }
+
+    SECTION("an invalid file is accepted and reported by the status register") {
+        std::vector<u8> bad = file;
+        bad[0] = 0;
+        REQUIRE(c.loadCartridge(bad.data(), bad.size()));
+
+        c.reset();
+        const u32 code = static_cast<u32>(CartError::BadMagic);
+        REQUIRE(c.getMemory().read32(CART_STATUS) == (CART_STATUS_PRESENT | (code << 8)));
+        REQUIRE(c.getMemory().read32(CART_HEADER_MIRROR) == 0);
+        REQUIRE(c.getCartridgeSize() == bad.size());
+    }
+
+    SECTION("loading a null buffer or a missing file fails") {
+        REQUIRE_FALSE(c.loadCartridge(nullptr, 0));
+        REQUIRE_FALSE(c.loadCartridge("/nonexistent/cartridge.n32"));
+        REQUIRE(c.getLastError().starts_with("Failed to open cartridge file"));
+    }
+
+    SECTION("a console that is not initialized refuses cartridges") {
+        Console other;
+        REQUIRE_FALSE(other.loadCartridge(file.data(), file.size()));
+        REQUIRE_FALSE(other.loadCartridge("/nonexistent/cartridge.n32"));
+        other.ejectCartridge();
+        REQUIRE(other.readCartridge(0) == 0);
+        REQUIRE(other.getCartridgeSize() == 0);
+    }
+
+    SECTION("the C API loads and maps a cartridge") {
+        VC_Console_t* vc = vc_create();
+        REQUIRE(vc_initialize(vc));
+        REQUIRE(vc_loadCartridgeData(vc, file.data(), file.size()));
+        vc_reset(vc);
+        REQUIRE(vc_memRead32(vc, 0x0022'0000) == 3);
+        REQUIRE(vc_cartridgeRead8(vc, 1) == 'N');
+        REQUIRE(vc_getCartridgeSize(vc) == file.size());
+
+        vc_ejectCartridge(vc);
+        vc_reset(vc);
+        REQUIRE(vc_memRead32(vc, 0x0022'0000) == 0);
+        REQUIRE(vc_getCartridgeSize(vc) == 0);
+
+        REQUIRE_FALSE(vc_loadCartridgeData(vc, nullptr, 0));
+        REQUIRE_FALSE(vc_loadCartridgeFile(vc, nullptr));
+        REQUIRE_FALSE(vc_loadCartridgeFile(nullptr, "x"));
+        REQUIRE(vc_cartridgeRead8(nullptr, 0) == 0);
+        REQUIRE(vc_getCartridgeSize(nullptr) == 0);
+        vc_ejectCartridge(nullptr);
+        vc_destroy(vc);
+    }
 }

@@ -108,6 +108,48 @@ bool vc_loadRomFile(VC_Console_t* console, const char* path);
 bool vc_loadRomData(VC_Console_t* console, const uint8_t* data, size_t size);
 
 
+//----- Cartridge functions
+
+/**
+ * Load cartridge from file. The cartridge device only checks it at the next vc_reset();
+ * an invalid file is accepted and reported by the cartridge status register.
+ * @param console Console instance
+ * @param path Path to cartridge file
+ * @return true on success, false if the file cannot be read
+ */
+bool vc_loadCartridgeFile(VC_Console_t* console, const char* path);
+
+/**
+ * Load cartridge from memory buffer (copied). Takes effect at the next vc_reset().
+ * @param console Console instance
+ * @param data Pointer to cartridge data
+ * @param size Size of cartridge data in bytes
+ * @return true on success, false on failure
+ */
+bool vc_loadCartridgeData(VC_Console_t* console, const uint8_t* data, size_t size);
+
+/**
+ * Eject the cartridge. Takes effect at the next vc_reset().
+ * @param console Console instance
+ */
+void vc_ejectCartridge(VC_Console_t* console);
+
+/**
+ * Read a byte of the inserted cartridge file (a pending load or eject is not seen until vc_reset())
+ * @param console Console instance
+ * @param offset Offset in the cartridge file
+ * @return 8-bit value, 0 beyond the end of the file or when no cartridge is inserted
+ */
+uint8_t vc_cartridgeRead8(VC_Console_t* console, uint32_t offset);
+
+/**
+ * Get the size of the inserted cartridge file
+ * @param console Console instance
+ * @return Size in bytes, 0 when no cartridge is inserted
+ */
+size_t vc_getCartridgeSize(VC_Console_t* console);
+
+
 //----- Execution control functions
 
 /**

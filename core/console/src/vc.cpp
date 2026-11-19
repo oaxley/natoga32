@@ -90,6 +90,48 @@ bool vc_loadRomData(VC_Console_t* console, const uint8_t* data, size_t size)
 }
 
 
+//----- Cartridge functions
+
+bool vc_loadCartridgeFile(VC_Console_t* console, const char* path)
+{
+    if (!console || !console->ptr || !path) {
+        return false;
+    }
+    return console->ptr->loadCartridge(std::string(path));
+}
+
+bool vc_loadCartridgeData(VC_Console_t* console, const uint8_t* data, size_t size)
+{
+    if (!console || !console->ptr || !data) {
+        return false;
+    }
+    return console->ptr->loadCartridge(data, size);
+}
+
+void vc_ejectCartridge(VC_Console_t* console)
+{
+    if (console && console->ptr) {
+        console->ptr->ejectCartridge();
+    }
+}
+
+uint8_t vc_cartridgeRead8(VC_Console_t* console, uint32_t offset)
+{
+    if (!console || !console->ptr) {
+        return 0;
+    }
+    return console->ptr->readCartridge(offset);
+}
+
+size_t vc_getCartridgeSize(VC_Console_t* console)
+{
+    if (!console || !console->ptr) {
+        return 0;
+    }
+    return console->ptr->getCartridgeSize();
+}
+
+
 //----- Execution control functions
 
 void vc_tick(VC_Console_t* console)

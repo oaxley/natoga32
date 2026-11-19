@@ -31,6 +31,7 @@ namespace vc
 //----- Constructor / Destructor
 
 Console::Console() :
+    cartridge_change_pending_(false),
     state_(ConsoleState::Uninitialized),
     is_initialized_(false)
 {
@@ -56,6 +57,7 @@ bool Console::initialize()
 
         // Create CPU subsystem
         cpu_ = std::make_unique<CPU>(*memory_);
+        cpu_->setCartridge(&cartridge_);
 
         // Set state to ready
         state_ = ConsoleState::Ready;
@@ -78,6 +80,18 @@ void Console::reset()
     // Reset memory
     memory_->reset();
 
+    // Insert or eject the cartridge requested since the last reset, then let the device check it
+    if (cartridge_change_pending_) {
+        if (pending_cartridge_.empty()) {
+            cartridge_.eject();
+        } else {
+            cartridge_.insert(pending_cartridge_);
+        }
+        cartridge_change_pending_ = false;
+        pending_cartridge_.clear();
+    }
+    cartridge_.map(*memory_);
+
     // Reset CPU
     cpu_->reset();
 
@@ -99,6 +113,11 @@ void Console::shutdown()
 
     // Release Memory
     memory_.reset();
+
+    // Drop the cartridge, inserted or pending
+    cartridge_.eject();
+    cartridge_change_pending_ = false;
+    pending_cartridge_.clear();
 
     // Update state
     state_ = ConsoleState::Uninitialized;
@@ -152,14 +171,67 @@ bool Console::loadROM(const u8* data, size_t size)
 
 bool Console::loadCartridge(const std::string& path)
 {
-    // TO BE DONE
-    return true;
+    if (!is_initialized_) {
+        setError("Console not initialized");
+        return false;
+    }
+
+    // Open file
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        setError("Failed to open cartridge file: " + path);
+        return false;
+    }
+
+    // Get file size
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    // Read file content
+    std::vector<u8> buffer(size);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+        setError("Failed to read cartridge file: " + path);
+        return false;
+    }
+
+    return loadCartridge(buffer.data(), buffer.size());
 }
 
 bool Console::loadCartridge(const u8* data, size_t size)
 {
-    // TO BE DONE
+    if (!is_initialized_) {
+        setError("Console not initialized");
+        return false;
+    }
+
+    if (!validateCartridge(data, size)) {
+        return false;
+    }
+
+    // The file is only checked by the device on reset, so it is kept aside until then
+    pending_cartridge_.assign(data, data + size);
+    cartridge_change_pending_ = true;
     return true;
+}
+
+void Console::ejectCartridge()
+{
+    if (!is_initialized_) {
+        return;
+    }
+
+    pending_cartridge_.clear();
+    cartridge_change_pending_ = true;
+}
+
+u8 Console::readCartridge(u32 offset) const
+{
+    return cartridge_.read8(offset);
+}
+
+size_t Console::getCartridgeSize() const
+{
+    return cartridge_.size();
 }
 
 
