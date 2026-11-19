@@ -20,10 +20,11 @@
 
 namespace vc {
 
+//----- constants and lookup table
+
 namespace {
 
 constexpr u32 CRC32_POLY = 0xEDB88320u;
-constexpr u32 CRC32_INIT = 0xFFFFFFFFu;
 constexpr u32 CRC32_XOROUT = 0xFFFFFFFFu;
 
 constexpr std::array<u32, 256> make_table() {
@@ -42,12 +43,15 @@ constexpr auto CRC32_TABLE = make_table();
 
 }
 
+//----- public functions
+
+// crc = 0 starts from the init state 0xFFFFFFFF, since the state is inverted on entry
 u32 crc32(std::span<const u8> data, u32 crc) {
-    u32 c = ~crc;
+    u32 c = crc ^ CRC32_XOROUT;
     for (u8 b : data) {
         c = CRC32_TABLE[(c ^ b) & 0xFFu] ^ (c >> 8);
     }
-    return ~c;
+    return c ^ CRC32_XOROUT;
 }
 
 }
