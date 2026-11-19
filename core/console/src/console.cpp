@@ -16,6 +16,8 @@
 #include <fstream>
 #include <vector>
 #include <cstring>
+#include <exception>
+#include <utility>
 
 // program-specific headers
 #include "core/memory.h"
@@ -85,7 +87,7 @@ void Console::reset()
         if (pending_cartridge_.empty()) {
             cartridge_.eject();
         } else {
-            cartridge_.insert(pending_cartridge_);
+            cartridge_.insert(std::move(pending_cartridge_));
         }
         cartridge_change_pending_ = false;
         pending_cartridge_.clear();
@@ -134,21 +136,8 @@ bool Console::loadROM(const std::string& path)
         return false;
     }
 
-    // Open file
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        setError("Failed to open ROM file: " + path);
-        return false;
-    }
-
-    // Get file size
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    // Read file content
-    std::vector<u8> buffer(size);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
-        setError("Failed to read ROM file: " + path);
+    std::vector<u8> buffer;
+    if (!readFile(path, "ROM", buffer)) {
         return false;
     }
 
@@ -176,25 +165,15 @@ bool Console::loadCartridge(const std::string& path)
         return false;
     }
 
-    // Open file
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        setError("Failed to open cartridge file: " + path);
+    std::vector<u8> buffer;
+    if (!readFile(path, "cartridge", buffer)) {
         return false;
     }
 
-    // Get file size
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    // Read file content
-    std::vector<u8> buffer(size);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
-        setError("Failed to read cartridge file: " + path);
-        return false;
-    }
-
-    return loadCartridge(buffer.data(), buffer.size());
+    // readFile refuses empty files, so the buffer is a valid pending cartridge (empty = eject)
+    pending_cartridge_ = std::move(buffer);
+    cartridge_change_pending_ = true;
+    return true;
 }
 
 bool Console::loadCartridge(const u8* data, size_t size)
@@ -413,6 +392,42 @@ bool Console::validateROM(const u8* data, size_t size)
     }
 
     // Future: Add more validation (magic numbers, checksums, etc.)
+
+    return true;
+}
+
+bool Console::readFile(const std::string& path, const std::string& kind, std::vector<u8>& buffer)
+{
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        setError("Failed to open " + kind + " file: " + path);
+        return false;
+    }
+
+    // tellg() is -1 when the size can't be known (e.g. a directory on some platforms)
+    const std::streamsize size = file.tellg();
+    if (size < 0) {
+        setError("Failed to read " + kind + " file: " + path);
+        return false;
+    }
+    if (size == 0) {
+        setError("Empty " + kind + " file: " + path);
+        return false;
+    }
+
+    // a huge file must not throw through the C API
+    try {
+        buffer.resize(static_cast<size_t>(size));
+    } catch (const std::exception&) {
+        setError("Not enough memory to read " + kind + " file: " + path);
+        return false;
+    }
+
+    file.seekg(0, std::ios::beg);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+        setError("Failed to read " + kind + " file: " + path);
+        return false;
+    }
 
     return true;
 }

@@ -260,6 +260,11 @@ void Cartridge::insert(std::span<const u8> file) {
     present_ = true;
 }
 
+void Cartridge::insert(std::vector<u8>&& file) {
+    file_ = std::move(file);
+    present_ = true;
+}
+
 void Cartridge::eject() {
     file_.clear();
     present_ = false;

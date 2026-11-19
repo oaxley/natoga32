@@ -13,6 +13,8 @@
  */
 
 #include <catch2/catch_all.hpp>
+#include <filesystem>
+#include <fstream>
 #include <vector>
 
 #include "cartridge_builder.h"
@@ -359,6 +361,24 @@ TEST_CASE("Console cartridge", "[console][cartridge]") {
         REQUIRE_FALSE(c.loadCartridge(nullptr, 0));
         REQUIRE_FALSE(c.loadCartridge("/nonexistent/cartridge.n32"));
         REQUIRE(c.getLastError().starts_with("Failed to open cartridge file"));
+    }
+
+    SECTION("an empty file or a directory is refused with a clear message") {
+        const auto dir = std::filesystem::temp_directory_path();
+        const auto empty = dir / "vctests_empty_cartridge.n32";
+        std::ofstream{empty, std::ios::binary};
+
+        REQUIRE_FALSE(c.loadCartridge(empty.string()));
+        REQUIRE(c.getLastError() == "Empty cartridge file: " + empty.string());
+        REQUIRE_FALSE(c.loadROM(empty.string()));
+        REQUIRE(c.getLastError() == "Empty ROM file: " + empty.string());
+        std::filesystem::remove(empty);
+
+        bool loaded = true;
+        REQUIRE_NOTHROW(loaded = c.loadCartridge(dir.string()));
+        REQUIRE_FALSE(loaded);
+        REQUIRE_NOTHROW(loaded = c.loadROM(dir.string()));
+        REQUIRE_FALSE(loaded);
     }
 
     SECTION("a console that is not initialized refuses cartridges") {

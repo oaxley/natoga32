@@ -171,6 +171,9 @@ private:
     // Set error state with message
     void setError(const std::string& error);
 
+    // Read a whole file into buffer; kind ("ROM", "cartridge") names it in the error messages
+    bool readFile(const std::string& path, const std::string& kind, std::vector<u8>& buffer);
+
     // Validate ROM data
     bool validateROM(const u8* data, size_t size);
 

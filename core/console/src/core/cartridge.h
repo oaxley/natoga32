@@ -79,6 +79,8 @@ class Cartridge
 public:
     /// Store a copy of the file; it is checked on the next map()
     void insert(std::span<const u8> file);
+    /// Take over the file without copying it; it is checked on the next map()
+    void insert(std::vector<u8>&& file);
     void eject();
 
     bool isPresent() const;
