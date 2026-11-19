@@ -14,9 +14,11 @@
 #pragma once
 
 // standard library headers
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -77,6 +79,47 @@ inline u32 chunkOffset(const std::vector<u8>& file, int index) {
     return off;
 }
 
+/// Recompute the total size field and the header CRC after a test changed the file length
+inline void fixFileSize(std::vector<u8>& file) {
+    put32(file, 8, static_cast<u32>(file.size()));
+    fixHeaderCrc(file);
+}
+
+/// Overwrite one byte of the data of the index-th chunk and fix the chunk CRC
+inline void patchChunkByte(std::vector<u8>& file, int index, u32 data_offset, u8 value) {
+    const u32 chunk = chunkOffset(file, index);
+    file[chunk + 8 + data_offset] = value;
+    fixChunkCrc(file, chunk);
+}
+
+/// Overwrite 4 bytes (little-endian) of the data of the index-th chunk and fix the chunk CRC
+inline void patchChunk32(std::vector<u8>& file, int index, u32 data_offset, u32 value) {
+    const u32 chunk = chunkOffset(file, index);
+    put32(file, chunk + 8 + data_offset, value);
+    fixChunkCrc(file, chunk);
+}
+
+/// Overwrite the type of the index-th chunk and fix the chunk CRC
+inline void patchChunkType(std::vector<u8>& file, int index, const char (&type)[5]) {
+    const u32 chunk = chunkOffset(file, index);
+    std::memcpy(&file[chunk + 4], type, 4);
+    fixChunkCrc(file, chunk);
+}
+
+/// Flip a bit of the stored CRC of the index-th chunk
+inline void breakChunkCrc(std::vector<u8>& file, int index) {
+    const u32 chunk = chunkOffset(file, index);
+    file[chunk + 8 + align4(get32(file, chunk))] ^= 0x01;
+}
+
+/// Swap the index-th chunk with the next one (the size and the CRCs do not change)
+inline void swapChunks(std::vector<u8>& file, int index) {
+    const u32 first = chunkOffset(file, index);
+    const u32 second = first + 12 + align4(get32(file, first));
+    const u32 end = second + 12 + align4(get32(file, second));
+    std::rotate(file.begin() + first, file.begin() + second, file.begin() + end);
+}
+
 //----- builder
 
 struct CartChunk {
@@ -90,6 +133,7 @@ public:
     u16 headerFlags = 0;
     std::array<u8, 64> ihdr{};
     std::vector<CartChunk> chunks;
+    size_t unlistedChunks = 0;      // number of chunks, at the end of `chunks`, left out of INDX
 
     CartBuilder() {
         ihdr[0x04] = 0x07;
@@ -110,14 +154,15 @@ public:
         appendChunk(file, "IHDR", ihdr);
 
         // chunk data starts 8 bytes after the chunk, which begins after IHDR and INDX
-        u32 offset = static_cast<u32>(file.size()) + 12 + static_cast<u32>(chunks.size()) * vc::CART_INDX_ENTRY_SIZE;
+        const size_t listed = chunks.size() - unlistedChunks;
+        u32 offset = static_cast<u32>(file.size()) + 12 + static_cast<u32>(listed) * vc::CART_INDX_ENTRY_SIZE;
         std::vector<u8> index;
-        for (size_t i = 0; i < chunks.size(); ++i) {
+        for (size_t i = 0; i < listed; ++i) {
             const CartChunk& c = chunks[i];
             const u32 length = static_cast<u32>(c.data.size());
             const size_t at = index.size();
             index.resize(at + vc::CART_INDX_ENTRY_SIZE, 0);
-            std::memcpy(&index[at], c.type.data(), 4);
+            copyType(&index[at], c.type);
             put16(index, static_cast<u32>(at + 4), static_cast<u16>(i));
             put16(index, static_cast<u32>(at + 6), c.flags);
             put32(index, static_cast<u32>(at + 8), offset + 8);
@@ -143,12 +188,19 @@ private:
         }
     }
 
+    static void copyType(u8* dst, const std::string& type) {
+        if (type.size() != 4) {
+            throw std::invalid_argument("chunk type must be 4 characters: " + type);
+        }
+        std::memcpy(dst, type.data(), 4);
+    }
+
     static void appendChunk(std::vector<u8>& file, const std::string& type, std::span<const u8> data) {
         const u32 start = static_cast<u32>(file.size());
         const u32 length = static_cast<u32>(data.size());
         file.resize(start + 12 + align4(length), 0);
         put32(file, start, length);
-        std::memcpy(&file[start + 4], type.data(), 4);
+        copyType(&file[start + 4], type);
         if (length != 0) {
             std::memcpy(&file[start + 8], data.data(), length);
         }
