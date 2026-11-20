@@ -94,9 +94,13 @@ func buildRscv(sections *section.Manager) ([]byte, error) {
 // dsymFlagGlobal marks a dSYM entry as a global symbol
 const dsymFlagGlobal = 0x01
 
+// maxDsymNameLen is the longest name a dSYM entry can hold (u16 length field)
+const maxDsymNameLen = 65535
+
 // buildDsym returns the dSYM chunk: u32 count, then per label u32 address, u8 section kind,
-// u8 flags (bit 0 = global), u16 name length, name, zero padding to 4; sorted by address then name
-func buildDsym(symbols *symbol.Table) []byte {
+// u8 flags (bit 0 = global), u16 name length, name, zero padding to 4; sorted by address then name.
+// A name longer than 65535 bytes is an error (its length would not fit the u16 field).
+func buildDsym(symbols *symbol.Table) ([]byte, error) {
 	kinds := make(map[string]byte, len(rscvOrder))
 	for _, entry := range rscvOrder {
 		kinds[entry.name] = entry.kind
@@ -118,6 +122,10 @@ func buildDsym(symbols *symbol.Table) []byte {
 
 	data := binary.LittleEndian.AppendUint32(nil, uint32(len(labels)))
 	for _, sym := range labels {
+		if len(sym.Name) > maxDsymNameLen {
+			return nil, fmt.Errorf("label %.32q... is %d bytes: dSYM names are at most %d bytes",
+				sym.Name, len(sym.Name), maxDsymNameLen)
+		}
 		var flags byte
 		if sym.Global {
 			flags |= dsymFlagGlobal
@@ -128,5 +136,5 @@ func buildDsym(symbols *symbol.Table) []byte {
 		data = append(data, sym.Name...)
 		data = append(data, make([]byte, align4(len(sym.Name))-len(sym.Name))...)
 	}
-	return chunk("dSYM", data)
+	return chunk("dSYM", data), nil
 }

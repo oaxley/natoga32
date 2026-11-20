@@ -242,8 +242,37 @@ func dsymTestTable(t *testing.T) *symbol.Table {
 	return symbols
 }
 
+func TestBuildDsymNameTooLong(t *testing.T) {
+	symbols := symbol.New()
+	long := strings.Repeat("a", 65536)
+	if err := symbols.DefineLabel(long, 0x01A00000, ".text", 0); err != nil {
+		t.Fatal(err)
+	}
+	_, err := buildDsym(symbols)
+	if err == nil || !strings.Contains(err.Error(), "is 65536 bytes: dSYM names are at most 65535 bytes") {
+		t.Fatalf("err = %v, want a name length error", err)
+	}
+
+	symbols = symbol.New()
+	if err := symbols.DefineLabel(long[:65535], 0x01A00000, ".text", 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := buildDsym(symbols); err != nil {
+		t.Fatalf("65535-byte name: %v", err)
+	}
+}
+
+func mustBuildDsym(t *testing.T, symbols *symbol.Table) []byte {
+	t.Helper()
+	c, err := buildDsym(symbols)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
+}
+
 func TestBuildDsym(t *testing.T) {
-	c := buildDsym(dsymTestTable(t))
+	c := mustBuildDsym(t, dsymTestTable(t))
 	if string(c[4:8]) != "dSYM" {
 		t.Fatalf("chunk type = %q, want dSYM", c[4:8])
 	}
@@ -273,9 +302,9 @@ func TestBuildDsym(t *testing.T) {
 
 func TestBuildDsymDeterministic(t *testing.T) {
 	symbols := dsymTestTable(t)
-	first := buildDsym(symbols)
+	first := mustBuildDsym(t, symbols)
 	for i := 0; i < 20; i++ {
-		if got := buildDsym(symbols); !bytes.Equal(got, first) {
+		if got := mustBuildDsym(t, symbols); !bytes.Equal(got, first) {
 			t.Fatalf("call %d gave different bytes:\n% x\nwant\n% x", i, got, first)
 		}
 	}

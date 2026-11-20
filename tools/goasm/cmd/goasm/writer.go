@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/natoga32/goasm/internal/section"
-	"github.com/natoga32/goasm/internal/symbol"
 )
 
 // maxRomSize is the size of the ROM address window (2 MiB)
@@ -69,7 +68,7 @@ func writeOutput(sections *section.Manager, filename, format string) error {
 	return err
 }
 
-// writeSymbols writes buildDsym's chunk to filename
-func writeSymbols(symbols *symbol.Table, filename string) error {
-	return os.WriteFile(filename, buildDsym(symbols), 0o644)
+// writeSymbols writes a dSYM chunk (from buildDsym) to filename
+func writeSymbols(dsym []byte, filename string) error {
+	return os.WriteFile(filename, dsym, 0o644)
 }

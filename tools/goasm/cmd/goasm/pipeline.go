@@ -167,11 +167,19 @@ func assemble(inputFile string) error {
 
 	// Phase 8: Output
 	fmt.Println("Phase 8: Output")
+	// build the dSYM chunk first: a bad label leaves neither output file behind
+	var dsym []byte
+	if symFile != "" {
+		var err error
+		if dsym, err = buildDsym(symbols); err != nil {
+			return fmt.Errorf("symbol output error: %v", err)
+		}
+	}
 	if err := writeOutput(sections, outputFile, outputFormat); err != nil {
 		return fmt.Errorf("output error: %v", err)
 	}
 	if symFile != "" {
-		if err := writeSymbols(symbols, symFile); err != nil {
+		if err := writeSymbols(dsym, symFile); err != nil {
 			return fmt.Errorf("symbol output error: %v", err)
 		}
 		fmt.Printf("Symbols written to '%s'\n", symFile)

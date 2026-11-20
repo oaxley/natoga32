@@ -482,7 +482,8 @@ is refused with `invalid RSCV chunk: ...`. Any other file is a raw binary (`--ba
 | name | length | UTF-8, padded with zeros to a multiple of 4 |
 
 Only the labels defined in `.text`, `.data`, `.rodata` and `.bss` are written (no `.equ`,
-no `.rom`), sorted by address, then name.
+no `.rom`), sorted by address, then name. A label name longer than 65535 bytes is an
+error, and neither output file is written.
 
 ## Testing
 

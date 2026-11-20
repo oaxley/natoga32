@@ -506,6 +506,9 @@ func TestRscvFormatEndToEnd(t *testing.T) {
 	if len(secs) != 2 {
 		t.Fatalf("got %d sections, want 2: %+v", len(secs), secs)
 	}
+	if text := secs[0]; text.kind != rscvKindText || text.addr != 0x01A00000 || text.size != 4 {
+		t.Errorf("first section = %+v, want .text (kind 1) at 0x01A00000, 4 bytes", text)
+	}
 	ro := secs[1]
 	if ro.kind != rscvKindRodata || ro.addr != 0x01200000 || ro.size != 4 ||
 		!bytes.Equal(ro.data, []byte{0x44, 0x33, 0x22, 0x11}) {
