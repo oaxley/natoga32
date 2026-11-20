@@ -117,6 +117,11 @@ func TestReadChunkFile(t *testing.T) {
 	bad("too short", good[:6], "RSCV", "bad chunk length")
 	bad("trailing bytes", append(append([]byte{}, good...), 0, 0, 0, 0), "RSCV", "bad chunk length")
 
+	// good holds 5 data bytes, so bytes 13-15 are padding (the CRC does not cover them)
+	padded := append([]byte{}, good...)
+	padded[13] = 0xFF
+	bad("non-zero padding", padded, "RSCV", "chunk padding is not zero")
+
 	flipped := append([]byte{}, good...)
 	flipped[len(flipped)-1] ^= 0x01
 	bad("flipped CRC", flipped, "RSCV", "bad chunk CRC")

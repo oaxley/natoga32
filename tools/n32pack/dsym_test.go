@@ -63,25 +63,23 @@ func TestParseDsymErrors(t *testing.T) {
 	cases := []struct {
 		name string
 		data []byte
+		want string
 	}{
-		{"empty data", nil},
-		{"count too big", dsymData(2, main)},
-		{"trailing bytes", append(dsymData(1, main), 0, 0, 0, 0)},
-		{"zero name length", dsymData(1, dsymEntry{0x01A00000, 1, 0, ""})},
-		{"kind 0", dsymData(1, dsymEntry{0x01A00000, 0, 0, "main"})},
-		{"kind 5", dsymData(1, dsymEntry{0x01A00000, 5, 0, "main"})},
-		{"header past end", dsymData(1, main)[:10]},
-		{"name past end", dsymData(1, main)[:13]},
-		{"duplicate name", dsymData(2, main, dsymEntry{0x01A00004, 1, 0, "main"})},
+		{"empty data", nil, "dSYM: chunk too short for the entry count"},
+		{"count too big", dsymData(2, main), "dSYM: entry 1 runs past the end of the chunk"},
+		{"trailing bytes", append(dsymData(1, main), 0, 0, 0, 0), "dSYM: 4 trailing bytes after 1 entries"},
+		{"zero name length", dsymData(1, dsymEntry{0x01A00000, 1, 0, ""}), "dSYM: entry 0: empty name"},
+		{"kind 0", dsymData(1, dsymEntry{0x01A00000, 0, 0, "main"}), "dSYM: entry 0: unknown section kind 0x00"},
+		{"kind 5", dsymData(1, dsymEntry{0x01A00000, 5, 0, "main"}), "dSYM: entry 0: unknown section kind 0x05"},
+		{"header past end", dsymData(1, main)[:10], "dSYM: entry 0 runs past the end of the chunk"},
+		{"name past end", dsymData(1, main)[:13], "dSYM: entry 0: name runs past the end of the chunk"},
+		{"duplicate name", dsymData(2, main, dsymEntry{0x01A00004, 1, 0, "main"}), `dSYM: duplicate symbol "main"`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := parseDsym(c.data)
-			if err == nil {
-				t.Fatal("parseDsym: no error")
-			}
-			if len(err.Error()) < 6 || err.Error()[:6] != "dSYM: " {
-				t.Fatalf("err = %q, want prefix \"dSYM: \"", err)
+			if err == nil || err.Error() != c.want {
+				t.Fatalf("err = %v, want %q", err, c.want)
 			}
 		})
 	}

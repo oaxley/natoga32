@@ -27,7 +27,7 @@ func appendChunk(dst []byte, typ string, data []byte) []byte {
 	return binary.LittleEndian.AppendUint32(dst, crc)
 }
 
-// readChunkFile reads a file holding exactly one chunk of type want; checks length, padding size and CRC
+// readChunkFile reads a file holding exactly one chunk of type want; checks length, padding (size and zero bytes) and CRC
 func readChunkFile(path, want string) ([]byte, error) {
 	file, err := os.ReadFile(path)
 	if err != nil {
@@ -46,6 +46,12 @@ func readChunkFile(path, want string) ([]byte, error) {
 	crc := binary.LittleEndian.Uint32(file[len(file)-4:])
 	if crc32.ChecksumIEEE(file[4:8+length]) != crc {
 		return nil, fmt.Errorf("%s: bad chunk CRC", path)
+	}
+	// the padding is not covered by the CRC: check it is zero like the producer writes it
+	for _, b := range file[8+length : len(file)-4] {
+		if b != 0 {
+			return nil, fmt.Errorf("%s: chunk padding is not zero", path)
+		}
 	}
 	return file[8 : 8+length], nil
 }

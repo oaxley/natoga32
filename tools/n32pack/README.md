@@ -125,7 +125,7 @@ n32pack refuses to build a cartridge when:
 - the manifest is not valid JSON, has unknown fields, or a field is missing or out of range
   (name, version, min_rom, regions, languages, date, graphics_mode, asset names and types);
 - an asset name is duplicated;
-- the `rscv` or `dsym` file is not a complete chunk of the right type (length, CRC);
+- the `rscv` or `dsym` file is not a complete chunk of the right type (length, CRC, zero padding);
 - an `RSCV` section has an unknown kind, non-zero reserved fields, runs past the chunk,
   is outside its region (`.bss` `0x01000000-0x01200000`, `.rodata` `0x01200000-0x01400000`,
   `.data` `0x01400000-0x01A00000`, `.text` `0x01A00000-0x02000000`) or overlaps another section;
