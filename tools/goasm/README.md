@@ -16,7 +16,7 @@ go build -o goasm ./cmd/goasm/
 ./goasm input.asm -o output.rscv
 
 # Cartridge RSCV chunk plus its dSYM symbol chunk
-./goasm input.asm -o output.rscv --sym output.dsym
+./goasm input.asm -o output.rscv --sym output.sym
 
 # Assembly to raw binary
 ./goasm input.asm -o output.bin -f bin
@@ -215,7 +215,7 @@ handler##COUNT:                  ; Produces: handler5:
 | `.align N` | Align to 2^N byte boundary |
 | `.org addr` | Set location counter to absolute address |
 
-Any other directive is rejected with an `unknown directive` error, so a typo (e.g. `.wrod`) never silently puts data in the wrong section. The `.rodata` section lives at `0x01200000`. It is read-only by convention (the emulator does not enforce it), and its bytes are written to `rscv` output, but not to `bin` output yet: with `-f bin` goasm prints `warning: .rodata section (N bytes) is not written to <format> output yet` when it holds data.
+Any other directive is rejected with an `unknown directive` error, so a typo (e.g. `.wrod`) never silently puts data in the wrong section. The `.rodata` section lives at `0x01200000`. It is read-only by convention (the emulator does not enforce it), and its bytes are written to `rscv` output, but not to `bin` output yet: with `-f bin` goasm prints `warning: .rodata section (N bytes) is not written to bin output yet` when it holds data.
 
 Each section must fit in its memory map window (`.rom` 2MiB, `.bss` 2MiB, `.rodata` 2MiB, `.data` 6MiB, `.text` 6MiB). A section that grows past its window (including via `.org`) stops assembly with `section <name> is N bytes, exceeds its XMiB window (start-end)`, before any output is written.
 
@@ -459,8 +459,10 @@ Each section is a 12-byte header followed by its bytes padded with zeros to a mu
 | size | u32 | Size in bytes |
 
 Assembly fails, without writing anything, with `no .text section: a cartridge needs code`
-when `.text` is empty, and with `.rom section can't go in a cartridge: use -f rom`
-when `.rom` holds data.
+when `.text` is empty, with `.rom section can't go in a cartridge: use -f rom`
+when `.rom` holds data, and with `.bss section holds non-zero data at 0xADDRESS: use .data`
+when `.bss` holds a non-zero byte (an instruction or a `.word`/`.byte` with a non-zero value):
+`RSCV` writes only the `.bss` header, so that data would be zeroed. `.space` is fine in `.bss`.
 
 `--disasm` recognises an `RSCV` chunk (bytes 4-7 are `RSCV`) and disassembles each
 section at its load address. A chunk with a wrong size, CRC, kind, flags or section size

@@ -57,6 +57,14 @@ func checkRscv(sections *section.Manager) error {
 	if rom := sections.Get(".rom"); rom != nil && rom.Size > 0 {
 		return fmt.Errorf(".rom section can't go in a cartridge: use -f rom")
 	}
+	// RSCV holds only the .bss header: its data would be zeroed
+	if bss := sections.Get(".bss"); bss != nil {
+		for i, b := range bss.Data {
+			if b != 0 {
+				return fmt.Errorf(".bss section holds non-zero data at 0x%08X: use .data", uint32(bss.BaseAddr)+uint32(i))
+			}
+		}
+	}
 	return nil
 }
 

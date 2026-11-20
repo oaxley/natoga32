@@ -67,6 +67,16 @@ func TestParseRscvChunkErrors(t *testing.T) {
 		{"bad CRC", func() []byte { c := append([]byte{}, good...); c[8] ^= 1; return c }(), "CRC mismatch"},
 		{"unknown kind", chunk("RSCV", rscvSectionBytes(0x05, 0, 0, 0, nil)), "unknown section kind 0x05"},
 		{"non-zero flags", chunk("RSCV", rscvSectionBytes(rscvKindText, 1, 0x01A00000, 4, []byte{0x13, 0, 0, 0})), "non-zero flags"},
+		{"non-zero reserved byte 2", func() []byte {
+			s := append([]byte{}, text...)
+			s[2] = 1
+			return chunk("RSCV", s)
+		}(), "non-zero flags or reserved bytes"},
+		{"non-zero reserved byte 3", func() []byte {
+			s := append([]byte{}, text...)
+			s[3] = 1
+			return chunk("RSCV", s)
+		}(), "non-zero flags or reserved bytes"},
 		{"section too big", chunk("RSCV", rscvSectionBytes(rscvKindText, 0, 0x01A00000, 8, []byte{0x13, 0, 0, 0})), "don't fit"},
 		{"truncated header", chunk("RSCV", text[:8]), "truncated section header"},
 	}

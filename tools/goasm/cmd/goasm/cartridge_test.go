@@ -150,6 +150,25 @@ func TestBuildRscvRejectsRom(t *testing.T) {
 	}
 }
 
+func TestBuildRscvRejectsBssData(t *testing.T) {
+	sections := newMappedSections()
+	sections.Get(".text").Emit([]byte{0x13, 0, 0, 0})
+	sections.Get(".bss").Emit([]byte{0, 0, 0, 0, 0, 0, 7, 0})
+	_, err := buildRscv(sections)
+	if err == nil || err.Error() != ".bss section holds non-zero data at 0x01000006: use .data" {
+		t.Errorf("expected '.bss section holds non-zero data at 0x01000006: use .data' error, got: %v", err)
+	}
+}
+
+func TestBuildRscvAcceptsZeroBssData(t *testing.T) {
+	sections := newMappedSections()
+	sections.Get(".text").Emit([]byte{0x13, 0, 0, 0})
+	sections.Get(".bss").Emit([]byte{0, 0, 0, 0})
+	if _, err := buildRscv(sections); err != nil {
+		t.Errorf("zeros in .bss: %v", err)
+	}
+}
+
 // dsymEntry is one decoded entry of a dSYM chunk
 type dsymEntry struct {
 	addr  uint32
