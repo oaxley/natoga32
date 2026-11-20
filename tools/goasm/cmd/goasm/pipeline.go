@@ -17,6 +17,11 @@ import (
 func assemble(inputFile string) error {
 	fmt.Printf("Assembling '%s' to '%s' (format: %s)...\n", inputFile, outputFile, outputFormat)
 
+	// the dSYM chunk goes with a cartridge: refuse it before anything is written
+	if symFile != "" && outputFormat != "rscv" {
+		return fmt.Errorf("--sym needs -f rscv")
+	}
+
 	// Read input file
 	file, err := os.Open(inputFile)
 	if err != nil {
@@ -164,6 +169,12 @@ func assemble(inputFile string) error {
 	fmt.Println("Phase 8: Output")
 	if err := writeOutput(sections, outputFile, outputFormat); err != nil {
 		return fmt.Errorf("output error: %v", err)
+	}
+	if symFile != "" {
+		if err := writeSymbols(symbols, symFile); err != nil {
+			return fmt.Errorf("symbol output error: %v", err)
+		}
+		fmt.Printf("Symbols written to '%s'\n", symFile)
 	}
 
 	fmt.Printf("Output written to '%s'\n", outputFile)

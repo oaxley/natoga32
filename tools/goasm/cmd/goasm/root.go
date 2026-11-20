@@ -18,6 +18,7 @@ import (
 var (
 	outputFile   string
 	outputFormat string
+	symFile      string // --sym: dSYM chunk output file (rscv only)
 	debugLevel   int
 	baseDir      string // Base directory for resolving relative paths
 	optimizeFlag bool   // -O/--optimize: Enable peephole optimizations
@@ -55,6 +56,7 @@ func init() {
 	// Assembly flags
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "a.out", "Output file path")
 	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "on32", "Output format: rscv, on32, bin, rom")
+	rootCmd.Flags().StringVar(&symFile, "sym", "", "Write the labels as a cartridge dSYM chunk (needs -f rscv)")
 	rootCmd.Flags().IntVarP(&debugLevel, "debug", "d", 0, "Debug level (1-8 to stop after specific phase)")
 	rootCmd.Flags().BoolVarP(&optimizeFlag, "optimize", "O", false, "Enable peephole optimizations")
 

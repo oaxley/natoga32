@@ -511,3 +511,65 @@ func TestRscvFormatEndToEnd(t *testing.T) {
 		t.Errorf(".rodata section = %+v, want kind 3 at 0x01200000 with 44 33 22 11", ro)
 	}
 }
+
+// TestSymFileEndToEnd checks that --sym writes the labels as one dSYM chunk.
+func TestSymFileEndToEnd(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "x.s")
+	output := filepath.Join(dir, "x.rscv")
+	symOut := filepath.Join(dir, "x.sym")
+	if err := os.WriteFile(input, []byte(".text\nmain: nop\nloop: j loop\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-f", "rscv", "-o", output, "--sym", symOut)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("assembling with --sym failed: %v\n%s", err, out)
+	}
+
+	data, err := os.ReadFile(symOut)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := parseDsym(t, data)
+	if len(entries) != 2 {
+		t.Fatalf("got %d entries, want 2: %+v", len(entries), entries)
+	}
+	if e := entries[0]; e.name != "main" || e.addr != 0x01A00000 || e.kind != rscvKindText {
+		t.Errorf("entry 0 = %+v, want main at 0x01A00000", e)
+	}
+	if e := entries[1]; e.name != "loop" || e.addr != 0x01A00004 || e.kind != rscvKindText {
+		t.Errorf("entry 1 = %+v, want loop at 0x01A00004", e)
+	}
+}
+
+// TestSymNeedsRscv checks that --sym is refused with any other format, before writing anything.
+func TestSymNeedsRscv(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "x.s")
+	output := filepath.Join(dir, "x.bin")
+	symOut := filepath.Join(dir, "x.sym")
+	if err := os.WriteFile(input, []byte(".text\nmain: nop\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-f", "bin", "-o", output, "--sym", symOut)
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected goasm to refuse --sym with -f bin, it succeeded:\n%s", out)
+	}
+	if !strings.Contains(string(out), "--sym needs -f rscv") {
+		t.Errorf("expected '--sym needs -f rscv' in output, got:\n%s", out)
+	}
+	for _, f := range []string{output, symOut} {
+		if _, statErr := os.Stat(f); !os.IsNotExist(statErr) {
+			t.Errorf("file %s should not have been created", f)
+		}
+	}
+}

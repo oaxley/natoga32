@@ -8,8 +8,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
+	"sort"
 
 	"github.com/natoga32/goasm/internal/section"
+	"github.com/natoga32/goasm/internal/symbol"
 )
 
 // RSCV section kinds
@@ -79,4 +81,44 @@ func buildRscv(sections *section.Manager) ([]byte, error) {
 		}
 	}
 	return chunk("RSCV", data), nil
+}
+
+// dsymFlagGlobal marks a dSYM entry as a global symbol
+const dsymFlagGlobal = 0x01
+
+// buildDsym returns the dSYM chunk: u32 count, then per label u32 address, u8 section kind,
+// u8 flags (bit 0 = global), u16 name length, name, zero padding to 4; sorted by address then name
+func buildDsym(symbols *symbol.Table) []byte {
+	kinds := make(map[string]byte, len(rscvOrder))
+	for _, entry := range rscvOrder {
+		kinds[entry.name] = entry.kind
+	}
+
+	var labels []*symbol.Symbol
+	for _, sym := range symbols.DefinedSymbols() {
+		if _, ok := kinds[sym.Section]; ok && sym.Type == symbol.SymLabel && sym.Name != "" {
+			labels = append(labels, sym)
+		}
+	}
+	sort.Slice(labels, func(i, j int) bool {
+		ai, aj := uint32(labels[i].Value), uint32(labels[j].Value)
+		if ai != aj {
+			return ai < aj
+		}
+		return labels[i].Name < labels[j].Name
+	})
+
+	data := binary.LittleEndian.AppendUint32(nil, uint32(len(labels)))
+	for _, sym := range labels {
+		var flags byte
+		if sym.Global {
+			flags |= dsymFlagGlobal
+		}
+		data = binary.LittleEndian.AppendUint32(data, uint32(sym.Value))
+		data = append(data, kinds[sym.Section], flags)
+		data = binary.LittleEndian.AppendUint16(data, uint16(len(sym.Name)))
+		data = append(data, sym.Name...)
+		data = append(data, make([]byte, align4(len(sym.Name))-len(sym.Name))...)
+	}
+	return chunk("dSYM", data)
 }
