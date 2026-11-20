@@ -12,8 +12,11 @@ go build -o goasm ./cmd/goasm/
 ## Usage
 
 ```bash
-# Basic assembly to ON32 format (default)
-./goasm input.asm -o output.on32
+# Cartridge RSCV chunk (default)
+./goasm input.asm -o output.rscv
+
+# Cartridge RSCV chunk plus its dSYM symbol chunk
+./goasm input.asm -o output.rscv --sym output.dsym
 
 # Assembly to raw binary
 ./goasm input.asm -o output.bin -f bin
@@ -35,7 +38,8 @@ go build -o goasm ./cmd/goasm/
 | Option | Description |
 |--------|-------------|
 | `-o, --output` | Output file path (default: `a.out`) |
-| `-f, --format` | Output format: `on32`, `bin` or `rom` (default: `on32`); any other value is an error and no output file is created |
+| `-f, --format` | Output format: `rscv`, `bin` or `rom` (default: `rscv`); any other value is an error and no output file is created |
+| `--sym` | Also write the labels to this file as a cartridge `dSYM` chunk (needs `-f rscv`) |
 | `-d, --debug` | Debug level 1-8 to stop after specific phase |
 
 ## Assembly Syntax
@@ -211,7 +215,7 @@ handler##COUNT:                  ; Produces: handler5:
 | `.align N` | Align to 2^N byte boundary |
 | `.org addr` | Set location counter to absolute address |
 
-Any other directive is rejected with an `unknown directive` error, so a typo (e.g. `.wrod`) never silently puts data in the wrong section. The `.rodata` section lives at `0x01200000`. It is read-only by convention (the emulator does not enforce it), and its bytes are not written to `on32`/`bin` output yet: goasm prints `warning: .rodata section (N bytes) is not written to <format> output yet` when it holds data.
+Any other directive is rejected with an `unknown directive` error, so a typo (e.g. `.wrod`) never silently puts data in the wrong section. The `.rodata` section lives at `0x01200000`. It is read-only by convention (the emulator does not enforce it), and its bytes are written to `rscv` output, but not to `bin` output yet: with `-f bin` goasm prints `warning: .rodata section (N bytes) is not written to <format> output yet` when it holds data.
 
 Each section must fit in its memory map window (`.rom` 2MiB, `.bss` 2MiB, `.rodata` 2MiB, `.data` 6MiB, `.text` 6MiB). A section that grows past its window (including via `.org`) stops assembly with `section <name> is N bytes, exceeds its XMiB window (start-end)`, before any output is written.
 
@@ -430,11 +434,53 @@ Writes the `.rom` section bytes starting at address 0 (gaps created by `.org`
 are zero-filled). Fails with `ROM image exceeds 2 MiB` if the image is larger
 than the 2 MiB ROM window, and with `no .rom section` if nothing was emitted in `.rom`.
 
-### ON32 (`-f on32`)
-NATOGA32 object format with header containing:
-- Magic number and version
-- Entry point address
-- Section information
+### RSCV (`-f rscv`, default)
+Writes one complete cartridge `RSCV` chunk, ready to be packed into a cartridge.
+All values are little-endian:
+
+| Field | Size | Description |
+|-------|------|-------------|
+| length | u32 | Size of the data, without padding |
+| type | 4 B | ASCII `RSCV` |
+| data | length | The sections, see below |
+| padding | 0-3 B | Zeros up to a multiple of 4 |
+| CRC | u32 | CRC-32 (zlib/PNG) of type + data, padding excluded |
+
+The data is a list of sections, in kind order, only for non-empty sections.
+Each section is a 12-byte header followed by its bytes padded with zeros to a multiple of 4
+(`.bss` has no bytes):
+
+| Field | Size | Description |
+|-------|------|-------------|
+| kind | u8 | `0x01` `.text`, `0x02` `.data`, `0x03` `.rodata`, `0x04` `.bss` |
+| flags | u8 | `0` |
+| reserved | u16 | `0` |
+| address | u32 | Load address |
+| size | u32 | Size in bytes |
+
+Assembly fails, without writing anything, with `no .text section: a cartridge needs code`
+when `.text` is empty, and with `.rom section can't go in a cartridge: use -f rom`
+when `.rom` holds data.
+
+`--disasm` recognises an `RSCV` chunk (bytes 4-7 are `RSCV`) and disassembles each
+section at its load address. A chunk with a wrong size, CRC, kind, flags or section size
+is refused with `invalid RSCV chunk: ...`. Any other file is a raw binary (`--base`).
+
+### Symbols (`--sym`)
+`--sym FILE` also writes the labels to `FILE` as one complete cartridge `dSYM` chunk
+(same length / type / padding / CRC layout as `RSCV`). It is only accepted with `-f rscv`
+(`--sym needs -f rscv`). The data starts with a `u32` entry count, then one entry per label:
+
+| Field | Size | Description |
+|-------|------|-------------|
+| address | u32 | Label address |
+| kind | u8 | RSCV section kind (1-4) |
+| flags | u8 | Bit 0 = global |
+| name length | u16 | 1-65535 |
+| name | length | UTF-8, padded with zeros to a multiple of 4 |
+
+Only the labels defined in `.text`, `.data`, `.rodata` and `.bss` are written (no `.equ`,
+no `.rom`), sorted by address, then name.
 
 ## Testing
 

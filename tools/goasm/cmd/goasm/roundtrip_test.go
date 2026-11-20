@@ -102,9 +102,9 @@ func TestRoundTripAllInstructions(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Paths for test artifacts
-	bin1 := filepath.Join(tempDir, "pass1.on32")
+	bin1 := filepath.Join(tempDir, "pass1.rscv")
 	disasm := filepath.Join(tempDir, "disasm.asm")
-	bin2 := filepath.Join(tempDir, "pass2.on32")
+	bin2 := filepath.Join(tempDir, "pass2.rscv")
 
 	// Step 1: Assemble original file
 	t.Log("Step 1: Assembling original file...")
@@ -188,9 +188,9 @@ func TestRoundTripWithPseudo(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Paths for test artifacts
-	bin1 := filepath.Join(tempDir, "pass1.on32")
+	bin1 := filepath.Join(tempDir, "pass1.rscv")
 	disasm := filepath.Join(tempDir, "disasm.asm")
-	bin2 := filepath.Join(tempDir, "pass2.on32")
+	bin2 := filepath.Join(tempDir, "pass2.rscv")
 
 	// Step 1: Assemble original file
 	t.Log("Step 1: Assembling original file...")
@@ -266,7 +266,7 @@ func TestDisasmOutputFormat(t *testing.T) {
 		t.Fatalf("failed to write test file: %v", err)
 	}
 
-	binFile := filepath.Join(tempDir, "test.on32")
+	binFile := filepath.Join(tempDir, "test.rscv")
 
 	// Assemble
 	cmd := exec.Command(goasm, asmFile, "-o", binFile)
@@ -286,6 +286,7 @@ func TestDisasmOutputFormat(t *testing.T) {
 	// Verify output contains expected sections
 	checks := []string{
 		"; Disassembly of",
+		"(rscv format)",
 		"; .text:",
 		"; .data:",
 		".text",
@@ -367,7 +368,7 @@ loop:
 		t.Fatalf("failed to write test file: %v", err)
 	}
 
-	binFile := filepath.Join(tempDir, "test.on32")
+	binFile := filepath.Join(tempDir, "test.rscv")
 
 	// Assemble
 	cmd := exec.Command(goasm, asmFile, "-o", binFile)
@@ -401,5 +402,102 @@ loop:
 		if !strings.Contains(outStr, check) {
 			t.Errorf("Pseudo output missing: %q\nFull output:\n%s", check, outStr)
 		}
+	}
+}
+
+// assembleTo assembles src with goasm and extra flags into output, failing the test on error
+func assembleTo(t *testing.T, goasm, dir, src, output string, flags ...string) {
+	t.Helper()
+	input := filepath.Join(dir, "test.asm")
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	args := append([]string{input, "-o", output}, flags...)
+	if out, err := exec.Command(goasm, args...).CombinedOutput(); err != nil {
+		t.Fatalf("failed to assemble: %v\n%s", err, out)
+	}
+}
+
+// TestDisasmRscvAllSections checks that every RSCV section is listed and dumped
+func TestDisasmRscvAllSections(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	binFile := filepath.Join(dir, "all.rscv")
+	assembleTo(t, goasm, dir, ".text\nnop\n.rodata\n.word 1\n.data\n.word 2\n.bss\n.space 8\n", binFile)
+
+	output, err := exec.Command(goasm, "--disasm", binFile).CombinedOutput()
+	if err != nil {
+		t.Fatalf("failed to disassemble: %v\n%s", err, output)
+	}
+	for _, check := range []string{"; .rodata: 0x01200000", ".data", "0x01400000:", ".bss", ".space 8"} {
+		if !strings.Contains(string(output), check) {
+			t.Errorf("Output missing expected string: %q\nFull output:\n%s", check, output)
+		}
+	}
+}
+
+// TestDisasmBrokenRscv checks that an RSCV chunk with a bad CRC is refused
+func TestDisasmBrokenRscv(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	binFile := filepath.Join(dir, "broken.rscv")
+	assembleTo(t, goasm, dir, ".text\nnop\n", binFile)
+
+	data, err := os.ReadFile(binFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data[len(data)-1] ^= 0xFF
+	if err := os.WriteFile(binFile, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	output, err := exec.Command(goasm, "--disasm", binFile).CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected disassembly of a broken RSCV chunk to fail, got:\n%s", output)
+	}
+	if !strings.Contains(string(output), "invalid RSCV chunk") {
+		t.Errorf("expected 'invalid RSCV chunk' in output, got:\n%s", output)
+	}
+}
+
+// TestOn32FormatRemoved checks that the old ON32 format is no longer accepted
+func TestOn32FormatRemoved(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "test.asm")
+	if err := os.WriteFile(input, []byte(".text\nnop\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	output, err := exec.Command(goasm, input, "-f", "on32", "-o", filepath.Join(dir, "out")).CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected -f on32 to fail, got:\n%s", output)
+	}
+	if !strings.Contains(string(output), "unknown output format: on32") {
+		t.Errorf("expected 'unknown output format: on32' in output, got:\n%s", output)
+	}
+}
+
+// TestDefaultFormatIsRscv checks that goasm writes an RSCV chunk when -f is not given
+func TestDefaultFormatIsRscv(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	binFile := filepath.Join(dir, "out")
+	assembleTo(t, goasm, dir, ".text\nnop\n", binFile)
+
+	data, err := os.ReadFile(binFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) < 8 || string(data[4:8]) != "RSCV" {
+		t.Errorf("expected bytes 4-7 to be \"RSCV\", got % x", data)
 	}
 }

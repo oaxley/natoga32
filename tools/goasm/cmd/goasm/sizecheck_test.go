@@ -70,7 +70,7 @@ func TestRodataOverflowEndToEnd(t *testing.T) {
 
 	dir := t.TempDir()
 	input := filepath.Join(dir, "big.asm")
-	output := filepath.Join(dir, "big.on32")
+	output := filepath.Join(dir, "big.rscv")
 	src := ".rodata\n.space 2097152\n.byte 1\n.text\nnop\n"
 	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
 		t.Fatal(err)

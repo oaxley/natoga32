@@ -7,27 +7,31 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"hash/crc32"
 	"os"
 )
 
-// BinaryReader reads and parses binary files for disassembly
-type BinaryReader struct {
-	Data     []byte // Raw file data
-	Format   string // "bin" or "on32"
-	TextBase uint32 // Base address for .text section
-	TextSize uint32 // Size of .text section
-	DataBase uint32 // Base address for .data section
-	DataSize uint32 // Size of .data section
+// ReadSection is one section of a binary file
+type ReadSection struct {
+	Kind uint8  // RSCV kind (rscvKindText for raw binaries)
+	Name string // ".text", ".data", ".rodata", ".bss"
+	Addr uint32
+	Size uint32
+	Data []byte // nil for .bss
 }
 
-const (
-	on32HeaderSize = 16
-	on32Magic      = "ON32"
-)
+// BinaryReader reads and parses binary files for disassembly
+type BinaryReader struct {
+	Format   string        // "bin" or "rscv"
+	Sections []ReadSection // file order
+}
+
+// rscvSectionHeaderSize is the size of an RSCV section header: kind, flags, reserved, address, size
+const rscvSectionHeaderSize = 12
 
 // NewBinaryReader creates a new BinaryReader from a file
-// For raw binary files, baseAddr specifies the base address
-// For ON32 files, the base address is determined from the format
+// A file whose bytes 4-7 are "RSCV" is read as a cartridge RSCV chunk;
+// anything else is a raw binary loaded as .text at baseAddr
 func NewBinaryReader(filename string, baseAddr uint32) (*BinaryReader, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -38,91 +42,82 @@ func NewBinaryReader(filename string, baseAddr uint32) (*BinaryReader, error) {
 		return nil, fmt.Errorf("file is empty")
 	}
 
-	reader := &BinaryReader{
-		Data: data,
-	}
-
-	// Check for ON32 magic header
-	if reader.isOn32Format() {
-		if err := reader.parseOn32Header(); err != nil {
-			return nil, err
+	if len(data) >= 8 && string(data[4:8]) == "RSCV" {
+		sections, err := parseRscvChunk(data)
+		if err != nil {
+			return nil, fmt.Errorf("invalid RSCV chunk: %w", err)
 		}
-	} else {
-		// Raw binary format
-		reader.Format = "bin"
-		reader.TextBase = baseAddr
-		reader.TextSize = uint32(len(data))
-		reader.DataBase = 0
-		reader.DataSize = 0
+		return &BinaryReader{Format: "rscv", Sections: sections}, nil
 	}
 
-	return reader, nil
+	// Raw binary format: the whole file is .text
+	return &BinaryReader{
+		Format: "bin",
+		Sections: []ReadSection{{
+			Kind: rscvKindText,
+			Name: ".text",
+			Addr: baseAddr,
+			Size: uint32(len(data)),
+			Data: data,
+		}},
+	}, nil
 }
 
-// isOn32Format checks if the data starts with ON32 magic header
-func (r *BinaryReader) isOn32Format() bool {
-	if len(r.Data) < on32HeaderSize {
-		return false
-	}
-	return string(r.Data[0:4]) == on32Magic
-}
-
-// parseOn32Header parses the ON32 header and extracts section information
-// Header format (16 bytes):
-//   - Bytes 0-3: Magic "ON32"
-//   - Bytes 4-7: Text section size (little-endian uint32)
-//   - Bytes 8-11: Data section size (little-endian uint32)
-//   - Bytes 12-15: Reserved (unused)
-func (r *BinaryReader) parseOn32Header() error {
-	if len(r.Data) < on32HeaderSize {
-		return fmt.Errorf("file too small for ON32 header")
-	}
-
-	r.Format = "on32"
-	r.TextSize = binary.LittleEndian.Uint32(r.Data[4:8])
-	r.DataSize = binary.LittleEndian.Uint32(r.Data[8:12])
-
-	// Use standard memory map addresses
-	r.TextBase = MMAP_TEXT_SEGMENT
-	r.DataBase = MMAP_DATA_SEGMENT
-
-	// Validate section sizes
-	expectedSize := uint32(on32HeaderSize) + r.TextSize + r.DataSize
-	if uint32(len(r.Data)) < expectedSize {
-		return fmt.Errorf("file truncated: expected %d bytes, got %d", expectedSize, len(r.Data))
-	}
-
-	return nil
-}
-
-// TextSection returns the .text section data
-func (r *BinaryReader) TextSection() []byte {
-	if r.Format == "on32" {
-		start := on32HeaderSize
-		end := on32HeaderSize + int(r.TextSize)
-		if end > len(r.Data) {
-			end = len(r.Data)
+// rscvKindName returns the section name of an RSCV kind, or "" for an unknown kind
+func rscvKindName(kind uint8) string {
+	for _, entry := range rscvOrder {
+		if entry.kind == kind {
+			return entry.name
 		}
-		return r.Data[start:end]
 	}
-	// Raw binary: entire file is .text
-	return r.Data
+	return ""
 }
 
-// DataSection returns the .data section data
-func (r *BinaryReader) DataSection() []byte {
-	if r.Format == "on32" && r.DataSize > 0 {
-		start := on32HeaderSize + int(r.TextSize)
-		end := start + int(r.DataSize)
-		if end > len(r.Data) {
-			end = len(r.Data)
+// parseRscvChunk checks a complete RSCV chunk (size, CRC) and returns its sections
+func parseRscvChunk(c []byte) ([]ReadSection, error) {
+	if len(c) < 12 {
+		return nil, fmt.Errorf("file is %d bytes, too small for a chunk", len(c))
+	}
+	length := binary.LittleEndian.Uint32(c[0:4])
+	if size := 12 + uint64(align4(int(length))); uint64(len(c)) != size {
+		return nil, fmt.Errorf("file is %d bytes, chunk length %d needs %d", len(c), length, size)
+	}
+	want := binary.LittleEndian.Uint32(c[len(c)-4:])
+	if got := crc32.ChecksumIEEE(c[4 : 8+length]); got != want {
+		return nil, fmt.Errorf("CRC mismatch: computed 0x%08X, stored 0x%08X", got, want)
+	}
+
+	data := c[8 : 8+length]
+	var sections []ReadSection
+	for off := 0; off < len(data); {
+		if len(data)-off < rscvSectionHeaderSize {
+			return nil, fmt.Errorf("truncated section header at offset %d", off)
 		}
-		return r.Data[start:end]
+		hdr := data[off : off+rscvSectionHeaderSize]
+		kind := hdr[0]
+		name := rscvKindName(kind)
+		if name == "" {
+			return nil, fmt.Errorf("unknown section kind 0x%02X at offset %d", kind, off)
+		}
+		if hdr[1] != 0 || hdr[2] != 0 || hdr[3] != 0 {
+			return nil, fmt.Errorf("%s: non-zero flags or reserved bytes", name)
+		}
+		sec := ReadSection{
+			Kind: kind,
+			Name: name,
+			Addr: binary.LittleEndian.Uint32(hdr[4:8]),
+			Size: binary.LittleEndian.Uint32(hdr[8:12]),
+		}
+		off += rscvSectionHeaderSize
+		if kind != rscvKindBss {
+			padded := uint64(align4(int(sec.Size)))
+			if uint64(sec.Size) > uint64(len(data)-off) || padded > uint64(len(data)-off) {
+				return nil, fmt.Errorf("%s: %d bytes don't fit in the chunk", name, sec.Size)
+			}
+			sec.Data = data[off : off+int(sec.Size)]
+			off += int(padded)
+		}
+		sections = append(sections, sec)
 	}
-	return nil
-}
-
-// HasDataSection returns true if the file contains a .data section
-func (r *BinaryReader) HasDataSection() bool {
-	return r.DataSize > 0
+	return sections, nil
 }

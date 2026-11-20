@@ -45,24 +45,37 @@ func runDisasm(inputFile string) error {
 
 	// Print file info header
 	fmt.Fprintf(out, "; Disassembly of %s (%s format)\n", inputFile, reader.Format)
-	fmt.Fprintf(out, "; .text: 0x%08X - 0x%08X (%d bytes)\n",
-		reader.TextBase, reader.TextBase+reader.TextSize, reader.TextSize)
-	if reader.HasDataSection() {
-		fmt.Fprintf(out, "; .data: 0x%08X - 0x%08X (%d bytes)\n",
-			reader.DataBase, reader.DataBase+reader.DataSize, reader.DataSize)
+	for _, sec := range reader.Sections {
+		fmt.Fprintf(out, "; %s: 0x%08X - 0x%08X (%d bytes)\n", sec.Name, sec.Addr, sec.Addr+sec.Size, sec.Size)
 	}
-	fmt.Fprintln(out)
 
-	// Disassemble .text section
-	fmt.Fprintln(out, ".text")
-	textData := reader.TextSection()
-	addr := reader.TextBase
+	// Each section in file order
+	for _, sec := range reader.Sections {
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, sec.Name)
+		switch sec.Kind {
+		case rscvKindText:
+			disasmTextSection(out, fmtr, sec)
+		case rscvKindBss:
+			fmt.Fprintf(out, "    .space %d\n", sec.Size)
+		default:
+			if err := dumpDataSection(out, sec); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// disasmTextSection outputs the instructions of a .text section
+func disasmTextSection(out io.Writer, fmtr *formatter.Formatter, sec ReadSection) {
+	textData := sec.Data
+	addr := sec.Addr
 
 	for i := 0; i+4 <= len(textData); i += 4 {
-		chunk := textData[i : i+4]
-		instr := decoder.DecodeBytes(chunk)
-		line := fmtr.Format(addr, instr)
-		fmt.Fprintln(out, line)
+		instr := decoder.DecodeBytes(textData[i : i+4])
+		fmt.Fprintln(out, fmtr.Format(addr, instr))
 		addr += 4
 	}
 
@@ -75,23 +88,12 @@ func runDisasm(inputFile string) error {
 			fmt.Fprintf(out, ".byte 0x%02X\n", textData[j])
 		}
 	}
-
-	// Dump .data section if present
-	if reader.HasDataSection() {
-		fmt.Fprintln(out)
-		fmt.Fprintln(out, ".data")
-		if err := dumpDataSection(out, reader); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
-// dumpDataSection outputs the .data section as hex bytes
-func dumpDataSection(out io.Writer, reader *BinaryReader) error {
-	dataSection := reader.DataSection()
-	addr := reader.DataBase
+// dumpDataSection outputs a .data or .rodata section as hex bytes
+func dumpDataSection(out io.Writer, sec ReadSection) error {
+	dataSection := sec.Data
+	addr := sec.Addr
 
 	// Output in 16-byte lines
 	for i := 0; i < len(dataSection); i += 16 {
