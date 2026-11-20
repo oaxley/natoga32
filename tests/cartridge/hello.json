@@ -1,0 +1,21 @@
+{
+    "name": "Hello",
+    "date": "2026-11-18T00:00:00Z",
+    "regions": ["americas", "europe", "asia"],
+    "languages": ["english"],
+    "graphics_mode": 1,
+    "rscv": "hello.rscv",
+    "dsym": "hello.sym",
+    "entry": "main",
+    "assets": [
+        {
+            "name": "LEVEL1_TILES",
+            "type": "TILS",
+            "slot": 0,
+            "format": 4,
+            "count": 1,
+            "file": "level1.tiles",
+            "boot": true
+        }
+    ]
+}

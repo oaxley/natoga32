@@ -26,7 +26,10 @@ endif()
 # Subdirectories
 add_subdirectory(core/console)
 
-# boot ROM (needs Go and Python+Pillow, must come before host and tests)
+# Go tools: goasm and n32pack (need Go, must come before rom and tests)
+add_subdirectory(tools)
+
+# boot ROM (needs goasm and Python+Pillow, must come before host and tests)
 add_subdirectory(rom)
 
 if(VC_BUILD_DEBUGGER)

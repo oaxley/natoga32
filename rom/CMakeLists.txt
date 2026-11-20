@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 
 # Boot ROM: rom/boot.s assembled with goasm into rombios.sys, next to vchost.
-# Needs Go (to build goasm) and Python 3 with Pillow (to convert the assets).
+# Needs goasm (built by tools/) and Python 3 with Pillow (to convert the assets).
 
-find_program(VC_GO_EXECUTABLE go)
 find_package(Python3 COMPONENTS Interpreter)
 
 set(VC_ROM_HAS_PILLOW FALSE)
@@ -18,8 +17,8 @@ if(Python3_Interpreter_FOUND)
     endif()
 endif()
 
-if(NOT VC_GO_EXECUTABLE)
-    message(WARNING "Go not found: the boot ROM (rombios) will not be built")
+if(NOT TARGET vc_goasm)
+    message(WARNING "goasm not available: the boot ROM (rombios) will not be built")
     return()
 endif()
 if(NOT VC_ROM_HAS_PILLOW)
@@ -27,29 +26,12 @@ if(NOT VC_ROM_HAS_PILLOW)
     return()
 endif()
 
-set(VC_GOASM_DIR ${CMAKE_SOURCE_DIR}/tools/goasm)
-set(VC_GOASM_EXECUTABLE ${CMAKE_BINARY_DIR}/goasm)
 set(VC_ROMBIOS_FILE ${CMAKE_BINARY_DIR}/core/host/rombios.sys)
 set(VC_ROMBIOS_FILE ${VC_ROMBIOS_FILE} PARENT_SCOPE)
 
 set(VC_ROM_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/boot.s)
 set(VC_ROM_LOGO ${CMAKE_CURRENT_BINARY_DIR}/logo.raw)
 set(VC_ROM_FONT ${CMAKE_CURRENT_BINARY_DIR}/font.raw)
-
-# goasm, rebuilt whenever one of its Go sources changes
-file(GLOB_RECURSE VC_GOASM_SOURCES CONFIGURE_DEPENDS
-    ${VC_GOASM_DIR}/*.go
-    ${VC_GOASM_DIR}/go.mod
-    ${VC_GOASM_DIR}/go.sum
-)
-add_custom_command(
-    OUTPUT ${VC_GOASM_EXECUTABLE}
-    COMMAND ${VC_GO_EXECUTABLE} build -o ${VC_GOASM_EXECUTABLE} ./cmd/goasm
-    WORKING_DIRECTORY ${VC_GOASM_DIR}
-    DEPENDS ${VC_GOASM_SOURCES}
-    COMMENT "Building goasm"
-    VERBATIM
-)
 
 # the source is copied next to the assets: .incbin paths are relative to it
 add_custom_command(
@@ -76,7 +58,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/core/host
     COMMAND ${VC_GOASM_EXECUTABLE} ${VC_ROM_SOURCE} -f rom -o ${VC_ROMBIOS_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS ${VC_GOASM_EXECUTABLE} ${VC_ROM_SOURCE} ${VC_ROM_LOGO} ${VC_ROM_FONT}
+    DEPENDS vc_goasm ${VC_GOASM_EXECUTABLE} ${VC_ROM_SOURCE} ${VC_ROM_LOGO} ${VC_ROM_FONT}
     COMMENT "Assembling the boot ROM"
     VERBATIM
 )
