@@ -43,6 +43,9 @@ func TestLoadManifestFull(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if m.file != path || m.dir != filepath.Dir(path) {
+		t.Errorf("file, dir = %q, %q; want %q, %q", m.file, m.dir, path, filepath.Dir(path))
+	}
 	if m.Name != "Test Game" || m.Rscv != "game.rscv" || m.Dsym != "game.dsym" || m.Entry != "main" {
 		t.Errorf("manifest = %+v", m)
 	}

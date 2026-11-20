@@ -37,7 +37,7 @@ func parseDsym(data []byte) (map[string]uint32, error) {
 		}
 		off += dsymEntryHeaderSize
 		if size-off < align4(nameLen) {
-			return nil, fmt.Errorf("dSYM: entry %d runs past the end of the chunk", i)
+			return nil, fmt.Errorf("dSYM: entry %d: name runs past the end of the chunk", i)
 		}
 		name := string(data[off : off+nameLen])
 		if _, dup := symbols[name]; dup {

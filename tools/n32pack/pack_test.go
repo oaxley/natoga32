@@ -31,6 +31,7 @@ func packDir(t *testing.T, files map[string][]byte) *Manifest {
 		Date:    "2026-03-01T12:00:00Z",
 		Rscv:    "game.rscv",
 		dir:     dir,
+		file:    filepath.Join(dir, "game.json"),
 	}
 }
 
@@ -180,7 +181,8 @@ func TestPackErrors(t *testing.T) {
 		{"invalid RSCV", nil, map[string][]byte{"game.rscv": appendChunk(nil, "RSCV", []byte{1, 2, 3})}, "RSCV: "},
 		{"dsym holds RSCV", func(m *Manifest) { m.Dsym = "bad.dsym" }, map[string][]byte{"bad.dsym": testRscv()}, "not a dSYM chunk"},
 		{"missing rscv", func(m *Manifest) { m.Rscv = "none.rscv" }, nil, "none.rscv"},
-		{"bad entry", func(m *Manifest) { m.Entry = "0x01A00002" }, nil, "not 4-byte aligned"},
+		{"bad entry", func(m *Manifest) { m.Entry = "0x01A00002" }, nil, "game.json: entry 0x01A00002 is not 4-byte aligned"},
+		{"bad date", func(m *Manifest) { m.Date = "2025-01-01T00:00:00Z" }, nil, "game.json: date is before 2026-01-01"},
 	} {
 		files := map[string][]byte{"game.rscv": testRscv()}
 		for k, v := range tc.files {
@@ -216,8 +218,8 @@ func TestPackTooManyChunks(t *testing.T) {
 		m.Assets[i] = Asset{Name: fmt.Sprintf("A%d", i), Type: "TILS", File: "a.bin"}
 	}
 	_, err := pack(m, time.Now())
-	if err == nil || err.Error() != "too many chunks: 15873 (max 15872)" {
-		t.Errorf("err = %v", err)
+	if want := m.file + ": too many chunks: 15873 (max 15872)"; err == nil || err.Error() != want {
+		t.Errorf("err = %v, want %q", err, want)
 	}
 	m.Assets = m.Assets[:15871]
 	m.Dsym = ""

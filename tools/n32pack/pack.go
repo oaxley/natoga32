@@ -44,14 +44,15 @@ func checkLimits(entries int, size uint64) error {
 	return nil
 }
 
-// pack reads the rscv/dsym/asset files named by the manifest and returns the cartridge bytes
+// pack reads the rscv/dsym/asset files named by the manifest and returns the cartridge bytes;
+// each error names its file once: the manifest, or the rscv/dsym/asset file
 func pack(m *Manifest, now time.Time) ([]byte, error) {
 	entries := 1 + len(m.Assets)
 	if m.Dsym != "" {
 		entries++
 	}
 	if err := checkLimits(entries, 0); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", m.file, err)
 	}
 
 	rscv, err := readChunkFile(m.path(m.Rscv), "RSCV")
@@ -74,7 +75,7 @@ func pack(m *Manifest, now time.Time) ([]byte, error) {
 	}
 	entry, err := entryPoint(m.Entry, sections, symbols)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", m.file, err)
 	}
 	ihdr, err := buildIhdr(m, entry, now)
 	if err != nil {
@@ -104,18 +105,19 @@ func pack(m *Manifest, now time.Time) ([]byte, error) {
 	}
 
 	// total size: header, IHDR, INDX, the listed chunks, IEND
-	size := uint64(headerSize) + chunkOverhead + ihdrSize + chunkOverhead + uint64(len(chunks))*indxEntrySize
+	first := uint64(headerSize) + chunkOverhead + ihdrSize + chunkOverhead + uint64(len(chunks))*indxEntrySize
+	size := first
 	for _, c := range chunks {
 		size += chunkOverhead + align4(uint64(len(c.data)))
 	}
 	size += chunkOverhead
 	if err := checkLimits(len(chunks), size); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", m.file, err)
 	}
 
 	// INDX: the data of each chunk starts 8 bytes after the chunk
 	indx := make([]byte, 0, len(chunks)*indxEntrySize)
-	offset := uint64(headerSize) + chunkOverhead + ihdrSize + chunkOverhead + uint64(len(chunks))*indxEntrySize
+	offset := first
 	for id, c := range chunks {
 		indx = append(indx, c.typ...)
 		indx = binary.LittleEndian.AppendUint16(indx, uint16(id))

@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"time"
 )
 
@@ -26,11 +27,11 @@ const (
 // flagModeRequired is the file header flag set when a graphics mode is required
 const flagModeRequired = 0x0008
 
-// buildIhdr returns the 64-byte IHDR data
+// buildIhdr returns the 64-byte IHDR data; a date error names the manifest
 func buildIhdr(m *Manifest, entry uint32, now time.Time) ([]byte, error) {
 	date, err := m.dateSeconds(now)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", m.file, err)
 	}
 	ihdr := make([]byte, ihdrSize)
 	binary.LittleEndian.PutUint16(ihdr[ihdrOffVersion:], m.versionBCD())

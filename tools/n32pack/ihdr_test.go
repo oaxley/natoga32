@@ -56,7 +56,7 @@ func TestBuildIhdrName32(t *testing.T) {
 }
 
 func TestBuildIhdrNow(t *testing.T) {
-	m := &Manifest{Name: "X", Version: "1.00", MinRom: "0.1", Regions: []string{"europe"}}
+	m := &Manifest{Name: "X", Version: "1.00", MinRom: "0.1", Regions: []string{"europe"}, file: "game.json"}
 	got, err := buildIhdr(m, 0x01A00000, time.Date(2026, 1, 1, 0, 1, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatalf("buildIhdr: %v", err)
@@ -65,7 +65,7 @@ func TestBuildIhdrNow(t *testing.T) {
 		t.Errorf("date % X", got[0x08:0x0C])
 	}
 	if _, err := buildIhdr(m, 0x01A00000, time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)); err == nil ||
-		!strings.Contains(err.Error(), "before 2026-01-01") {
+		err.Error() != "game.json: date is before 2026-01-01" {
 		t.Errorf("buildIhdr before the epoch: %v", err)
 	}
 }

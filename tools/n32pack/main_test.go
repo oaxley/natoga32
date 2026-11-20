@@ -164,3 +164,46 @@ func TestRunPackErrorNamesManifest(t *testing.T) {
 		t.Errorf("stderr %q, want prefix %q", stderr.String(), want)
 	}
 }
+
+// TestRunErrorNamesFileOnce checks that every error names its file exactly once
+func TestRunErrorNamesFileOnce(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		json  string
+		files map[string][]byte
+		named string // file named by the error: manifest, rscv or asset
+	}{
+		{"bad entry", `{"name": "X", "regions": ["europe"], "rscv": "game.rscv", "entry": "0x01A00002"}`,
+			map[string][]byte{"game.rscv": testRscv()}, "game.json"},
+		{"invalid rscv", `{"name": "X", "regions": ["europe"], "rscv": "game.rscv"}`,
+			map[string][]byte{"game.rscv": appendChunk(nil, "RSCV", []byte{1, 2, 3})}, "game.rscv"},
+		{"missing rscv", `{"name": "X", "regions": ["europe"], "rscv": "game.rscv"}`, nil, "game.rscv"},
+		{"missing asset", `{"name": "X", "regions": ["europe"], "rscv": "game.rscv",
+			"assets": [{"name": "GONE", "type": "TILS", "file": "gone.bin"}]}`,
+			map[string][]byte{"game.rscv": testRscv()}, "gone.bin"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			for name, data := range tc.files {
+				if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			path := filepath.Join(dir, "game.json")
+			if err := os.WriteFile(path, []byte(tc.json), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			var stderr bytes.Buffer
+			if code := run([]string{"-o", filepath.Join(dir, "game.n32"), path}, &stderr); code != 1 {
+				t.Fatalf("exit %d, want 1", code)
+			}
+			named := filepath.Join(dir, tc.named)
+			if n := strings.Count(stderr.String(), named); n != 1 {
+				t.Errorf("stderr %q names %s %d times, want 1", stderr.String(), named, n)
+			}
+			if tc.named != "game.json" && strings.Contains(stderr.String(), path) {
+				t.Errorf("stderr %q also names the manifest", stderr.String())
+			}
+		})
+	}
+}

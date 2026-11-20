@@ -42,7 +42,8 @@ type Manifest struct {
 	Entry        string   `json:"entry"`         // label or "0x..."; default: first .text section
 	Assets       []Asset  `json:"assets"`
 
-	dir string // directory of the manifest; paths are relative to it
+	file string // path of the manifest; names it in pack errors
+	dir  string // directory of the manifest; paths are relative to it
 }
 
 // IHDR region bits
@@ -111,6 +112,7 @@ func loadManifest(path string) (*Manifest, error) {
 	if m.MinRom == "" {
 		m.MinRom = defaultMinRom
 	}
+	m.file = path
 	m.dir = filepath.Dir(path)
 	if err := m.validate(); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)

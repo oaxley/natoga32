@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -48,13 +47,10 @@ func run(args []string, stderr io.Writer) int {
 		return fail(err)
 	}
 
-	// build everything in memory first, so that no file is written when something fails
+	// build everything in memory first, so that no file is written when packing fails
 	var cart []byte
 	if *out != "" {
 		if cart, err = pack(m, time.Now()); err != nil {
-			if !strings.HasPrefix(err.Error(), path) {
-				err = fmt.Errorf("%s: %w", path, err)
-			}
 			return fail(err)
 		}
 	}

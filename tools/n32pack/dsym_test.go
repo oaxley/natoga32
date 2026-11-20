@@ -70,7 +70,8 @@ func TestParseDsymErrors(t *testing.T) {
 		{"zero name length", dsymData(1, dsymEntry{0x01A00000, 1, 0, ""})},
 		{"kind 0", dsymData(1, dsymEntry{0x01A00000, 0, 0, "main"})},
 		{"kind 5", dsymData(1, dsymEntry{0x01A00000, 5, 0, "main"})},
-		{"name past end", dsymData(1, main)[:10]},
+		{"header past end", dsymData(1, main)[:10]},
+		{"name past end", dsymData(1, main)[:13]},
 		{"duplicate name", dsymData(2, main, dsymEntry{0x01A00004, 1, 0, "main"})},
 	}
 	for _, c := range cases {
@@ -83,6 +84,19 @@ func TestParseDsymErrors(t *testing.T) {
 				t.Fatalf("err = %q, want prefix \"dSYM: \"", err)
 			}
 		})
+	}
+	// 16 bytes: count (4), entry header (8), name "main" (4)
+	for _, c := range []struct {
+		cut  int
+		want string
+	}{
+		{10, "dSYM: entry 0 runs past the end of the chunk"},
+		{13, "dSYM: entry 0: name runs past the end of the chunk"},
+		{15, "dSYM: entry 0: name runs past the end of the chunk"},
+	} {
+		if _, err := parseDsym(dsymData(1, main)[:c.cut]); err == nil || err.Error() != c.want {
+			t.Errorf("cut to %d bytes: err = %v, want %q", c.cut, err, c.want)
+		}
 	}
 	_, err := parseDsym(dsymData(2, main, dsymEntry{0x01A00004, 1, 0, "main"}))
 	if err == nil || err.Error() != `dSYM: duplicate symbol "main"` {

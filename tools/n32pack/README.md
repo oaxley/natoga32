@@ -26,8 +26,10 @@ The flags come before the manifest. At least one of `-o` and `-inc` is required,
 one manifest; otherwise n32pack prints the usage and exits with status 2.
 With `-inc` alone, only the manifest is read: the rscv, dsym and asset files may not exist yet.
 
-Errors are printed as `n32pack: <message>` and n32pack exits with status 1. Everything is built
-in memory first, so no output file is written when something fails.
+Errors are printed as `n32pack: <message>` and n32pack exits with status 1; each message names
+its file once (the manifest, or the rscv, dsym or asset file). Everything is built in memory
+first, so no output file is written when packing fails. If both `-o` and `-inc` are given and
+writing the second file fails, the first one may remain.
 
 ## Manifest
 
