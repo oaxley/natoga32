@@ -467,3 +467,47 @@ func TestRodataNotWrittenWarns(t *testing.T) {
 		t.Errorf("expected on32 file of 20 bytes (header + nop), got %d", info.Size())
 	}
 }
+
+// TestRscvFormatEndToEnd checks that -f rscv writes one RSCV chunk with
+// every non-empty section, .rodata included, and no warning.
+func TestRscvFormatEndToEnd(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "cart.s")
+	output := filepath.Join(dir, "out.rscv")
+	src := ".text\nmain: nop\n.rodata\n.word 0x11223344\n"
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(goasm, input, "-f", "rscv", "-o", output)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("assembling rscv failed: %v\n%s", err, out)
+	}
+	if strings.Contains(string(out), "warning:") {
+		t.Errorf("unexpected warning in output:\n%s", out)
+	}
+
+	data, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) != 12+(12+4)+(12+4) {
+		t.Fatalf("rscv file size = %d, want 44", len(data))
+	}
+	if string(data[4:8]) != "RSCV" {
+		t.Errorf("chunk type = %q, want RSCV", data[4:8])
+	}
+	secs := parseRscv(t, data)
+	if len(secs) != 2 {
+		t.Fatalf("got %d sections, want 2: %+v", len(secs), secs)
+	}
+	ro := secs[1]
+	if ro.kind != rscvKindRodata || ro.addr != 0x01200000 || ro.size != 4 ||
+		!bytes.Equal(ro.data, []byte{0x44, 0x33, 0x22, 0x11}) {
+		t.Errorf(".rodata section = %+v, want kind 3 at 0x01200000 with 44 33 22 11", ro)
+	}
+}

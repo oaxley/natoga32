@@ -54,7 +54,7 @@ cartridge loading. Use -disasm flag to disassemble binary files.`,
 func init() {
 	// Assembly flags
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "a.out", "Output file path")
-	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "on32", "Output format: on32, bin, rom")
+	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "on32", "Output format: rscv, on32, bin, rom")
 	rootCmd.Flags().IntVarP(&debugLevel, "debug", "d", 0, "Debug level (1-8 to stop after specific phase)")
 	rootCmd.Flags().BoolVarP(&optimizeFlag, "optimize", "O", false, "Enable peephole optimizations")
 

@@ -14,7 +14,7 @@ const maxRomSize = 2 * 1024 * 1024
 func writeOutput(sections *section.Manager, filename, format string) error {
 	// validate the format and the ROM image before creating the output file
 	switch format {
-	case "bin", "rom", "on32":
+	case "rscv", "bin", "rom", "on32":
 	default:
 		return fmt.Errorf("unknown output format: %s", format)
 	}
@@ -25,6 +25,13 @@ func writeOutput(sections *section.Manager, filename, format string) error {
 		}
 		if len(romSec.Data) > maxRomSize {
 			return fmt.Errorf("ROM image exceeds 2 MiB (%d bytes)", len(romSec.Data))
+		}
+	}
+	var rscv []byte
+	if format == "rscv" {
+		var err error
+		if rscv, err = buildRscv(sections); err != nil {
+			return err
 		}
 	}
 
@@ -42,6 +49,10 @@ func writeOutput(sections *section.Manager, filename, format string) error {
 	}
 
 	switch format {
+	case "rscv":
+		// Cartridge RSCV chunk - every loadable section
+		_, err = file.Write(rscv)
+
 	case "bin":
 		// Raw binary - just write .text section
 		textSec := sections.Get(".text")
