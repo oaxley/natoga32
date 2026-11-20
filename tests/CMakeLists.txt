@@ -65,8 +65,6 @@ target_include_directories(vc_cartcheck
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/src
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../core/host/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/libvc
 )
 
 # sample cartridge packed with goasm and n32pack, then checked by the emulator
