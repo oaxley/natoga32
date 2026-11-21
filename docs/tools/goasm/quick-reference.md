@@ -65,7 +65,7 @@ See [the overview](README.md).
 | Compare | `slt sltu slti sltiu` |
 | Loads / stores | `lb lh lw lbu lhu` / `sb sh sw` |
 | Branches | `beq bne blt bge bltu bgeu` |
-| Jumps | `jal jalr` |
+| Jumps | `jal jalr` (`jalr rs` is `jalr ra, rs, 0`; `jalr rd, rs` is `jalr rd, rs, 0`) |
 | Upper | `lui auipc` |
 | M | `mul mulh mulhsu mulhu div divu rem remu` |
 | Zba | `sh1add sh2add sh3add` |
@@ -80,7 +80,7 @@ See [the overview](README.md).
 
 ## Pseudo-instructions
 
-`nop mv li la call ret j jr not neg seqz snez sltz sgtz beqz bnez blez bgez bltz bgtz bgt ble bgtu bleu csrr csrw csrs csrc csrwi csrsi csrci syscall [N|rs]`.
+`nop mv li la call tail ret j jr not neg seqz snez sltz sgtz beqz bnez blez bgez bltz bgtz bgt ble bgtu bleu csrr csrw csrs csrc csrwi csrsi csrci rdcycle[h] rdtime[h] rdinstret[h] unimp syscall [N|rs]`.
 Expansions are in [Instructions](instructions.md#pseudo-instructions).
 
 ## Patterns

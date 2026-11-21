@@ -44,3 +44,12 @@ func (e *Expander) expandJr(i *ast.Instruction) []*ast.Instruction {
 		instr("jalr", x(0), i.Operands[0], zero()),
 	}
 }
+
+// tail symbol - Jump to a function without saving ra (t1 holds the address)
+func (e *Expander) expandTail(i *ast.Instruction) []*ast.Instruction {
+	symbol := i.Operands[0]
+	return []*ast.Instruction{
+		instr("auipc", x(6), &ast.PCRelHi{Expr: symbol}),
+		instr("jalr", x(0), x(6), &ast.PCRelLo{Expr: symbol}),
+	}
+}

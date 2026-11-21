@@ -82,6 +82,11 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		encoded = arch.EncodeTypeRU(op, rd, rs1)
 
 	case arch.TypeI:
+		if instr.Opcode == "jalr" {
+			if err := jalrOperands(instr); err != nil {
+				return err
+			}
+		}
 		rd, rs1 := uint32(0), uint32(0)
 		imm := int32(0)
 		if len(instr.Operands) >= 1 {
@@ -324,6 +329,26 @@ func evalFenceSet(instr *ast.Instruction, operand ast.Expression) (uint32, error
 }
 
 // isCSR reports whether mnemonic is one of the six CSR instructions
+// jalrOperands rewrites the short forms of jalr to "rd, rs, 0":
+// "jalr rs" is "jalr ra, rs, 0" and "jalr rd, rs" is "jalr rd, rs, 0".
+// "jalr rd, rs, imm" and "jalr rd, imm(rs)" are kept.
+func jalrOperands(instr *ast.Instruction) error {
+	ops := instr.Operands
+	switch len(ops) {
+	case 1:
+		instr.Operands = []ast.Expression{&ast.Identifier{Name: "ra"}, ops[0], &ast.Number{Value: 0}}
+	case 2:
+		if _, ok := ops[1].(*ast.OffsetBase); !ok {
+			instr.Operands = []ast.Expression{ops[0], ops[1], &ast.Number{Value: 0}}
+		}
+	case 3:
+	default:
+		return fmt.Errorf("%s: error: jalr expects 1 to 3 operands (rs | rd, rs | rd, rs, imm | rd, imm(rs)), got %d",
+			instr.Location, len(ops))
+	}
+	return nil
+}
+
 func isCSR(mnemonic string) bool {
 	switch mnemonic {
 	case "csrrw", "csrrs", "csrrc", "csrrwi", "csrrsi", "csrrci":

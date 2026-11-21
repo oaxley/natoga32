@@ -107,6 +107,12 @@ func (e *Expander) expandPseudo(instr *ast.Instruction) []*ast.Instruction {
 		return e.expandBgtu(instr)
 	case "bleu":
 		return e.expandBleu(instr)
+	case "rdcycle", "rdcycleh", "rdtime", "rdtimeh", "rdinstret", "rdinstreth":
+		return e.expandCounter(instr)
+	case "unimp":
+		return e.expandUnimp()
+	case "tail":
+		return e.expandTail(instr)
 	case "csrr":
 		return e.expandCsrr(instr)
 	case "csrw":

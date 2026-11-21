@@ -46,9 +46,31 @@ var PseudoInstructions = map[string]bool{
 	"csrsi": true,
 	"csrci": true,
 
+	// Counters, read with csrrs rd, csr, x0
+	"rdcycle":    true,
+	"rdcycleh":   true,
+	"rdtime":     true,
+	"rdtimeh":    true,
+	"rdinstret":  true,
+	"rdinstreth": true,
+
+	// Others
+	"unimp": true,
+	"tail":  true,
+
 	// Custom
 	"syscall": true,
 }
+
+// CounterCSRs gives the CSR read by each rd* pseudo-instruction
+var CounterCSRs = map[string]int64{
+	"rdcycle": 0xC00, "rdtime": 0xC01, "rdinstret": 0xC02,
+	"rdcycleh": 0xC80, "rdtimeh": 0xC81, "rdinstreth": 0xC82,
+}
+
+// UnimpWord is the word of unimp: csrrw x0, cycle, x0. cycle is read-only,
+// so the CPU raises an illegal-instruction trap.
+const UnimpWord = 0xC0001073
 
 // IsPseudoInstruction checks if the given mnemonic is a pseudo-instruction
 func IsPseudoInstruction(mnemonic string) bool {
@@ -72,4 +94,7 @@ var PseudoOperands = map[string][]string{
 	"csrw": {"csr", "rs"}, "csrs": {"csr", "rs"}, "csrc": {"csr", "rs"},
 	"csrwi": {"csr", "uimm"}, "csrsi": {"csr", "uimm"}, "csrci": {"csr", "uimm"},
 	"syscall": {"[N or rs]"},
+	"rdcycle": {"rd"}, "rdcycleh": {"rd"}, "rdtime": {"rd"}, "rdtimeh": {"rd"},
+	"rdinstret": {"rd"}, "rdinstreth": {"rd"},
+	"unimp": {}, "tail": {"symbol"},
 }

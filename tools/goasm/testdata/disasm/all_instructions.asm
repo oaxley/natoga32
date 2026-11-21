@@ -79,6 +79,7 @@ jump_instrs:
     jal  ra, call_target
     jalr t0, t1, 0
     jalr ra, a0, 4
+    jalr ra, a2, 0
 call_target:
     add  zero, zero, zero
 
@@ -191,6 +192,9 @@ csr_instrs:
     csrrw  t3, 0x340, zero    ; Write mscratch (read discarded)
     csrrs  t4, 0x341, zero    ; Read mepc (no bits set)
     csrrc  t5, 0x342, zero    ; Read mcause (no bits cleared)
+    csrrs  a0, 0xC00, zero    ; Read cycle (rdcycle)
+    csrrs  a1, 0xC81, zero    ; Read timeh (rdtimeh)
+    csrrw  zero, 0xC00, zero  ; Write cycle: traps (unimp)
 
 ; CSR immediate variants: csrrwi rd, csr, uimm (uimm 0..31)
 csr_imm_instrs:

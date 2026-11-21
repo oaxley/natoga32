@@ -39,6 +39,18 @@ done:
 | System | `ecall ebreak` |
 
 Operand forms are in [Syntax](syntax.md#operand-forms).
+`jalr` has four forms:
+
+| Form | Same as |
+|------|---------|
+| `jalr rs` | `jalr ra, rs, 0` (a call through a register) |
+| `jalr rd, rs` | `jalr rd, rs, 0` |
+| `jalr rd, rs, imm` | |
+| `jalr rd, imm(rs)` | `jalr rd, rs, imm` |
+
+`jalr` with no operand or more than three stops with `jalr expects 1 to 3 operands (rs | rd, rs | rd, rs, imm | rd, imm(rs)), got 0`.
+Before this, `jalr a0` meant `jalr a0, x0, 0` (a jump to address 0): it now means `jalr ra, a0, 0`, as in GNU as.
+
 `lui` and `auipc` take the 20-bit value that goes in the upper bits: `lui t2, 0x12345` loads `0x1234_5000`.
 
 ### fence and fence.i
@@ -161,6 +173,7 @@ goasm expands these in phase 4, before the labels are resolved.
 | `ret` | `jalr x0, x1, 0` |
 | `j label` | `jal x0, label` |
 | `jr rs` | `jalr x0, rs, 0` |
+| `tail sym` | `auipc x6, %pcrel_hi(sym)` + `jalr x0, x6, %pcrel_lo(sym)` |
 | `not rd, rs` | `xori rd, rs, -1` |
 | `neg rd, rs` | `sub rd, x0, rs` |
 | `seqz rd, rs` | `sltiu rd, rs, 1` |
@@ -184,6 +197,13 @@ goasm expands these in phase 4, before the labels are resolved.
 | `csrwi csr, imm` | `csrrwi x0, csr, imm` |
 | `csrsi csr, imm` | `csrrsi x0, csr, imm` |
 | `csrci csr, imm` | `csrrci x0, csr, imm` |
+| `rdcycle rd` | `csrrs rd, 0xC00, x0` |
+| `rdtime rd` | `csrrs rd, 0xC01, x0` |
+| `rdinstret rd` | `csrrs rd, 0xC02, x0` |
+| `rdcycleh rd` | `csrrs rd, 0xC80, x0` |
+| `rdtimeh rd` | `csrrs rd, 0xC81, x0` |
+| `rdinstreth rd` | `csrrs rd, 0xC82, x0` |
+| `unimp` | `csrrw x0, 0xC00, x0` (word `0xC000_1073`) |
 | `syscall` | `ecall` (`a7` is used as it is) |
 | `syscall N` | `addi x17, x0, N` + `ecall` (`N` a number) |
 | `syscall rs` | `add x17, x0, rs` + `ecall` |
@@ -193,7 +213,10 @@ Notes:
 - `li` with a number outside -2048 to 2047, or with an expression, uses `lui` with `%hi` and `addi` with `%lo`. `li a0, 100000` gives `lui a0, 0x18` and `addi a0, a0, 1696` (100000 is `0x186A0`; `%lo` is `0x6A0`).
 - `li` reads 0x80000000..0xFFFFFFFF as a 32-bit pattern: `li a0, 0xFFFFFFFF` is `li a0, -1` (one `addi`).
 - `li rd, label` loads the absolute address of the label (`lui` + `addi`). `la` is the PC-relative form.
-- `la` and `call` are relative to the PC.
+- `la`, `call` and `tail` are relative to the PC. `tail` jumps without saving a return address; it uses `t1` (`x6`), so `t1` is lost.
+- `rdcycle`, `rdtime` and `rdinstret` read the low 32 bits of the counters, the `h` forms the high 32 bits.
+- `unimp` writes `cycle`, a read-only CSR, so the CPU raises an illegal-instruction trap. Use it to mark code that must never run.
+- `--disasm --pseudo` prints `csrrs rd, csr, x0` as `rdcycle rd` (and the other counters), `csrr rd, csr` for other CSRs, and `0xC000_1073` as `unimp`. `tail` is two words and is printed as `auipc` + `jalr`, like `call`.
 - `syscall` with no operand is a plain `ecall`: set `a7` (`x17`) before it. More than one operand stops with `syscall expects 0 or 1 operand ([N or rs]), got 2`. The console defines no syscall numbers.
 - Each pseudo-instruction takes exactly the operands of the table. A wrong count stops with, for example, `beqz expects 2 operands (rs, label), got 1`; extra operands are never ignored.
 - `jal label` is `jal ra, label`: it jumps to `label` and puts the return address in `ra`. `jal` with no operand or more than two stops with `jal expects 1 or 2 operands ([rd,] target)`.

@@ -413,3 +413,37 @@ func TestPseudoMatcherNumericNames(t *testing.T) {
 		t.Errorf("got operands %q, want %q", operands, "x5")
 	}
 }
+
+// csrWord builds a CSR instruction word: csr, rs1, funct3, rd
+func csrWord(csr, rs1, funct3, rd uint32) uint32 {
+	return csr<<20 | rs1<<15 | funct3<<12 | rd<<7 | 0x73
+}
+
+func TestPseudoCsrrs(t *testing.T) {
+	pm := NewPseudoMatcher()
+
+	tests := []struct {
+		word     uint32
+		mnemonic string
+		operands string
+		matched  bool
+	}{
+		{csrWord(0xC00, 0, 0b010, 10), "rdcycle", "a0", true},
+		{csrWord(0xC01, 0, 0b010, 10), "rdtime", "a0", true},
+		{csrWord(0xC02, 0, 0b010, 10), "rdinstret", "a0", true},
+		{csrWord(0xC80, 0, 0b010, 5), "rdcycleh", "t0", true},
+		{csrWord(0xC81, 0, 0b010, 5), "rdtimeh", "t0", true},
+		{csrWord(0xC82, 0, 0b010, 5), "rdinstreth", "t0", true},
+		{csrWord(0x341, 0, 0b010, 29), "csrr", "t4, 0x341", true},
+		{csrWord(0xC00, 11, 0b010, 10), "", "", false}, // sets bits: not a read
+		{csrWord(0xC00, 0, 0b001, 0), "unimp", "", true},
+		{csrWord(0xC00, 0, 0b001, 10), "", "", false}, // csrrw a0, cycle, zero
+	}
+	for _, tt := range tests {
+		mnemonic, operands, matched := pm.Match(Decode(tt.word), 0, true)
+		if matched != tt.matched || mnemonic != tt.mnemonic || operands != tt.operands {
+			t.Errorf("0x%08X: got (%q, %q, %v), want (%q, %q, %v)",
+				tt.word, mnemonic, operands, matched, tt.mnemonic, tt.operands, tt.matched)
+		}
+	}
+}

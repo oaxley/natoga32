@@ -210,7 +210,7 @@ An undefined label stops with `file:line:col: error: undefined symbol 'X'`.
 | Stores | `sw rs2, off(rs1)` |
 | Branches | `beq rs1, rs2, label` |
 | `jal` | `jal rd, label` or `jal label` (`rd` = `ra`). Write `j label` for `rd` = `x0` |
-| `jalr` | `jalr rd, rs1, off` or `jalr rd, off(rs1)` |
+| `jalr` | `jalr rd, rs1, off` or `jalr rd, off(rs1)`; `jalr rs1` (rd = `ra`) and `jalr rd, rs1` (off = 0) |
 | `lui`, `auipc` | `lui rd, imm` (20 bits) |
 
 `lw rd, label` is not accepted.

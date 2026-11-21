@@ -54,6 +54,12 @@ func (pm *PseudoMatcher) Match(instr *DecodedInstruction, addr uint32, useABI bo
 		return pm.matchSub(instr, useABI)
 	case "xori":
 		return pm.matchXori(instr, useABI)
+	case "csrrs":
+		return pm.matchCsrrs(instr, useABI)
+	case "csrrw":
+		if instr.RawWord == arch.UnimpWord {
+			return "unimp", "", true
+		}
 	}
 
 	return "", "", false
@@ -311,4 +317,21 @@ func regName(reg int, useABI bool) string {
 // calculateTarget calculates the absolute target address from PC and offset
 func calculateTarget(addr uint32, offset int32) uint32 {
 	return uint32(int32(addr) + offset)
+}
+
+// matchCsrrs handles csrrs-based pseudo-instructions:
+// - rdcycle, rdtime, rdinstret (and the h forms): csrrs rd, counter, x0
+// - csrr: csrrs rd, csr, x0
+func (pm *PseudoMatcher) matchCsrrs(instr *DecodedInstruction, useABI bool) (string, string, bool) {
+	if instr.Rs1 != 0 {
+		return "", "", false
+	}
+	rd := regName(instr.Rd, useABI)
+	csr := int64(uint32(instr.Immediate) & 0xFFF)
+	for name, num := range arch.CounterCSRs {
+		if num == csr {
+			return name, rd, true
+		}
+	}
+	return "csrr", fmt.Sprintf("%s, 0x%X", rd, csr), true
 }

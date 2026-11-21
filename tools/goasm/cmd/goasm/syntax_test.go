@@ -320,3 +320,88 @@ func TestDisasmRawFormatName(t *testing.T) {
 		}
 	}
 }
+
+// jalr: standard short forms "jalr rs" (rd = ra) and "jalr rd, rs" (offset 0)
+func TestJalrForms(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	jalrRaA0 := []byte{0xe7, 0x00, 0x05, 0x00} // jalr ra, a0, 0
+	expectAssembles(t, goasm, "jalr a0", jalrRaA0)
+	expectAssembles(t, goasm, "jalr ra, a0", jalrRaA0)
+	expectAssembles(t, goasm, "jalr ra, a0, 0", jalrRaA0)
+	expectAssembles(t, goasm, "jalr ra, 0(a0)", jalrRaA0)
+	expectAssembles(t, goasm, "jalr t0, t1", []byte{0xe7, 0x02, 0x03, 0x00})     // jalr t0, t1, 0
+	expectAssembles(t, goasm, "jalr ra, 4(a0)", []byte{0xe7, 0x00, 0x45, 0x00})  // jalr ra, a0, 4
+	expectAssembles(t, goasm, "jalr ra, a0, -4", []byte{0xe7, 0x00, 0xc5, 0xff}) // jalr ra, a0, -4
+	expectError(t, goasm, "jalr", "jalr expects 1 to 3 operands (rs | rd, rs | rd, rs, imm | rd, imm(rs)), got 0", "2")
+	expectError(t, goasm, "jalr a0, a1, 4, 5", "jalr expects 1 to 3 operands (rs | rd, rs | rd, rs, imm | rd, imm(rs)), got 4", "2")
+	expectError(t, goasm, "jalr 4", "jalr: expected a register", "2")
+}
+
+// rdcycle and friends read the counter CSRs; unimp is the standard trapping word;
+// tail jumps through t1 without saving ra
+func TestCounterUnimpTail(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	counters := []struct {
+		src  string
+		want []byte
+	}{
+		{"rdcycle a0", []byte{0x73, 0x25, 0x00, 0xc0}},    // csrrs a0, 0xC00, zero
+		{"rdtime a0", []byte{0x73, 0x25, 0x10, 0xc0}},     // csrrs a0, 0xC01, zero
+		{"rdinstret a0", []byte{0x73, 0x25, 0x20, 0xc0}},  // csrrs a0, 0xC02, zero
+		{"rdcycleh t0", []byte{0xf3, 0x22, 0x00, 0xc8}},   // csrrs t0, 0xC80, zero
+		{"rdtimeh t0", []byte{0xf3, 0x22, 0x10, 0xc8}},    // csrrs t0, 0xC81, zero
+		{"rdinstreth t0", []byte{0xf3, 0x22, 0x20, 0xc8}}, // csrrs t0, 0xC82, zero
+		{"unimp", []byte{0x73, 0x10, 0x00, 0xc0}},         // csrrw zero, 0xC00, zero
+	}
+	for _, tt := range counters {
+		t.Run(tt.src, func(t *testing.T) {
+			expectAssembles(t, goasm, tt.src, tt.want)
+		})
+	}
+
+	// tail at 0: auipc t1, 0 ; jalr zero, t1, 12 (target at 12)
+	expectAssembles(t, goasm, "tail target\nnop\ntarget: nop", []byte{
+		0x17, 0x03, 0x00, 0x00, // auipc t1, 0
+		0x67, 0x00, 0xc3, 0x00, // jalr zero, t1, 12
+		0x13, 0x00, 0x00, 0x00,
+		0x13, 0x00, 0x00, 0x00,
+	})
+
+	expectError(t, goasm, "rdcycle", "rdcycle expects 1 operand (rd), got 0", "2")
+	expectError(t, goasm, "rdtime a0, a1", "rdtime expects 1 operand (rd), got 2", "2")
+	expectError(t, goasm, "unimp a0", "unimp expects no operands, got 1", "2")
+	expectError(t, goasm, "tail", "tail expects 1 operand (symbol), got 0", "2")
+}
+
+// --disasm --pseudo prints the one-word forms back
+func TestDisasmCounterPseudo(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	src := "rdcycle a0\nrdtimeh t0\nrdinstret a1\nunimp\ncsrrs a0, 0xC00, a1\ncsrrs a0, 0x300, zero\n"
+	data, out, err := assembleSource(t, goasm, ".rom\n"+src, "rom")
+	if err != nil {
+		t.Fatalf("assembling failed: %v\n%s", err, out)
+	}
+	rom := filepath.Join(t.TempDir(), "x.rom")
+	if err := os.WriteFile(rom, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dis, err := exec.Command(goasm, "--disasm", "--pseudo", "--hex=false", rom, "--base", "0").CombinedOutput()
+	if err != nil {
+		t.Fatalf("disasm failed: %v\n%s", err, dis)
+	}
+	for _, want := range []string{
+		"rdcycle a0", "rdtimeh t0", "rdinstret a1", "unimp",
+		"csrrs a0, 0xC00, a1", // sets bits: not rdcycle
+		"csrr a0, 0x300",      // not a counter
+	} {
+		if !strings.Contains(string(dis), want) {
+			t.Errorf("expected %q in output, got:\n%s", want, dis)
+		}
+	}
+}
