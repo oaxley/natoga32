@@ -80,14 +80,25 @@ func Execute() {
 // - Calculate addresses for labels
 // - Build symbol table
 // - Track section sizes
+//
+// It goes on after an error, so the layout is complete, and returns the
+// first error: with provisional values (names defined below), an error may
+// go away in the next pass (see layout in relax.go).
 func semanticPass1(program *ast.Program, symbols *symbol.Table, sections *section.Manager) error {
+	var first error
+	keep := func(err error) {
+		if first == nil {
+			first = err
+		}
+	}
 
 	for _, stmt := range program.Statements {
 		switch s := stmt.(type) {
 		case *ast.Label:
 			addr := sections.CurrentAddress()
 			if err := symbols.DefineLabel(s.Name, addr, sections.CurrentName(), s.Location.Line); err != nil {
-				return duplicateError(s.Location, s.Name, symbols)
+				keep(duplicateError(s.Location, s.Name, symbols))
+				continue
 			}
 			symbols.Lookup(s.Name).File = s.Location.Filename
 
@@ -98,12 +109,12 @@ func semanticPass1(program *ast.Program, symbols *symbol.Table, sections *sectio
 
 		case *ast.Directive:
 			if err := handleDirective(s, symbols, sections); err != nil {
-				return err
+				keep(err)
 			}
 		}
 	}
 
-	return nil
+	return first
 }
 
 // semanticPass2 encodes instructions to binary, with the symbols of pass 1

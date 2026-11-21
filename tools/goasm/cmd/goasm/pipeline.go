@@ -116,7 +116,7 @@ func assemble(inputFile string) error {
 	// Phase 5: Semantic Analysis - Pass 1 (calculate addresses), again
 	// until each li with a name has its shortest form
 	fmt.Println("Phase 5: Semantic Analyzer - pass 1")
-	symbols, sections, err := relaxLi(program, newSectionManager)
+	symbols, sections, err := layout(program, newSectionManager)
 	if err != nil {
 		return err
 	}

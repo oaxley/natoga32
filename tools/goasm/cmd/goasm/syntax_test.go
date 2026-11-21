@@ -571,3 +571,49 @@ func TestLiSymbolShort(t *testing.T) {
 	expectError(t, goasm, "nop\nli a0, F\n.equ F, 0x100000000", "li value 4294967296 (0x100000000) does not fit 32 bits", "3:1")
 	expectError(t, goasm, "li a0, 0x100000000", "does not fit 32 bits", "2:1")
 }
+
+// .space, .align, .org and .equ can use names defined below them: goasm
+// lays out the addresses again until they no longer change
+func TestLayoutForwardNames(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		name, src string
+		want      []byte
+	}{
+		{"equ of an equ below", ".equ A, B + 1\n.equ B, 2\n.byte A", []byte{3}},
+		{"space of an equ below", ".space N\n.byte 9\n.equ N, 2", []byte{0, 0, 9}},
+		{"align of an equ below", ".byte 1\n.align P\n.byte 2\n.equ P, 2", []byte{1, 0, 0, 0, 2}},
+		{"org of an equ below", ".org START\n.byte 7\n.equ START, 3", []byte{0, 0, 0, 7}},
+		// the size of the table is known only at its end label
+		{"size of a table below", ".equ SIZE, end - table\n.byte SIZE\ntable: .byte 1, 2, 3\nend:", []byte{3, 1, 2, 3}},
+		{"space of a size below", ".space end - tbl\ntbl: .byte 1, 2\nend:", []byte{0, 0, 1, 2}},
+		// later = 0 + later: 0 is the only address that works
+		{"space up to itself", ".space later - 0\nlater: nop", []byte{0x13, 0, 0, 0}},
+		{"chain of equ", ".equ A, B\n.equ B, C\n.equ C, D\n.equ D, 5\n.byte A", []byte{5}},
+		// a li with a name below and a forward .space
+		{"li and space", "li a0, F\n.space G\n.equ F, 8\n.equ G, 1", []byte{0x13, 0x05, 0x80, 0x00, 0}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expectAssembles(t, goasm, tt.src, tt.want)
+		})
+	}
+
+	errs := []struct{ name, src, want, loc string }{
+		{"undefined", ".space N", "undefined symbol 'N'", "2:8"},
+		{"self", ".equ A, A + 1", "the value of 'A' does not settle", "2"},
+		// here = 1 + (4 - here): no address works
+		{"label", "start: .byte 1\n.space 4 - (here - start)\nhere: .byte 2", "the value of 'here' does not settle", "4"},
+		{"loop", ".equ A, B + 1\n.equ B, A", "does not settle", "2"},
+		// the error is the one with the final values
+		{"negative space", ".space N\n.equ N, 0 - 1", ".space size -1 is negative", "2:1"},
+		{"duplicate", ".equ A, B\n.equ A, 1\n.equ B, 2", "symbol 'A' already defined at line 2", "3:1"},
+	}
+	for _, tt := range errs {
+		t.Run(tt.name, func(t *testing.T) {
+			expectError(t, goasm, tt.src, tt.want, tt.loc)
+		})
+	}
+}

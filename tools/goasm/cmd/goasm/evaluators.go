@@ -62,8 +62,8 @@ func evalExpressionWithError(expr ast.Expression, symbols *symbol.Table, pc int6
 
 	case *ast.Identifier:
 		// a name only listed in .global has no value yet: it is undefined
-		if sym := symbols.Lookup(e.Name); sym != nil && sym.Defined {
-			return sym.Value, nil
+		if v, ok := symbols.Resolve(e.Name); ok {
+			return v, nil
 		}
 		return 0, fmt.Errorf("%s: error: undefined symbol '%s'", e.Location, e.Name)
 

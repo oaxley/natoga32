@@ -729,7 +729,7 @@ func TestLayoutDirectiveErrors(t *testing.T) {
 	}{
 		{".space", ".space expects 1 operand"},
 		{".space -1", ".space size -1 is negative"},
-		{".space later\nlater: nop", "undefined symbol 'later'"},
+		{".space nothing\nlater: nop", "undefined symbol 'nothing'"},
 		{".space 1 / 0", "division by zero"},
 		{".align", ".align expects 1 operand"},
 		{".align 32", ".align 32 out of range (0..31)"},

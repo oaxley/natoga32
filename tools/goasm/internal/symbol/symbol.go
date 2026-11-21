@@ -46,6 +46,11 @@ type Symbol struct {
 type Table struct {
 	symbols    map[string]*Symbol
 	localCount int // Counter for generating local labels
+
+	// layout mode (pass 1): a name not defined yet takes its value from the
+	// previous layout pass (prev), or 0 in the first one
+	layout bool
+	prev   *Table
 }
 
 // New creates a new symbol table
@@ -186,4 +191,53 @@ func (t *Table) Clear() {
 // Size returns the number of symbols in the table
 func (t *Table) Size() int {
 	return len(t.symbols)
+}
+
+// StartLayout puts the table in layout mode for a pass 1 that follows prev
+// (nil for the first pass)
+func (t *Table) StartLayout(prev *Table) {
+	t.layout, t.prev = true, prev
+}
+
+// EndLayout leaves layout mode: Resolve only sees the names of this table
+func (t *Table) EndLayout() {
+	t.layout, t.prev = false, nil
+}
+
+// Resolve returns the value of a defined name. In layout mode, a name not
+// defined yet in this pass takes its value of the previous pass, or 0 in
+// the first pass (it may be defined below); that value is provisional.
+func (t *Table) Resolve(name string) (int64, bool) {
+	if sym := t.symbols[name]; sym != nil && sym.Defined {
+		return sym.Value, true
+	}
+	if !t.layout {
+		return 0, false
+	}
+	if t.prev == nil {
+		return 0, true
+	}
+	if sym := t.prev.symbols[name]; sym != nil && sym.Defined {
+		return sym.Value, true
+	}
+	return 0, false
+}
+
+// SameValues reports whether a and b define the same names with the same values
+func SameValues(a, b *Table) bool {
+	if a == nil || b == nil {
+		return false
+	}
+	count := 0
+	for name, sa := range a.symbols {
+		if !sa.Defined {
+			continue
+		}
+		count++
+		sb := b.symbols[name]
+		if sb == nil || !sb.Defined || sb.Value != sa.Value {
+			return false
+		}
+	}
+	return count == len(b.DefinedSymbols())
 }

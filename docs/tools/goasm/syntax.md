@@ -203,7 +203,8 @@ A non-zero value stops with `.bss section holds non-zero data at 0xADDR: use .da
 Notes:
 
 - The operand of `.space`, `.align`, `.org` and the value of `.equ` are [expressions](#expressions): `.equ MASK, (1 << 4) - 1`, `.equ NEG, -2`, `.equ LETTER, 'A'`, `.space SIZE * 2`, `.org $ + 16`.
-- These four are computed while goasm lays out the addresses, so they can only use labels and `.equ` names defined **above** them. A name defined later stops with `undefined symbol`. `.byte`, `.half`, `.word` and instructions can use names defined anywhere.
+- These four can use labels and `.equ` names defined anywhere, also below them: `.equ SIZE, end - table` before the table, `.space N` before `.equ N, 2`. goasm lays out the addresses again until no value changes (a name defined below is 0 in the first layout). An error, such as a negative `.space`, is reported with the final values.
+- A value that depends on itself never settles: `.equ A, A + 1`, or `.space 4 - (here - start)` before `here:`, stops with `the value of 'A' does not settle (it depends on itself, directly or through other names)`.
 - An `.equ` name works everywhere an expression is accepted. Defining it twice, or with the name of a label, stops with `symbol 'X' already defined at line N`.
 - A wrong operand count stops with `.space expects 1 operand` (or `.align`, `.org`), or `.equ expects 2 operands (name, value)`. `.space -1` stops with `size -1 is negative`, `.align 32` with `out of range (0..31)`.
 - `.org` takes an absolute address, not an offset: `.org 0x100` in `.rom`, `.org 0x01A00010` in `.text`. An address before the current one stops with `.org address 0xX is before current address 0xY`.

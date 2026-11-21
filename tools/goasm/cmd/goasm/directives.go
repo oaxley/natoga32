@@ -259,6 +259,12 @@ func defineEqu(dir *ast.Directive, symbols *symbol.Table, sections *section.Mana
 	}
 	value, err := evalExpressionWithError(dir.Args[1], symbols, sections.CurrentAddress())
 	if err != nil {
+		// define it anyway, so the names that use it do not add an
+		// 'undefined symbol' to this error
+		if !symbols.IsDefined(ident.Name) {
+			symbols.DefineConstant(ident.Name, 0, dir.Location.Line)
+			symbols.Lookup(ident.Name).File = dir.Location.Filename
+		}
 		return err
 	}
 	if err := symbols.DefineConstant(ident.Name, value, dir.Location.Line); err != nil {
