@@ -446,6 +446,12 @@ void CPU::execute_instruction()
 
         case OP_JALR:       // jump and link register
         {
+            // only funct3 0 exists
+            if (funct3 != 0b000) {
+                triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                break;
+            }
+
             i32 imm = decoder::immTypeI(instruction);
             u32 target = (urs1 + imm) & ~1;
             registers[rd] = pc + 4;
@@ -479,6 +485,9 @@ void CPU::execute_instruction()
                     break;
                 case 0b111: // BGEU
                     take_branch = (urs1 >= urs2);
+                    break;
+                default:    // funct3 2 and 3 are not assigned
+                    triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
                     break;
             }
 
@@ -614,13 +623,18 @@ void CPU::execute_instruction()
                                 case 0b00101:       // SEXT.H
                                     registers[rd] = static_cast<u32>(static_cast<i16>(urs1));
                                     break;
+                                default:
+                                    triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                                    break;
                             }
                             break;
                         }
                         case 0b011'0100:    // BINVI
-                                registers[rd] = urs1 ^ (1u << shamt);
+                            registers[rd] = urs1 ^ (1u << shamt);
                             break;
-
+                        default:            // also funct7 bit 0 set: shamt >= 32
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -656,20 +670,29 @@ void CPU::execute_instruction()
                                     }
                                 }
                                 registers[rd] = result;
+                            } else {
+                                triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
                             }
                             break;
                         }
                         case 0b011'0000:    // RORI
                             registers[rd] = std::rotr(urs1, shamt);
                             break;
-                        case 0b011'0100:    // REV8
+                        case 0b011'0100:    // REV8 (rs2 field 0b11000)
                         {
+                            if (shamt != 0b11000) {
+                                triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                                break;
+                            }
                             registers[rd] = ((urs1 >> 24) & 0xFF)
                                                  | ((urs1 >> 8 ) & 0xFF00)
                                                  | ((urs1 << 8) & 0xFF0000)
                                                  | ((urs1 << 24) & 0xFF000000);
                             break;
                         }
+                        default:            // also funct7 bit 0 set: shamt >= 32
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -705,6 +728,9 @@ void CPU::execute_instruction()
                         case 0b010'0000:    // SUB
                             registers[rd] = urs1 - urs2;
                             break;
+                        default:
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -735,6 +761,9 @@ void CPU::execute_instruction()
                         case 0b011'0100:    // BINV
                             registers[rd] = urs1 ^ (1u << shamt);
                             break;
+                        default:
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -751,11 +780,14 @@ void CPU::execute_instruction()
                         case 0b000'0001:    // MULHSU
                         {
                             i64 a = static_cast<i64>(irs1);
-                            i64 b = static_cast<i64>(rs2);
+                            i64 b = static_cast<i64>(urs2);     // zero-extended: rs2 is unsigned
                             i64 result = a * b;
                             registers[rd] = static_cast<u32>(result >> 32);
                             break;
                         }
+                        default:
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -774,6 +806,9 @@ void CPU::execute_instruction()
                             registers[rd] = static_cast<u32>(result >> 32);
                             break;
                         }
+                        default:
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -818,6 +853,9 @@ void CPU::execute_instruction()
                         case 0b000'0101:    // MIN
                             registers[rd] = static_cast<u32>(std::min(irs1, irs2));
                             break;
+                        default:
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -852,6 +890,9 @@ void CPU::execute_instruction()
                         case 0b011'0000:    // ROR
                             registers[rd] = std::rotr(urs1, shamt);
                             break;
+                        default:
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -885,6 +926,9 @@ void CPU::execute_instruction()
                         case 0b000'0101:    // MAX
                             registers[rd] = static_cast<u32>(std::max(irs1, irs2));
                             break;
+                        default:
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -916,6 +960,9 @@ void CPU::execute_instruction()
                         case 0b000'0111:    // CZERO.NEZ
                             registers[rd] = (urs2 != 0) ? 0 : urs1;
                             break;
+                        default:
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            break;
                     }
                     break;
                 }
@@ -945,6 +992,9 @@ void CPU::execute_instruction()
                     break;
                 case 0b111:     // end.t
                     endT();
+                    break;
+                default:        // funct3 3 and 6 are not assigned
+                    triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
                     break;
             }
             pc += 4;
@@ -986,9 +1036,15 @@ void CPU::execute_instruction()
 
             switch (funct3)
             {
-                case 0b000:     // ECALL/MRET
+                case 0b000:     // ECALL/EBREAK/MRET/WFI
                 {
                     u32 funct12 = instruction >> 20;
+
+                    // these instructions have no operands: rd and rs1 must be 0
+                    if (rd != 0 || rs1 != 0) {
+                        triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                        return;
+                    }
 
                     switch (funct12)
                     {
@@ -1014,6 +1070,12 @@ void CPU::execute_instruction()
 
                             break;
                         }
+                        case 0x001:     // EBREAK: not decided yet, does nothing
+                        case 0x105:     // WFI: not decided yet, does nothing
+                            break;
+                        default:
+                            triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                            return;
                     }
                     break;
                 }
@@ -1062,6 +1124,9 @@ void CPU::execute_instruction()
                     registers[rd] = csr_val;
                     break;
                 }
+                default:        // funct3 4 is not assigned
+                    triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                    return;
             }
             pc += 4;
             break;

@@ -50,7 +50,7 @@ The address 0 cannot be a handler.
 | `mcause` | Name | Raised by | `mtval` |
 |----------|------|-----------|---------|
 | 1 | Instruction access fault | A fetch where the 4 bytes at the PC touch the cartridge control zone or the cartridge window | The PC |
-| 2 | Illegal instruction | An opcode that does not exist, an unused load or store encoding, a write to a read-only CSR | 0 |
+| 2 | Illegal instruction | An opcode that does not exist, an unassigned encoding of a known opcode, a write to a read-only CSR | 0 |
 | 5 | Load access fault | A load that touches the private thread zone, or that crosses the edge of a cartridge zone | The address of the load |
 | 7 | Store access fault | A store that touches the private thread zone or a cartridge zone | The address of the store |
 | 11 | Environment call from M-mode | `ecall` | 0 |
@@ -87,9 +87,10 @@ The CPU raises an illegal instruction trap (2) for:
 - an opcode that is not in the [instruction list](README.md#instructions-decoded);
 - opcode `0x0F` with a `funct3` other than 0 (`fence`) and 1 (`fence.i`);
 - a load with `funct3` 3, 6 or 7, and a store with `funct3` above 2. The CPU checks this before any access;
-- a CSR instruction that writes a read-only CSR, see [CSR registers](csr.md#access-rules).
+- a CSR instruction that writes a read-only CSR, see [CSR registers](csr.md#access-rules);
+- a known opcode with an unassigned `funct3`, `funct7` or `rs2` field, see [CPU](README.md#what-the-cpu-does-with-the-rest).
 
-A known opcode with an unassigned `funct3` or `funct7` is not an error, see [CPU](README.md#what-the-cpu-does-with-the-rest).
+`ebreak` and `wfi` do not trap: they do nothing for now.
 
 ### Thread traps
 

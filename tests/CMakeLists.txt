@@ -33,6 +33,7 @@ add_executable(vctests
     libvc/test_cpu/private-zone.cpp
     libvc/test_cpu/cartridge.cpp
     libvc/test_cpu/traps.cpp
+    libvc/test_cpu/illegal.cpp
 
     host/test_frame_pacer.cpp
 )

@@ -128,6 +128,7 @@ These functions are for debugging. They do not run any cycle.
 | `uint32_t vc_getThreadRegister(console, thread_id, reg_num)` | Register `reg_num` (0 to 31) of a thread. |
 
 A read outside the 32 MiB returns 0, and a write outside is ignored.
+A write that touches the ROM, the cartridge control zone or the cartridge window is ignored as a whole.
 These accesses do not raise faults and do not use the `cartbank` CSR, so the host can read the [private thread zone](memory-map.md#private-thread-zone).
 Writes to the ROM are filtered as the memory does it (see [ROM](memory-map.md#rom)).
 A `thread_id` outside 0 to 7, or a `reg_num` outside 0 to 31, returns 0.

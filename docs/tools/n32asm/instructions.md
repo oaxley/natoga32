@@ -79,8 +79,6 @@ Before this, `jalr a0` meant `jalr a0, x0, 0` (a jump to address 0): it now mean
 
 `mul mulh mulhsu mulhu div divu rem remu`.
 
-The CPU has a known bug in `mulhsu` (see [CPU](../../console/cpu/README.md)).
-
 ## Bit-manipulation extensions
 
 | Extension | Instructions |

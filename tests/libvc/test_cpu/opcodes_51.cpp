@@ -128,6 +128,24 @@ TEST_CASE("Arithmetic unsigned operations", "[cpu][instruction][arithmetic]") {
         REQUIRE(test.deltaPC() == 4);
     }
 
+    SECTION("MULHSU - rs2 is read as unsigned") {
+        test.setReg(27, 0x00000002);  // x27 = 2
+        test.setReg(28, 0x80000000);  // x28 = 2^31 (unsigned)
+        test.loadInstruction(0x03CDAD33);   // MULHSU x26, x27, x28
+        test.execute();
+        REQUIRE(test.getReg(26) == 0x00000001);  // 2 * 2^31 = 2^32
+        REQUIRE(test.deltaPC() == 4);
+    }
+
+    SECTION("MULHSU - negative rs1, large unsigned rs2") {
+        test.setReg(27, 0x80000000);  // x27 = -2^31
+        test.setReg(28, 0xFFFFFFFF);  // x28 = 2^32 - 1 (unsigned)
+        test.loadInstruction(0x03CDAD33);   // MULHSU x26, x27, x28
+        test.execute();
+        REQUIRE(test.getReg(26) == 0x80000000);  // -2^63 + 2^31
+        REQUIRE(test.deltaPC() == 4);
+    }
+
     SECTION("DIVU") {
         test.setReg(30, 0x00000064);  // x30 = 100
         test.setReg(31, 0x0000000A);  // x31 = 10

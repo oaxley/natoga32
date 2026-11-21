@@ -58,15 +58,15 @@ Opcode `0x0F` with another `funct3` raises an illegal instruction trap.
 | Opcode `0x0F` with `funct3` 2 to 7 | Illegal instruction trap |
 | Load with an unused `funct3`, store with an unused `funct3` | Illegal instruction trap |
 | Write to a read-only CSR | Illegal instruction trap |
-| Known opcode with an unassigned `funct3`, `funct7` or immediate (for example `ebreak`, `wfi`, or a branch with `funct3` 2 or 3) | Does nothing: the PC moves to the next instruction and `rd` is unchanged |
+| Known opcode with an unassigned `funct3`, `funct7` or `rs2` field (for example a branch with `funct3` 2 or 3, a shift with `shamt` 32 or more, or opcode `0x0B` with `funct3` 3 or 6) | Illegal instruction trap |
+| Opcode `0x73`, `funct3` 0, with a `funct12` other than `ecall`, `ebreak`, `mret`, `wfi`, or with `rd` or `rs1` not 0 | Illegal instruction trap |
+| `ebreak`, `wfi` | Does nothing: the PC moves to the next instruction. What they should do is not decided yet |
 
 `div` and `divu` by zero return `0xFFFF_FFFF`, `rem` and `remu` by zero return the dividend.
 `div` of `0x8000_0000` by -1 returns `0x8000_0000` and `rem` returns 0.
 `jalr` clears bit 0 of the target.
 There is no check on the alignment of an address.
 
-Known problem: `mulhsu` multiplies `rs1` by the number of the register `rs2` instead of by its value.
-Do not use it until it is fixed.
 
 ## Cycle counters
 

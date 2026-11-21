@@ -95,3 +95,42 @@ TEST_CASE("Memory ROM is RO", "[memory]") {
     mem.write32(addr, 0xBAADC0DE);
     REQUIRE(mem.read32(addr) == rom[0]);
 }
+
+TEST_CASE("Memory read-only zones reject every write size", "[memory]") {
+    Memory mem;
+
+    constexpr u32 ROM_LAST = MMAP_ROM_BOOT_LOADER + MMAP_ROM_SIZE - 1;
+
+    SECTION("write32 into the ROM") {
+        mem.write32(0x200, 0xBAADC0DE);
+        REQUIRE(mem.read32(0x200) == 0);
+    }
+
+    SECTION("write8 on the last ROM byte") {
+        mem.write8(ROM_LAST, 0x42);
+        REQUIRE(mem.read8(ROM_LAST) == 0);
+    }
+
+    SECTION("write32 across the end of the ROM leaves it unchanged") {
+        mem.write32(ROM_LAST - 1, 0xBAADC0DE);
+        REQUIRE(mem.read8(ROM_LAST - 1) == 0);
+        REQUIRE(mem.read8(ROM_LAST) == 0);
+    }
+
+    SECTION("write16 across the end of the ROM leaves it unchanged") {
+        mem.write16(ROM_LAST, 0xABCD);
+        REQUIRE(mem.read8(ROM_LAST) == 0);
+    }
+
+    SECTION("first byte after the ROM is writable") {
+        mem.write8(ROM_LAST + 1, 0x42);
+        REQUIRE(mem.read8(ROM_LAST + 1) == 0x42);
+    }
+
+    SECTION("write32 and write8 into the cartridge zones") {
+        mem.write32(MMAP_CART_CONTROL, 0xBAADC0DE);
+        mem.write8(MMAP_CART_WINDOW, 0x42);
+        REQUIRE(mem.read32(MMAP_CART_CONTROL) == 0);
+        REQUIRE(mem.read8(MMAP_CART_WINDOW) == 0);
+    }
+}

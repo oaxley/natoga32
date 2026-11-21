@@ -50,7 +50,7 @@ All the values are little-endian.
 
 | Zone | Start | End | Size | Access rules |
 |------|-------|-----|------|--------------|
-| ROM / boot loader | `0x0000_0000` | `0x001F_FFFF` | 2 MiB | Read-only by convention. See [ROM](#rom). |
+| ROM / boot loader | `0x0000_0000` | `0x001F_FFFF` | 2 MiB | Read-only: writes are ignored. See [ROM](#rom). |
 | Interrupts vector | `0x0020_0000` | `0x0020_007F` | 128 B | 32 words. Plain memory, not used by the CPU. |
 | Unused | `0x0020_0080` | `0x0020_0FFF` | 3,968 B | Plain memory. |
 | CSR registers | `0x0020_1000` | `0x0020_4FFF` | 16 KiB | 4096 words, the value of CSR `n` is at `0x0020_1000 + 4 * n`. Programs use the CSR instructions. |
@@ -80,8 +80,8 @@ The ROM is 2 MiB, loaded by the host with [`vc_loadRomFile` or `vc_loadRomData`]
 A ROM larger than 2 MiB is refused.
 The ROM survives `vc_reset`.
 
-The memory ignores most writes to the ROM, with no fault, but it does not block them all: a word write goes through, and so does a byte write to the last ROM byte.
-Treat the ROM as read-only and do not write to it.
+The memory ignores every write to the ROM (byte, half-word or word), with no fault.
+A write that is partly in the ROM is ignored as a whole.
 
 On reset, thread 0 starts at `0x0000_0100`, the entry point of the ROM.
 

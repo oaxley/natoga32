@@ -75,8 +75,7 @@ void Memory::write8(u32 addr, u8 value)
         return;
     }
 
-    // ensure ROM remains RO
-    if (addr < MMAP_ROM_BOOT_LOADER + MMAP_ROM_SIZE - 1) {
+    if (isReadOnly(addr)) {
         return;
     }
     ram_[addr] = value;
@@ -87,7 +86,7 @@ void Memory::write16(u32 addr, u16 value)
     if (!isValidAddress(addr) || !isValidAddress(addr + 1)) {
         return;
     }
-    if (isReadOnly(addr)) {
+    if (isReadOnly(addr) || isReadOnly(addr + 1)) {
         return;
     }
 
@@ -98,6 +97,9 @@ void Memory::write16(u32 addr, u16 value)
 void Memory::write32(u32 addr, u32 value)
 {
     if (!isValidAddress(addr) || !isValidAddress(addr + 3)) {
+        return;
+    }
+    if (isReadOnly(addr) || isReadOnly(addr + 3)) {
         return;
     }
 
