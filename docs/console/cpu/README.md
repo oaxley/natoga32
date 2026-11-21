@@ -42,7 +42,7 @@ Everything else is not an instruction of the console.
 | System | `ecall`, `mret`. See [Traps](traps.md) |
 | Custom (opcode `0x0B`) | `new.t`, `yield.t`, `id.t`, `sleep.t`, `wake.t`, `end.t`. See [Instructions](instructions.md) |
 
-The other instructions of Zbkb (`brev8`, `zip`, `unzip`, ...) are not decoded.
+The other instructions of Zbkb (`brev8`, `zip`, `unzip`, ...) and Zbkx are not part of the console: they raise an illegal instruction trap.
 
 `fence` (opcode `0x0F`, `funct3` 0) and `fence.i` (`funct3` 1) only move the PC to the next instruction.
 The CPU has one core and no cache, runs every access in order, and fetches every instruction from memory, so there is nothing to order or to flush.

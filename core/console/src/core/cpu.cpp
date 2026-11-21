@@ -54,6 +54,9 @@ void CPU::reset()
     // reset the global cycle counter
     total_cycles_ = 0;
 
+    // the canaries are written again by the threads init
+    stack_overflow_ = false;
+
     // Thread 0 is the main thread
     current_thread_ = 0;
     threads_[current_thread_].setState(ThreadState::Running);
@@ -182,13 +185,8 @@ void CPU::yieldT()
 {
     CPUThread& current = threads_[current_thread_];
 
-    // step 1 : check the canary for the current thread
+    // step 1 : the current thread gives the CPU away (the canary is checked by the caller)
     if (current.getState() == ThreadState::Running) {
-        if (!current.checkStackCanary(mem_)) {
-            // stack overflow detected
-            triggerTrap(false, CPU_THREAD_STACK_OVERFLOW_ERROR);
-            return;
-        }
         current.setState(ThreadState::Ready);
     }
 
@@ -254,6 +252,9 @@ void CPU::sleepT(u8 rs1, u8 rs2)
 
     // switch to next thread
     if (yield) {
+        if (stackOverflowed()) {
+            return;
+        }
         t.sleep(total_cycles_, waitkey_value, sleep_cycles);
         yieldT();
     }
@@ -274,6 +275,10 @@ void CPU::wakeT(u8 rs1)
 // end the current thread
 void CPU::endT()
 {
+    if (stackOverflowed()) {
+        return;
+    }
+
     // Thread 0 is immortal
     if (current_thread_ == 0) {
         triggerTrap(false, CPU_THREAD_MAIN_EXIT_ERROR);
@@ -308,6 +313,25 @@ void CPU::newT(u8 rd, u8 rs1)
 
     // no available slot found!
     triggerTrap(false, CPU_THREAD_SPAWN_ERROR);
+}
+
+// a broken canary is fatal: every other thread stops and the current one traps (true when it happened)
+// after the first overflow the canary is no longer checked, so the trap handler can sleep.t on the vblank
+bool CPU::stackOverflowed()
+{
+    if (stack_overflow_ || threads_[current_thread_].checkStackCanary(mem_)) {
+        return false;
+    }
+
+    stack_overflow_ = true;
+    for (int tid = 0; tid < THREADS_COUNT; tid++) {
+        if (tid != current_thread_) {
+            threads_[tid].end();
+        }
+    }
+
+    triggerTrap(false, CPU_THREAD_STACK_OVERFLOW_ERROR);
+    return true;
 }
 
 // trigger
@@ -979,7 +1003,9 @@ void CPU::execute_instruction()
                     newT(rd, rs1);
                     break;
                 case 0b001:     // yield.t
-                    yieldT();
+                    if (!stackOverflowed()) {
+                        yieldT();
+                    }
                     break;
                 case 0b010:     // id.t rd
                     registers[rd] = static_cast<u32>(current_thread_);

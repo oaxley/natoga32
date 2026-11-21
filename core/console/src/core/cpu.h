@@ -70,6 +70,7 @@ private:
     u64 total_cycles_ = 0;
     u64 virtual_time_ = 0;
     bool trap_taken_ = false;       //< set by triggerTrap during the current instruction
+    bool stack_overflow_ = false;   //< a stack canary was found broken: the canary is no longer checked
 
     Memory& mem_;
     const Cartridge* cartridge_ = nullptr;
@@ -84,6 +85,7 @@ private:
     void wakeT(u8 rs1);
     void endT();
     void newT(u8 rd, u8 rs1);
+    bool stackOverflowed();
 
     // interruption / exception trigger
     void triggerTrap(bool is_interrupt, u32 cause, u32 trap_value = 0);

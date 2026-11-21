@@ -69,6 +69,8 @@ The CPU checks the [stack canary](threads.md#stack-canary) first.
 - With both, the thread wakes at the first one.
 - With both at 0, `sleep.t` does nothing and the thread keeps running.
 
+When the thread really sleeps, the CPU checks the [stack canary](threads.md#stack-canary) first.
+
 The registers are read as unsigned 32-bit values.
 A duration of 25,000,000 is one second.
 The wake-up is not exact: the timers are checked when the CPU switches thread or is Idle, see [Threads](threads.md#switching-threads).
@@ -84,7 +86,7 @@ They become Ready and they run when their turn comes.
 
 `end.t` ends the current thread: its state becomes Dead and the CPU switches to the next Ready thread.
 Thread 0 cannot end: `end.t` on thread 0 raises a trap with `mcause` 24.
-The stack canary is not checked.
+The CPU checks the [stack canary](threads.md#stack-canary) first, so a broken canary on thread 0 raises 26, not 24.
 
 ## Waitkey values
 

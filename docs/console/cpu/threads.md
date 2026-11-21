@@ -99,11 +99,16 @@ The base is `0x0078_0000 + tid * 0x1_0000` and the top is `0x0078_0000 + (tid + 
 
 The first word of each stack (at the base) holds the canary `0xBAAD_F00D`.
 The reset and `new.t` write it.
-`yield.t` reads it before it gives the CPU away: if the value changed, the stack has overflowed and the CPU raises a trap (`mcause` 26, see [Traps](traps.md#thread-traps)).
+`yield.t`, `sleep.t` (when the thread really sleeps) and `end.t` read it before the thread gives the CPU away.
+If the value changed, the stack has overflowed and memory is corrupted, so the overflow is fatal:
 
-- Only `yield.t` checks the canary. `sleep.t` and `end.t` do not.
+1. Every other thread becomes Dead, thread 0 included.
+2. The CPU raises a trap (`mcause` 26, see [Traps](traps.md#thread-traps)) on the thread that overflowed. It stays Running and the instruction has no effect: no switch, no sleep, no end.
+3. From then on the canary is no longer checked, until the next reset. The trap handler is the only code that runs, and it can wait for the vblank with `sleep.t` (the boot ROM does this to show its error screen).
+
+- With no handler (`mtvec` = 0) the CPU halts, as for any trap.
+- A handler that runs `mret` goes back to the thread that overflowed, alone. Do not do it: its memory is corrupted.
 - The check finds an overflow that reached the base. It does not stop the overflow.
-- The trap does not end the thread. The yield does not happen.
 - An overflow of thread `n` runs into the stack of thread `n - 1`. An overflow of thread 0 runs into Video RAM.
 
 ## TLS

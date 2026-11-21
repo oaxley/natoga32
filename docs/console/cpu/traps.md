@@ -56,7 +56,7 @@ The address 0 cannot be a handler.
 | 11 | Environment call from M-mode | `ecall` | 0 |
 | 24 | Main thread exit | `end.t` in thread 0 | 0 |
 | 25 | Thread spawn error | `new.t` with no Free slot | 0 |
-| 26 | Stack overflow | `yield.t` when the stack canary has changed | 0 |
+| 26 | Stack overflow | `yield.t`, `sleep.t` or `end.t` when the stack canary has changed. Fatal: every other thread stops | 0 |
 | 27 | Deadlock | `sleep.t` or `end.t` when no thread is Ready and none can wake up | 0 |
 
 The values 1, 2, 5, 7 and 11 are the RISC-V ones.
@@ -98,7 +98,7 @@ The CPU raises an illegal instruction trap (2) for:
 |----------|------|----------------------|
 | 24 | Thread 0 calls `end.t` | Thread 0 keeps running |
 | 25 | `new.t` finds no Free slot | `rd` is unchanged |
-| 26 | `yield.t` finds the canary changed | The thread is not switched, it stays Running |
+| 26 | `yield.t`, `sleep.t` or `end.t` finds the canary changed | Every other thread is Dead. The thread stays Running and the instruction has no effect. See [Stack canary](threads.md#stack-canary) |
 | 27 | After `sleep.t` or `end.t`, no thread is Ready and no thread waits for a hardware event or a timer | The trap runs in the thread that tried to switch. Its state is already Sleeping or Dead |
 
 For 24 to 27, `mepc` is the address of the thread instruction.
