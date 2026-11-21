@@ -94,7 +94,7 @@ TEST_CASE("CPU Load/Store Instructions", "[cpu][instruction][memory]") {
         {
             test.mem.write32(MMAP_DATA, static_cast<u32>(-16384));
             test.setReg(1, MMAP_DATA);
-            test.loadInstruction(0x0000d183);       // LH x3, 0(x1)
+            test.loadInstruction(0x0000d183);       // LHU x3, 0(x1)
             test.execute();
             u32 value = test.getReg(3);
             REQUIRE(value == 49152);            // unsigned(-16384) = 49152
