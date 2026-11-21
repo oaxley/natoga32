@@ -9,8 +9,8 @@ import (
 // handleDup processes .dup COUNT VALUE
 // Expands to VALUE repeated COUNT times, separated by commas
 func (p *Preprocessor) handleDup(ts *tokenStream) ([]token.Token, error) {
-	row := ts.peek().Row
-	ts.advance() // consume .dup
+	dupTok := ts.advance() // consume .dup
+	row := dupTok.Row
 
 	// Parse count - can be a simple number/ident or expression in parentheses
 	var countToks []token.Token
@@ -33,7 +33,7 @@ func (p *Preprocessor) handleDup(ts *tokenStream) ([]token.Token, error) {
 	} else {
 		// Single token count
 		if ts.atEnd() || ts.peek().Type == token.EOL || ts.peek().Type == token.EOF {
-			return nil, fmt.Errorf("expected count after .dup at line %d", row)
+			return nil, locationError(dupTok, ".dup: expected a count")
 		}
 		countToks = append(countToks, ts.advance())
 	}
@@ -41,11 +41,11 @@ func (p *Preprocessor) handleDup(ts *tokenStream) ([]token.Token, error) {
 	// Evaluate count
 	count, err := p.evaluateExpr(countToks)
 	if err != nil {
-		return nil, fmt.Errorf("error evaluating .dup count at line %d: %v", row, err)
+		return nil, locationError(dupTok, ".dup count: %v", err)
 	}
 
 	if count < 0 {
-		return nil, fmt.Errorf(".dup count cannot be negative at line %d", row)
+		return nil, locationError(dupTok, ".dup count cannot be negative (%d)", count)
 	}
 
 	// Parse value - can be a simple token or expression in parentheses
@@ -69,7 +69,7 @@ func (p *Preprocessor) handleDup(ts *tokenStream) ([]token.Token, error) {
 	} else {
 		// Single token value
 		if ts.atEnd() || ts.peek().Type == token.EOL || ts.peek().Type == token.EOF {
-			return nil, fmt.Errorf("expected value after .dup count at line %d", row)
+			return nil, locationError(dupTok, ".dup: expected a value after the count")
 		}
 		valueToks = append(valueToks, ts.advance())
 	}
@@ -77,7 +77,7 @@ func (p *Preprocessor) handleDup(ts *tokenStream) ([]token.Token, error) {
 	// Evaluate value
 	value, err := p.evaluateExpr(valueToks)
 	if err != nil {
-		return nil, fmt.Errorf("error evaluating .dup value at line %d: %v", row, err)
+		return nil, locationError(dupTok, ".dup value: %v", err)
 	}
 
 	// Generate repeated values with commas

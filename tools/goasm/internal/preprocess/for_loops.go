@@ -9,18 +9,17 @@ import (
 // handleFor processes .for VAR = START, END [, STEP] ... .endf
 // Expands the loop body for each iteration, substituting the loop variable
 func (p *Preprocessor) handleFor(ts *tokenStream) ([]token.Token, error) {
-	row := ts.peek().Row
-	ts.advance() // consume .for
+	forTok := ts.advance() // consume .for
 
 	// Parse variable name
 	if !ts.check(token.IDENT) {
-		return nil, fmt.Errorf("expected identifier after .for at line %d", row)
+		return nil, locationError(forTok, ".for: expected a variable name")
 	}
 	varName := ts.advance().Value
 
 	// Expect '='
 	if !ts.check(token.ASSIGN) {
-		return nil, fmt.Errorf("expected '=' after variable name in .for at line %d", row)
+		return nil, locationError(forTok, ".for %s: expected '=' after the variable name", varName)
 	}
 	ts.advance()
 
@@ -31,12 +30,12 @@ func (p *Preprocessor) handleFor(ts *tokenStream) ([]token.Token, error) {
 	}
 	start, err := p.evaluateExpr(startToks)
 	if err != nil {
-		return nil, fmt.Errorf("error evaluating .for start value at line %d: %v", row, err)
+		return nil, locationError(forTok, ".for %s start: %v", varName, err)
 	}
 
 	// Expect ','
 	if !ts.check(token.COMMA) {
-		return nil, fmt.Errorf("expected ',' after start value in .for at line %d", row)
+		return nil, locationError(forTok, ".for %s: expected ',' after the start value", varName)
 	}
 	ts.advance()
 
@@ -47,7 +46,7 @@ func (p *Preprocessor) handleFor(ts *tokenStream) ([]token.Token, error) {
 	}
 	end, err := p.evaluateExpr(endToks)
 	if err != nil {
-		return nil, fmt.Errorf("error evaluating .for end value at line %d: %v", row, err)
+		return nil, locationError(forTok, ".for %s end: %v", varName, err)
 	}
 
 	// Parse optional step value
@@ -63,7 +62,7 @@ func (p *Preprocessor) handleFor(ts *tokenStream) ([]token.Token, error) {
 		}
 		step, err = p.evaluateExpr(stepToks)
 		if err != nil {
-			return nil, fmt.Errorf("error evaluating .for step value at line %d: %v", row, err)
+			return nil, locationError(forTok, ".for %s step: %v", varName, err)
 		}
 	}
 
@@ -74,11 +73,11 @@ func (p *Preprocessor) handleFor(ts *tokenStream) ([]token.Token, error) {
 
 	// Validate step
 	if step == 0 {
-		return nil, fmt.Errorf(".for step cannot be zero at line %d", row)
+		return nil, locationError(forTok, ".for step cannot be zero")
 	}
 
 	// Collect loop body until .endf
-	body, err := p.collectForBody(ts)
+	body, err := p.collectForBody(ts, forTok)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +94,7 @@ func (p *Preprocessor) handleFor(ts *tokenStream) ([]token.Token, error) {
 }
 
 // collectForBody collects tokens between .for and .endf, handling nesting
-func (p *Preprocessor) collectForBody(ts *tokenStream) ([]token.Token, error) {
+func (p *Preprocessor) collectForBody(ts *tokenStream, forTok token.Token) ([]token.Token, error) {
 	var body []token.Token
 	depth := 1
 
@@ -127,7 +126,7 @@ func (p *Preprocessor) collectForBody(ts *tokenStream) ([]token.Token, error) {
 	}
 
 	if depth != 0 {
-		return nil, fmt.Errorf("unterminated .for loop (missing .endf)")
+		return nil, locationError(forTok, "unterminated .for (missing .endf)")
 	}
 
 	return body, nil

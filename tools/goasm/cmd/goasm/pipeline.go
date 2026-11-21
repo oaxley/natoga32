@@ -46,6 +46,9 @@ func assemble(inputFile string) error {
 		return fmt.Errorf("lexer error: %v", err)
 	}
 	tokens := lex.Tokenize()
+	if err := lex.Err(); err != nil {
+		return err
+	}
 
 	if debugLevel == 1 {
 		fmt.Println("=== TOKENS ===")

@@ -6,8 +6,10 @@ package lexer
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/natoga32/goasm/internal/token"
 )
@@ -20,6 +22,7 @@ type Lexer struct {
 	row      int // Current line number (1-based)
 	col      int // Current column (1-based)
 	tokens   []token.Token
+	err      error // first error found by Tokenize
 }
 
 // New creates a new lexer from a string
@@ -80,6 +83,32 @@ func (l *Lexer) Tokenize() []token.Token {
 	}
 	l.tokens = append(l.tokens, token.NewWithFile(token.EOF, "", l.filename, l.row, l.col))
 	return l.tokens
+}
+
+// Err returns the first error found by Tokenize (an unknown character), or nil
+func (l *Lexer) Err() error {
+	return l.err
+}
+
+// unexpected records an unknown character that starts at byte pos-1 (the
+// first error only), and skips the rest of a multi-byte UTF-8 character
+func (l *Lexer) unexpected(row, col int) {
+	r, size := utf8.DecodeRuneInString(l.input[l.pos-1:])
+	for i := 1; i < size; i++ {
+		l.advance()
+	}
+	if l.err != nil {
+		return
+	}
+	loc := fmt.Sprintf("%d:%d", row, col)
+	if l.filename != "" {
+		loc = l.filename + ":" + loc
+	}
+	if r == utf8.RuneError && size <= 1 {
+		l.err = fmt.Errorf("%s: error: unexpected byte 0x%02X", loc, l.input[l.pos-1])
+		return
+	}
+	l.err = fmt.Errorf("%s: error: unexpected character '%c'", loc, r)
 }
 
 // atEnd returns true if we've reached the end of input

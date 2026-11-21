@@ -1,9 +1,5 @@
 package lexer
 
-import (
-	"unicode"
-)
-
 // Helper functions
 func isDigit(ch byte) bool {
 	return ch >= '0' && ch <= '9'
@@ -18,7 +14,8 @@ func isOctalDigit(ch byte) bool {
 }
 
 func isAlpha(ch byte) bool {
-	return unicode.IsLetter(rune(ch)) || ch == '_'
+	// ASCII only: a byte of a multi-byte UTF-8 character is not a letter
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
 }
 
 func isAlphaNumeric(ch byte) bool {

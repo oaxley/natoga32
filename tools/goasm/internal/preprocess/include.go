@@ -56,6 +56,10 @@ func (p *Preprocessor) handleInclude(ts *tokenStream) ([]token.Token, error) {
 	}
 
 	tokens := lex.Tokenize()
+	if err := lex.Err(); err != nil {
+		delete(p.includes, fullPath)
+		return nil, err
+	}
 
 	// Remove EOF from included tokens
 	if len(tokens) > 0 && tokens[len(tokens)-1].Type == token.EOF {

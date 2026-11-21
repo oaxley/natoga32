@@ -146,6 +146,8 @@ func (l *Lexer) scanToken() {
 		// Macro parameter reference: \name
 		if isAlpha(l.peek()) {
 			l.scanMacroParam(startRow, startCol)
+		} else {
+			l.unexpected(startRow, startCol)
 		}
 
 	default:
@@ -153,6 +155,8 @@ func (l *Lexer) scanToken() {
 			l.scanNumber(ch, startRow, startCol)
 		} else if isAlpha(ch) || ch == '_' {
 			l.scanIdentifier(ch, startRow, startCol)
+		} else {
+			l.unexpected(startRow, startCol)
 		}
 	}
 }

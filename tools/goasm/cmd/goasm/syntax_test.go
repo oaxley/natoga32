@@ -405,3 +405,55 @@ func TestDisasmCounterPseudo(t *testing.T) {
 		}
 	}
 }
+
+// a character the lexer does not know stops with its location, instead of
+// being dropped
+func TestLexerUnknownCharacter(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct{ src, want, loc string }{
+		{".byte 1 @ 2", "unexpected character '@'", "2:9"},
+		{".byte 5 ?", "unexpected character '?'", "2:9"},
+		{"nop `", "unexpected character '`'", "2:5"},
+		{".byte {1}", "unexpected character '{'", "2:7"},
+		{".byte [1]", "unexpected character '['", "2:7"},
+		{"li a0, 1 \\ 2", "unexpected character '\\'", "2:10"},
+		{".byte 1 é", "unexpected character 'é'", "2:9"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			expectError(t, goasm, tt.src, tt.want, tt.loc)
+		})
+	}
+	// in a comment or a string, any character is fine
+	expectAssembles(t, goasm, ".byte 1 ; @ ? { é\n.byte '@', '?'\n.ascii \"`{}é\"", []byte{0x01, '@', '?', '`', '{', '}', 0xc3, 0xa9})
+}
+
+// .dup and .for errors give the file and line, like .if and .define
+func TestDupForErrorLocation(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct{ src, want, line string }{
+		{".byte .dup", ".dup: expected a count", "2"},
+		{".byte .dup 2", ".dup: expected a value after the count", "2"},
+		{".byte .dup (4/) 0", ".dup count:", "2"},
+		{".byte .dup (2*2) (1/)", ".dup value:", "2"},
+		{".byte .dup (-1) 0", ".dup count cannot be negative", "2"},
+		{"nop\n.for 1 = 0, 2\n.endf", ".for: expected a variable name", "3"},
+		{".for i 0, 2\n.endf", ".for i: expected '=' after the variable name", "2"},
+		{".for i = 0 2\n.endf", ".for i start: unexpected '2' after the expression", "2"},
+		{".for i = 0\n.endf", ".for i: expected ',' after the start value", "2"},
+		{".for i = (1, 2\n.endf", ".for i start:", "2"},
+		{".for i = 0, 2*\n.endf", ".for i end:", "2"},
+		{".for i = 0, 2, 1+\n.endf", ".for i step:", "2"},
+		{".for i = 0, 2, 0\n.endf", ".for step cannot be zero", "2"},
+		{"nop\n.for i = 0, 2\nnop", "unterminated .for (missing .endf)", "3"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			expectError(t, goasm, tt.src, tt.want, tt.line)
+		})
+	}
+}

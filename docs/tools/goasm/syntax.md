@@ -34,9 +34,12 @@ One statement per line.
 A comment starts with `;`, `#` or `//` and runs to the end of the line.
 (`##` is not a comment: it is the [paste operator](preprocessor.md#token-pasting).)
 
+Outside a comment, a string and a character, a character that goasm does not use stops with its line and column: `in.s:2:9: error: unexpected character '@'`.
+This includes `?`, `` ` ``, `{`, `}`, `[`, `]` (except in `$[VAR]`), `\` not followed by a letter, and any non-ASCII character. Before, they were dropped without a word, so `.byte 1 @ 2` gave `01 02`.
+
 A label is a name followed by `:`.
 A label can share a line with an instruction or a directive.
-A name can contain letters, digits, `_` and `.`.
+A name can contain ASCII letters, digits, `_` and `.`.
 A label defined twice stops at the second one with `in.s:4:1: error: symbol 'l' already defined at line 2`. When the first one is in another file (an `.include`), its file is given: `already defined at inc.s:1`.
 
 Instruction and directive names are case-sensitive and lower case: `ADDI` gives `unknown instruction 'ADDI'`, and `.TEXT` gives `unknown directive`.

@@ -142,9 +142,9 @@ There is no `.elif`.
 
 - `END` is **exclusive**: `.for i = 0, 4` runs with `i` = 0, 1, 2, 3.
 - `STEP` defaults to `1`, or to `-1` when `START` is greater than `END`. `.for k = 3, 0` gives 3, 2, 1. `.for j = 10, 0, -5` gives 10, 5.
-- A step of 0 stops with `.for step cannot be zero`.
+- A step of 0 stops with `in.s:2: error: .for step cannot be zero`. A bad bound names the variable and the part: `in.s:2: error: .for i end: expected a value at the end of the expression`.
 - `i` is replaced by its number wherever it appears as a name in the body. Loops can be nested.
-- A missing `.endf` stops with an error.
+- A missing `.endf` stops with `unterminated .for (missing .endf)`, at the line of the `.for`.
 
 Inside a label, `i:` is not replaced, so use [token pasting](#token-pasting) with something after the variable (`handler##n##_entry:`).
 
@@ -159,7 +159,7 @@ Use it after a data directive.
 ```
 
 `COUNT` and `VALUE` are each a single token or an expression in parentheses.
-A negative count is an error.
+A negative count stops with `in.s:2: error: .dup count cannot be negative (-1)`. A bad expression names the part: `.dup count: ...` or `.dup value: ...`. Like `.if` and `.define`, the errors give the file and the line.
 
 ## Macros
 
