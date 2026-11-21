@@ -80,7 +80,7 @@ func TestOrgDirectivePass1BackwardError(t *testing.T) {
 	}
 }
 
-func TestOrgDirectivePass3(t *testing.T) {
+func TestOrgDirectivePass2(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
 	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)
@@ -118,7 +118,7 @@ func TestOrgDirectivePass3(t *testing.T) {
 	}
 }
 
-func TestOrgDirectivePass3BackwardError(t *testing.T) {
+func TestOrgDirectivePass2BackwardError(t *testing.T) {
 	symbols := symbol.New()
 	sections := section.NewManager()
 	sections.SetBaseAddresses(0x1000, 0x2000, 0x3000, 0x4000, 0x5000)

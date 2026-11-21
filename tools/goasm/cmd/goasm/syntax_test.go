@@ -269,6 +269,6 @@ func TestSyscallForms(t *testing.T) {
 
 	ecall := []byte{0x73, 0x00, 0x00, 0x00}
 	expectAssembles(t, goasm, "syscall", ecall)
-	expectAssembles(t, goasm, "syscall 5", append([]byte{0x93, 0x08, 0x50, 0x00}, ecall...)) // addi a7, zero, 5
+	expectAssembles(t, goasm, "syscall 5", append([]byte{0x93, 0x08, 0x50, 0x00}, ecall...))  // addi a7, zero, 5
 	expectAssembles(t, goasm, "syscall a0", append([]byte{0xb3, 0x08, 0xa0, 0x00}, ecall...)) // add a7, zero, a0
 }

@@ -14,7 +14,7 @@ goasm --disasm out.rscv --pseudo     # disassemble
 goasm in.s -d 3                      # stop after phase 3 (AST)
 ```
 
-Options: `-o`, `-f rscv|bin|rom`, `--sym`, `-O`, `-d 1..7`, `--disasm`, `--base`, `--pseudo`, `--hex`, `--no-abi`.
+Options: `-o`, `-f rscv|bin|rom`, `--sym`, `-O`, `-d 0..7`, `--disasm`, `--base`, `--pseudo`, `--hex`, `--no-abi`.
 See [the overview](README.md).
 
 ## Sections

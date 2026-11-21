@@ -67,11 +67,13 @@ Each phase prints a `Phase N` line on stdout.
 | 3 | Parser | AST. |
 | 4 | Pseudo expansion | AST with the pseudo-instructions expanded. |
 | 5 | Pass 1 | Symbols and sections. |
-| 6 | Pass 2 | Resolved symbols. |
-| 7 | Pass 3 | Encoded sections as a hex dump. |
+| 6 | Pass 2 | Encoded sections as a hex dump. |
+| 7 | Output | What was written: format, sections, file size, `dSYM` label count. |
 
-With `-d 1` to `-d 7`, goasm stops after the printed phase and writes no file.
-Any other value (`0`, `8`, ...) runs the whole pipeline.
+With `-d 1` to `-d 6`, goasm stops after the printed phase and writes no file.
+With `-d 7`, goasm writes the files as usual, then prints the summary.
+`-d 0` (the default) prints only the `Phase N` lines.
+Another value stops with `--debug must be 0 to 7, got 8` before anything is read or written.
 The optimizer runs between phase 4 and phase 5, only with `-O`.
 
 ## Disassembly

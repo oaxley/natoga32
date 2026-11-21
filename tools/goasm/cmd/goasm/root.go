@@ -59,7 +59,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "a.out", "Output file path")
 	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "rscv", "Output format: rscv, bin, rom")
 	rootCmd.Flags().StringVar(&symFile, "sym", "", "Write the labels as a cartridge dSYM chunk (needs -f rscv)")
-	rootCmd.Flags().IntVarP(&debugLevel, "debug", "d", 0, "Debug level (1-8 to stop after specific phase)")
+	rootCmd.Flags().IntVarP(&debugLevel, "debug", "d", 0, "Debug level: 1-6 print a phase and stop, 7 prints the output written")
 	rootCmd.Flags().BoolVarP(&optimizeFlag, "optimize", "O", false, "Enable peephole optimizations")
 
 	// Disassembly flags
@@ -106,8 +106,8 @@ func semanticPass1(program *ast.Program, symbols *symbol.Table, sections *sectio
 	return nil
 }
 
-// semanticPass3 encodes instructions to binary
-func semanticPass3(program *ast.Program, symbols *symbol.Table, sections *section.Manager) error {
+// semanticPass2 encodes instructions to binary, with the symbols of pass 1
+func semanticPass2(program *ast.Program, symbols *symbol.Table, sections *section.Manager) error {
 	ctx := newEncodeContext(program)
 	for _, stmt := range program.Statements {
 		switch s := stmt.(type) {
