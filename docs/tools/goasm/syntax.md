@@ -37,7 +37,7 @@ A comment starts with `;`, `#` or `//` and runs to the end of the line.
 A label is a name followed by `:`.
 A label can share a line with an instruction or a directive.
 A name can contain letters, digits, `_` and `.`.
-A label defined twice stops with `symbol 'l' already defined at line N`.
+A label defined twice stops with `symbol 'l' already defined at line 0`. The line number is always 0.
 
 Instruction and directive names are case-sensitive and lower case: `ADDI` gives `unknown instruction 'ADDI'`, and `.TEXT` gives `unknown directive`.
 Register names are not case-sensitive.
@@ -64,7 +64,8 @@ To put a newline in a string, end the string and add `.byte 10`.
 
 ## Expressions
 
-Instruction operands and data directives accept expressions with numbers, characters, labels, `.equ` names and `$` (the address of the current statement).
+Instruction operands and data directives accept expressions with numbers, characters, labels and `.equ` names.
+`$` is the address of the current statement. It works in `.byte`/`.half`/`.word` and in branch and `jal` targets (`j $+8`). In the immediate of `addi`, `lui`, loads and stores (`addi a1, a1, $`) it gives 0. With `li`, `$` is the address of the second instruction of the expansion (the `li` address + 4).
 
 | Operator | Precedence |
 |----------|------------|
@@ -81,7 +82,8 @@ A division by zero stops with `division by zero`.
 Limits of the current code:
 
 - In `.byte`, `.half` and `.word`, only `+ - * /`, unary `-` and `$` work. `<<`, `>>`, `&`, `|`, `^` and `%` give 0 without an error.
-- In instruction operands, `%` gives 0. The other operators work.
+- In the immediate of an instruction (`addi`, `lui`, loads, stores, `li`), `%` gives 0. The other operators work.
+- A branch or `jal` target is evaluated like a data directive: only `+ - * /` work. `beq a0, a1, t|0` jumps to address 0.
 - The result of an immediate is not range-checked. `addi x1, x2, 5000` assembles to the low 12 bits.
 - A shift amount is masked to 5 bits.
 
@@ -168,7 +170,7 @@ A non-zero value stops with `.bss section holds non-zero data at 0xADDR: use .da
 
 Notes:
 
-- `.equ NAME, N` accepts a decimal or hexadecimal number only. A negative number, a character, an expression or another name leaves `NAME` undefined (error `undefined symbol` when it is used). Use [`.define`](preprocessor.md#constants) for those. An `.equ` name works in instructions and in `.byte`/`.half`/`.word`, but not in `.space` or `.align`.
+- `.equ NAME, N` accepts a decimal, hexadecimal (`0x`), binary (`0b`) or octal (`0o`) number only. A negative number, a character, an expression or another name leaves `NAME` undefined (error `undefined symbol` when it is used). Use [`.define`](preprocessor.md#constants) for those. An `.equ` name works in instructions and in `.byte`/`.half`/`.word`, but not in `.space` or `.align`.
 - `.org` takes an absolute address, not an offset: `.org 0x100` in `.rom`, `.org 0x01A00010` in `.text`. An address before the current one stops with `.org address 0xX is before current address 0xY`.
 - `.global` must come **after** the label it marks. Before the label, it has no effect.
 - `.incbin` reads the file relative to the directory of the input file. The bytes count in the section size. A missing file stops with `cannot stat incbin file`.

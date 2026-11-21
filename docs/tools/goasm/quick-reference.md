@@ -34,7 +34,7 @@ See [the overview](README.md).
 | `.byte` `.half` `.word` | Values of 1, 2, 4 bytes. |
 | `.string` `.asciz` / `.ascii` | Text with / without a 0 byte. No escape translation. |
 | `.space N` / `.align N` / `.org ADDR` | Zeros; to a multiple of `2^N`; up to an absolute address. |
-| `.equ NAME, N` | Constant (decimal or hex number only). |
+| `.equ NAME, N` | Constant (a plain number: decimal, `0x`, `0b`, `0o`). |
 | `.global NAME` | After the label. |
 | `.incbin "f"` / `.include "f"` | Bytes / source, relative to the input file. |
 | `.define NAME V` | Constant, evaluated left to right. |
@@ -123,6 +123,7 @@ again:
 | `<<` `>>` `&` `\|` `^` `%` give 0 in `.word` | Compute the value with `.define`. |
 | `.string` keeps `\n` as two bytes | Use `.byte 10`. |
 | `_` in numbers is not read | Write `0x206800`. |
+| `.if !X` is read as `.if X`, with no error | Write `.if X == 0`. |
 | A recursive macro crashes goasm | Use `.for`. |
 
 ## See also

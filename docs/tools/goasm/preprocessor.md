@@ -96,7 +96,8 @@ To insert raw bytes, use [`.incbin`](syntax.md#data-directives).
 | `.endif` | End of the block. |
 
 `.if` uses the same left-to-right evaluator as `.define`.
-`&&`, `||`, `!` and parentheses are **not** supported, and give `cannot evaluate token: ...`.
+`&&`, `||` and parentheses are **not** supported, and give `cannot evaluate token: ...`.
+`!` is a trap: the lexer drops a `!` that is not followed by `=`, so `.if !X` is read as `.if X` and no error is given. Write `.if X == 0` instead.
 A name that is not defined counts as 0.
 Blocks can be nested.
 A block with no `.endif` stops with `unterminated conditional block`.

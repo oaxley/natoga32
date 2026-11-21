@@ -134,7 +134,7 @@ n32pack reads this file with the `dsym` field of its [manifest](../n32pack/manif
 
 `-O` turns on a peephole optimizer.
 It runs after the pseudo-instructions are expanded, on runs of instructions between labels and directives.
-It makes 2 passes and has two rules:
+It makes one sweep over each run and has two rules:
 
 | Rule | Replaces | By |
 |------|----------|----|
@@ -142,7 +142,8 @@ It makes 2 passes and has two rules:
 | Redundant move | `addi x, y, 0` then `addi z, x, 0` | `addi z, y, 0` |
 
 **Do not use `-O` for code that matters.**
-After each replacement, the optimizer skips the next instruction, and that instruction is lost.
+After a replacement by the zero-operand rule, the optimizer skips the next instruction, and that instruction is lost.
+The redundant-move rule replaces its own pair of instructions and loses nothing else.
 This program:
 
 ```asm
