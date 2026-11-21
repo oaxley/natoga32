@@ -97,6 +97,7 @@ constexpr u32 STACK_CANARY_VALUE = 0xBAADF00D;
 
 // RISC-V Opcodes
 constexpr u32 OP_LOAD   = 0b000'0011;       // 0x03
+constexpr u32 OP_MISC_MEM = 0b000'1111;     // 0x0F
 constexpr u32 OP_STORE  = 0b010'0011;       // 0x23
 constexpr u32 OP_BRANCH = 0b110'0011;       // 0x63
 

@@ -84,9 +84,10 @@ func TestSystemInstructionEncoding(t *testing.T) {
 		src  string
 		want []byte
 	}{
-		{"ecall", []byte{0x73, 0x00, 0x00, 0x00}}, // 0x00000073
-		{"wfi", []byte{0x73, 0x00, 0x50, 0x10}},   // 0x10500073
-		{"mret", []byte{0x73, 0x00, 0x20, 0x30}},  // 0x30200073
+		{"ecall", []byte{0x73, 0x00, 0x00, 0x00}},  // 0x00000073
+		{"ebreak", []byte{0x73, 0x00, 0x10, 0x00}}, // 0x00100073
+		{"wfi", []byte{0x73, 0x00, 0x50, 0x10}},    // 0x10500073
+		{"mret", []byte{0x73, 0x00, 0x20, 0x30}},   // 0x30200073
 	}
 	for _, tt := range tests {
 		t.Run(tt.src, func(t *testing.T) {
@@ -96,6 +97,68 @@ func TestSystemInstructionEncoding(t *testing.T) {
 			}
 			if !bytes.Equal(data, tt.want) {
 				t.Errorf("%s = % x, want % x", tt.src, data, tt.want)
+			}
+		})
+	}
+}
+
+// fence pred, succ: pred in bits 27:24, succ in bits 23:20 (i=8, o=4, r=2, w=1).
+// fence alone is fence iorw, iorw. fence.i has funct3 001 and no operand.
+func TestFenceEncoding(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want []byte
+	}{
+		{"fence", []byte{0x0f, 0x00, 0xf0, 0x0f}},            // 0x0FF0000F
+		{"fence iorw, iorw", []byte{0x0f, 0x00, 0xf0, 0x0f}}, // same word
+		{"fence rw, rw", []byte{0x0f, 0x00, 0x30, 0x03}},     // 0x0330000F
+		{"fence w, r", []byte{0x0f, 0x00, 0x20, 0x01}},       // 0x0120000F
+		{"fence i, o", []byte{0x0f, 0x00, 0x40, 0x08}},       // 0x0840000F
+		{"fence wr, ow", []byte{0x0f, 0x00, 0x50, 0x03}},     // any letter order: 0x0350000F
+		{"fence 0, w", []byte{0x0f, 0x00, 0x10, 0x00}},       // empty set, as printed by the disassembler: 0x0010000F
+		{"fence.i", []byte{0x0f, 0x10, 0x00, 0x00}},          // 0x0000100F
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("%s = % x, want % x", tt.src, data, tt.want)
+			}
+		})
+	}
+}
+
+// Bad fence operands, and operands given to fence.i or ebreak, are errors
+func TestFenceInvalid(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{"fence rw", "fence expects 0 or 2 operands (pred, succ)"},
+		{"fence rw, rw, rw", "fence expects 0 or 2 operands (pred, succ)"},
+		{"fence rx, w", "invalid fence set 'rx'"},
+		{"fence rr, w", "invalid fence set 'rr'"},
+		{"fence 3, w", "invalid fence set"},
+		{"fence.i a0", "fence.i takes no operands"},
+		{"ebreak 1", "ebreak takes no operands"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
 			}
 		})
 	}

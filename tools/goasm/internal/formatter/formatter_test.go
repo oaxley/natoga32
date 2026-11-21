@@ -330,6 +330,38 @@ func TestFormatSystemInstructions(t *testing.T) {
 			t.Errorf("got %q, want %q", got, "ecall")
 		}
 	})
+
+	for _, mnemonic := range []string{"ebreak", "fence.i"} {
+		t.Run(mnemonic, func(t *testing.T) {
+			instr := decodeForTest(mnemonic, 0, 0, 0, 0)
+			if got := f.FormatInstruction(0, instr); got != mnemonic {
+				t.Errorf("got %q, want %q", got, mnemonic)
+			}
+		})
+	}
+}
+
+// fence prints its pred and succ sets in iorw order
+func TestFormatFence(t *testing.T) {
+	f := New(DefaultOptions())
+
+	tests := []struct {
+		word uint32
+		want string
+	}{
+		{0x0FF0000F, "fence iorw, iorw"},
+		{0x0330000F, "fence rw, rw"},
+		{0x0120000F, "fence w, r"},
+		{0x0840000F, "fence i, o"},
+		{0x0010000F, "fence 0, w"}, // empty pred set
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			if got := f.FormatInstruction(0, decoder.Decode(tt.word)); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
 }
 
 func TestFormatUnknownInstruction(t *testing.T) {

@@ -73,7 +73,8 @@ See [the overview](README.md).
 | Zbkb | `pack packh` |
 | Zicond | `czero.eqz czero.nez` |
 | CSR | `csrrw csrrs csrrc csrrwi csrrsi csrrci` (CSR last) |
-| System | `ecall mret wfi` (`wfi` does nothing on the CPU) |
+| Memory ordering | `fence fence.i` (`fence` alone is `fence iorw, iorw`; both do nothing on the CPU) |
+| System | `ecall ebreak mret wfi` (`ebreak` and `wfi` do nothing on the CPU) |
 | Threads | `new.t yield.t id.t sleep.t wake.t end.t` |
 
 ## Pseudo-instructions

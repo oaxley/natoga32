@@ -31,6 +31,7 @@ Everything else is not an instruction of the console.
 | RV32I stores | `sb`, `sh`, `sw` |
 | RV32I with an immediate | `addi`, `slti`, `sltiu`, `xori`, `ori`, `andi`, `slli`, `srli`, `srai` |
 | RV32I with registers | `add`, `sub`, `sll`, `slt`, `sltu`, `xor`, `srl`, `sra`, `or`, `and` |
+| RV32I memory ordering | `fence`, `fence.i` (Zifencei). Both do nothing, see below |
 | M | `mul`, `mulh`, `mulhsu`, `mulhu`, `div`, `divu`, `rem`, `remu` |
 | Zbb | `clz`, `ctz`, `cpop`, `sext.b`, `sext.h`, `zext.h`, `min`, `minu`, `max`, `maxu`, `rol`, `ror`, `rori`, `rev8` |
 | Zbs | `bset`, `bclr`, `binv`, `bext`, `bseti`, `bclri`, `binvi`, `bexti` |
@@ -41,13 +42,19 @@ Everything else is not an instruction of the console.
 | Custom (opcode `0x0B`) | `new.t`, `yield.t`, `id.t`, `sleep.t`, `wake.t`, `end.t`. See [Instructions](instructions.md) |
 
 The other instructions of Zbb, Zbs and Zbkb (`andn`, `orn`, `xnor`, `orc.b`, `brev8`, `zip`, `unzip`, ...) are not decoded.
-`fence` and `fence.i` are not decoded either.
+
+`fence` (opcode `0x0F`, `funct3` 0) and `fence.i` (`funct3` 1) only move the PC to the next instruction.
+The CPU has one core and no cache, runs every access in order, and fetches every instruction from memory, so there is nothing to order or to flush.
+The `pred`, `succ`, `fm`, `rd` and `rs1` fields are ignored.
+They are decoded so that programs that use them run now, and stay correct if the console gets a DMA or a cache later.
+Opcode `0x0F` with another `funct3` raises an illegal instruction trap.
 
 ### What the CPU does with the rest
 
 | Case | Result |
 |------|--------|
-| Opcode that does not exist (including `fence`) | Illegal instruction trap |
+| Opcode that does not exist | Illegal instruction trap |
+| Opcode `0x0F` with `funct3` 2 to 7 | Illegal instruction trap |
 | Load with an unused `funct3`, store with an unused `funct3` | Illegal instruction trap |
 | Write to a read-only CSR | Illegal instruction trap |
 | Known opcode with an unassigned `funct3`, `funct7` or immediate (for example `ebreak`, `wfi`, or a branch with `funct3` 2 or 3) | Does nothing: the PC moves to the next instruction and `rd` is unchanged |

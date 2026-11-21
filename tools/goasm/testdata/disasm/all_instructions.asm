@@ -190,8 +190,19 @@ csr_imm_instrs:
 
 system_instrs:
     ecall
+    ebreak
     mret
     wfi
+
+; =============================================================================
+; Memory ordering (fence sets print in iorw order, 0 is the empty set)
+; =============================================================================
+
+fence_instrs:
+    fence iorw, iorw
+    fence rw, w
+    fence 0, w
+    fence.i
 
 ; =============================================================================
 ; Custom Thread Instructions

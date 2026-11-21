@@ -105,8 +105,13 @@ func (f *Formatter) formatInstruction(addr uint32, instr *decoder.DecodedInstruc
 	case arch.TypeJ:
 		return f.formatTypeJ(addr, instr)
 	case arch.TypeSystem:
-		// ecall, wfi, mret: no operands
+		// ecall, ebreak, wfi, mret, fence.i: no operands
 		return instr.Mnemonic
+	case arch.TypeFence:
+		// fence pred, succ, written so that goasm reads it back
+		pred := (uint32(instr.Immediate) >> 4) & 0xF
+		succ := uint32(instr.Immediate) & 0xF
+		return fmt.Sprintf("%s %s, %s", instr.Mnemonic, arch.FenceSetString(pred), arch.FenceSetString(succ))
 	default:
 		return fmt.Sprintf(".word 0x%08X", instr.RawWord)
 	}

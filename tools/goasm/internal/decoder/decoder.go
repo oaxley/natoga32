@@ -53,7 +53,9 @@ func Decode(word uint32) *DecodedInstruction {
 	case arch.TypeJ:
 		decodeTypeJ(word, instr)
 	case arch.TypeSystem:
-		// ecall, wfi, mret: no operands
+		// ecall, ebreak, wfi, mret, fence.i: no operands
+	case arch.TypeFence:
+		decodeTypeFence(word, instr)
 	}
 
 	return instr
@@ -135,6 +137,13 @@ func decodeTypeB(word uint32, instr *DecodedInstruction) {
 func decodeTypeU(word uint32, instr *DecodedInstruction) {
 	instr.Rd = int(extractRd(word))
 	instr.Immediate = extractImmUValue(word)
+}
+
+// decodeTypeFence decodes the pred and succ sets of a fence into the immediate:
+// pred in bits 7:4, succ in bits 3:0
+// Format: fm[31:28] | pred[27:24] | succ[23:20] | rs1[19:15] | funct3[14:12] | rd[11:7] | opcode[6:0]
+func decodeTypeFence(word uint32, instr *DecodedInstruction) {
+	instr.Immediate = int32((word >> 20) & 0xFF)
 }
 
 // decodeTypeJ decodes J-type instruction operands

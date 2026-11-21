@@ -22,6 +22,7 @@ add_executable(vctests
     libvc/test_cpu/basic.cpp
     libvc/test_cpu/opcode-memory.cpp
     libvc/test_cpu/opcode-auipc-lui.cpp
+    libvc/test_cpu/opcode-misc-mem.cpp
     libvc/test_cpu/branches.cpp
     libvc/test_cpu/opcodes_19.cpp
     libvc/test_cpu/opcodes_51.cpp

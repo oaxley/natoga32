@@ -23,7 +23,9 @@ type OpcodeEntry struct {
 // reverseOpcodeTable maps encoding fields to instruction mnemonics
 var reverseOpcodeTable map[OpcodeKey]*OpcodeEntry
 
-// useFunct7Opcodes are opcodes where funct7 is needed for disambiguation
+// useFunct7Opcodes are opcodes where funct7 is needed for disambiguation.
+// MISC-MEM (0x0F) is not one: fence and fence.i differ by funct3, and the
+// funct7 and rs2 fields of a fence hold its pred/succ sets.
 var useFunct7Opcodes = map[uint32]bool{
 	0x33: true, // R-type ALU
 	0x13: true, // I-type ALU (for shifts and Zbb)
@@ -34,7 +36,7 @@ var useFunct7Opcodes = map[uint32]bool{
 // useRs2Opcodes are opcodes where rs2 is needed for disambiguation
 var useRs2Opcodes = map[uint32]bool{
 	0x13: true, // For Zbb instructions like sext.b, sext.h, clz, ctz, cpop
-	0x73: true, // For mret, wfi
+	0x73: true, // For ebreak, mret, wfi
 }
 
 // zbbUnaryInstructions are Zbb instructions with fixed rs2/shamt values
@@ -182,6 +184,8 @@ func GetInstructionType(opcode uint32) arch.InstrType {
 	switch opcode {
 	case 0x03: // Load
 		return arch.TypeI
+	case 0x0F: // MISC-MEM: fence, fence.i
+		return arch.TypeFence // Will be refined by lookup
 	case 0x0B: // Thread (mixed types)
 		return arch.TypeR // Will be refined by lookup
 	case 0x13: // ALU immediate

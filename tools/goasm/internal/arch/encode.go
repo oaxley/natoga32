@@ -183,12 +183,23 @@ func EncodeTypeJ(op InstrOpcode, rd uint32, imm int32) []byte {
 	return uint32ToBytes(value)
 }
 
-// EncodeTypeSystem encodes a system instruction without operands (ecall, wfi, mret)
+// EncodeTypeSystem encodes an instruction without operands (ecall, ebreak, wfi, mret, fence.i)
 // The funct12 field is made of op.Funct7 (bits 31:25) and op.Rs2 (bits 24:20); rs1 and rd are 0
 // Format: funct12[31:20] | rs1[19:15] | funct3[14:12] | rd[11:7] | opcode[6:0]
 func EncodeTypeSystem(op InstrOpcode) []byte {
 	value := (op.Funct7 << 25) |
 		((op.Rs2 & 0x1F) << 20) |
+		(op.Funct3 << 12) |
+		op.Opcode
+
+	return uint32ToBytes(value)
+}
+
+// EncodeTypeFence encodes a fence with its predecessor and successor sets (fm = 0)
+// Format: fm[31:28] | pred[27:24] | succ[23:20] | rs1[19:15] | funct3[14:12] | rd[11:7] | opcode[6:0]
+func EncodeTypeFence(op InstrOpcode, pred, succ uint32) []byte {
+	value := ((pred & 0xF) << 24) |
+		((succ & 0xF) << 20) |
 		(op.Funct3 << 12) |
 		op.Opcode
 
@@ -224,6 +235,9 @@ func Encode(mnemonic string, rd, rs1, rs2 uint32, imm int32) ([]byte, error) {
 		return EncodeTypeJ(op, rd, imm), nil
 	case TypeSystem:
 		return EncodeTypeSystem(op), nil
+	case TypeFence:
+		// imm holds pred in bits 7:4 and succ in bits 3:0, as in the instruction word
+		return EncodeTypeFence(op, (uint32(imm)>>4)&0xF, uint32(imm)&0xF), nil
 	default:
 		return nil, fmt.Errorf("unsupported instruction type: %v", op.Type)
 	}

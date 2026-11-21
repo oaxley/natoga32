@@ -6,6 +6,7 @@ package decoder
 
 import (
 	"encoding/binary"
+	"fmt"
 	"testing"
 
 	"github.com/natoga32/goasm/internal/arch"
@@ -462,6 +463,7 @@ func TestDecodeSystemInstructions(t *testing.T) {
 		want string
 	}{
 		{0x00000073, "ecall"},
+		{0x00100073, "ebreak"},
 		{0x10500073, "wfi"},
 		{0x30200073, "mret"},
 	}
@@ -476,6 +478,34 @@ func TestDecodeSystemInstructions(t *testing.T) {
 			}
 			if instr.Type != arch.TypeSystem {
 				t.Errorf("type: got %v, want %v", instr.Type, arch.TypeSystem)
+			}
+		})
+	}
+}
+
+// fence keeps its pred/succ sets in the immediate; fence.i is told apart by funct3
+func TestDecodeFence(t *testing.T) {
+	tests := []struct {
+		word uint32
+		want string
+		typ  arch.InstrType
+		imm  int32
+	}{
+		{0x0FF0000F, "fence", arch.TypeFence, 0x0FF},
+		{0x0330000F, "fence", arch.TypeFence, 0x033},
+		{0x0000100F, "fence.i", arch.TypeSystem, 0},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("0x%08X", tt.word), func(t *testing.T) {
+			instr := Decode(tt.word)
+			if instr.Mnemonic != tt.want {
+				t.Fatalf("decode: got %q, want %q", instr.Mnemonic, tt.want)
+			}
+			if instr.Type != tt.typ {
+				t.Errorf("type: got %v, want %v", instr.Type, tt.typ)
+			}
+			if instr.Immediate != tt.imm {
+				t.Errorf("immediate: got 0x%X, want 0x%X", instr.Immediate, tt.imm)
 			}
 		})
 	}

@@ -84,7 +84,8 @@ Outside these rules, there is no access fault: an address beyond the 32 MiB read
 
 The CPU raises an illegal instruction trap (2) for:
 
-- an opcode that is not in the [instruction list](README.md#instructions-decoded), `fence` included;
+- an opcode that is not in the [instruction list](README.md#instructions-decoded);
+- opcode `0x0F` with a `funct3` other than 0 (`fence`) and 1 (`fence.i`);
 - a load with `funct3` 3, 6 or 7, and a store with `funct3` above 2. The CPU checks this before any access;
 - a CSR instruction that writes a read-only CSR, see [CSR registers](csr.md#access-rules).
 

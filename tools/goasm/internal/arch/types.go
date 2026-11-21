@@ -17,7 +17,8 @@ const (
 	TypeB                       // B-type: conditional branches
 	TypeU                       // U-type: upper immediate (lui, auipc)
 	TypeJ                       // J-type: unconditional jumps (jal)
-	TypeSystem                  // System: no operands, funct12 fixed by the opcode (ecall, wfi, mret)
+	TypeSystem                  // System: no operands, funct12 fixed by the opcode (ecall, ebreak, wfi, mret, fence.i)
+	TypeFence                   // Fence: pred and succ sets (i, o, r, w) in the immediate field
 )
 
 // String returns the string representation of an instruction type
@@ -33,6 +34,7 @@ func (t InstrType) String() string {
 		TypeU:      "U",
 		TypeJ:      "J",
 		TypeSystem: "SYSTEM",
+		TypeFence:  "FENCE",
 	}
 	if int(t) < len(names) {
 		return names[t]

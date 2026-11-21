@@ -194,11 +194,29 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		encoded = arch.EncodeTypeJ(op, rd, imm)
 
 	case arch.TypeSystem:
-		// ecall, wfi, mret: the whole upper field is fixed by the opcode
+		// ecall, ebreak, wfi, mret, fence.i: the whole upper field is fixed by the opcode
 		if len(instr.Operands) != 0 {
 			return fmt.Errorf("%s: error: %s takes no operands", instr.Location, instr.Opcode)
 		}
 		encoded = arch.EncodeTypeSystem(op)
+
+	case arch.TypeFence:
+		// fence pred, succ; fence alone is fence iorw, iorw
+		pred, succ := arch.FenceAll, arch.FenceAll
+		switch len(instr.Operands) {
+		case 0:
+		case 2:
+			if pred, err = evalFenceSet(instr, instr.Operands[0]); err != nil {
+				return err
+			}
+			if succ, err = evalFenceSet(instr, instr.Operands[1]); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("%s: error: %s expects 0 or 2 operands (pred, succ), got %d",
+				instr.Location, instr.Opcode, len(instr.Operands))
+		}
+		encoded = arch.EncodeTypeFence(op, pred, succ)
 
 	default:
 		return fmt.Errorf("%s: error: unsupported instruction type '%v'", instr.Location, op.Type)
@@ -206,6 +224,27 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 
 	sections.Emit(encoded)
 	return nil
+}
+
+// evalFenceSet reads a fence set: letters among i, o, r, w (such as rw), or 0 for the empty set
+func evalFenceSet(instr *ast.Instruction, operand ast.Expression) (uint32, error) {
+	text := ""
+	switch e := operand.(type) {
+	case *ast.Identifier:
+		text = e.Name
+	case *ast.Number:
+		text = fmt.Sprint(e.Value)
+	}
+	set, ok := arch.ParseFenceSet(text)
+	if !ok {
+		if text == "" {
+			return 0, fmt.Errorf("%s: error: invalid fence set (expected letters among i, o, r, w, or 0)",
+				instr.Location)
+		}
+		return 0, fmt.Errorf("%s: error: invalid fence set '%s' (expected letters among i, o, r, w, or 0)",
+			instr.Location, text)
+	}
+	return set, nil
 }
 
 // isCSRImmediate reports whether mnemonic is a CSR immediate instruction

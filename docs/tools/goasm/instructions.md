@@ -4,7 +4,7 @@ This page lists every instruction and pseudo-instruction that goasm assembles, a
 
 All names are lower case.
 The [CPU instruction list](../../console/cpu/README.md) is the list of what the console runs.
-The goasm list is the same, plus one instruction (`wfi`) that the CPU does not run.
+The goasm list is the same, plus two instructions (`wfi`, `ebreak`) that the CPU does not run.
 
 ```asm
 .text
@@ -35,11 +35,33 @@ done:
 | Branches | `beq bne blt bge bltu bgeu` |
 | Jumps | `jal jalr` |
 | Upper immediate | `lui auipc` |
-| System | `ecall` |
+| Memory ordering | `fence fence.i` |
+| System | `ecall ebreak` |
 
-`fence`, `fence.i` and `ebreak` are not accepted.
 Operand forms are in [Syntax](syntax.md#operand-forms).
 `lui` and `auipc` take the 20-bit value that goes in the upper bits: `lui t2, 0x12345` loads `0x1234_5000`.
+
+### fence and fence.i
+
+| Form | Word | Note |
+|------|------|------|
+| `fence` | `0x0FF0_000F` | Same as `fence iorw, iorw`. |
+| `fence pred, succ` | `0x0PS0_000F` | `P` is the `pred` set, `S` the `succ` set. A set is made of the letters `i` (device input, 8), `o` (device output, 4), `r` (memory read, 2) and `w` (memory write, 1). `fence rw, w` is `0x0310_000F`. |
+| `fence.i` | `0x0000_100F` | No operand. |
+
+- A set has each letter at most once, in any order: `fence rw, w` is the same as `fence wr, w`. `0` is the empty set.
+- `fence` with one operand or more than two stops with `fence expects 0 or 2 operands (pred, succ)`. A bad set stops with `invalid fence set 'rx'`.
+- `fence.i a0` stops with `fence.i takes no operands`.
+- The disassembler prints the sets in `iorw` order, and `0` for an empty set: `fence 0, w`.
+- On the console both do nothing: the CPU moves to the next instruction. The CPU has one core, no cache, and runs every access in order, so there is nothing to order or flush. Write them where a RISC-V program needs them: the code keeps working if the console gets a DMA or a cache later.
+
+```asm
+.text
+    sw      a0, 0(a1)       ; write the data
+    fence   w, w            ; the data is written before the flag
+    sw      a2, 0(a3)       ; write the flag
+    fence.i                 ; code written to memory can now run
+```
 
 ## M extension
 
@@ -71,6 +93,7 @@ Operand forms:
 | Instruction | Form | Note |
 |-------------|------|------|
 | `ecall` | `ecall` | Environment call. |
+| `ebreak` | `ebreak` | Assembles to `0x0010_0073`. **The CPU does not run it**: the word does nothing. |
 | `mret` | `mret` | Return from a trap handler (`0x3020_0073`). |
 | `wfi` | `wfi` | Assembles to `0x1050_0073`. **The CPU does not run it**: the word does nothing. |
 | `csrrw` `csrrs` `csrrc` | `csrrw rd, rs1, csr` | Operand order is `rd, rs1, csr`. |
@@ -79,7 +102,7 @@ Operand forms:
 - The standard RISC-V order is `rd, csr, rs1`. goasm puts the CSR **last**. The pseudo-instructions below hide this.
 - `csr` is a number from 0 to `0xFFF`. CSR names such as `mstatus` are not known: use a number or an `.equ` constant. The numbers are in [CSR](../../console/cpu/csr.md).
 - An immediate out of range stops with `csrrwi immediate 40 out of range (0..31)`.
-- `ecall`, `mret` and `wfi` take no operand. `mret a0` stops with `mret takes no operands`.
+- `ecall`, `ebreak`, `mret` and `wfi` take no operand. `mret a0` stops with `mret takes no operands`.
 
 The disassembler shows the `uimm` of `csrrwi` as a register name (`x5`).
 
@@ -194,7 +217,8 @@ data:
 | Case | goasm | CPU |
 |------|-------|-----|
 | `wfi` | Assembled (`0x1050_0073`). | Not decoded: the word does nothing. |
-| `fence`, `fence.i`, `ebreak` | Not accepted. | Not decoded (`fence`: illegal instruction). |
+| `ebreak` | Assembled (`0x0010_0073`). | Not decoded: the word does nothing. |
+| `fence`, `fence.i` | Assembled. | Decoded, and do nothing: the PC moves to the next instruction. |
 
 Every other instruction of the CPU list is accepted by goasm.
 

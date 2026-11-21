@@ -920,6 +920,24 @@ void CPU::execute_instruction()
             break;
         }
 
+        case OP_MISC_MEM:   // memory ordering
+        {
+            // one hart, no cache, no reordering: every access is already done
+            // in order and every fetch reads memory, so FENCE and FENCE.I do nothing.
+            // A DMA or an instruction cache would have to act here.
+            switch (funct3)
+            {
+                case 0b000:     // FENCE (any pred/succ, fm, rd and rs1)
+                case 0b001:     // FENCE.I
+                    pc += 4;
+                    break;
+                default:
+                    triggerTrap(false, CPU_MAIN_ILLEGAL_INSTRUCTION);
+                    break;
+            }
+            break;
+        }
+
         case OP_SYSTEM:     // system instructions
         {
             u32 csr = (instruction >> 20) & 0xFFF;
