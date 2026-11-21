@@ -37,6 +37,9 @@ A comment starts with `;`, `#` or `//` and runs to the end of the line.
 Outside a comment, a string and a character, a character that goasm does not use stops with its line and column: `in.s:2:9: error: unexpected character '@'`.
 This includes `?`, `` ` ``, `{`, `}`, `[`, `]` (except in `$[VAR]`), `\` not followed by a letter, and any non-ASCII character. Before, they were dropped without a word, so `.byte 1 @ 2` gave `01 02`.
 
+A line that starts with something else than a label, an instruction or a directive stops with `in.s:2:1: error: unexpected ')' at the start of a line`.
+An expression cut short stops with `in.s:2:9: error: expected a value at the end of the line` (`.byte 1+`).
+
 A label is a name followed by `:`.
 A label can share a line with an instruction or a directive.
 A name can contain ASCII letters, digits, `_` and `.`.

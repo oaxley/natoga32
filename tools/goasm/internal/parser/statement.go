@@ -1,8 +1,6 @@
 package parser
 
 import (
-	"fmt"
-
 	"github.com/natoga32/goasm/internal/ast"
 	"github.com/natoga32/goasm/internal/token"
 )
@@ -29,5 +27,5 @@ func (p *Parser) parseStatement() (ast.Statement, error) {
 		return p.parseDirective()
 	}
 
-	return nil, fmt.Errorf("unexpected token: %s at line %d, col %d", tok.Type, tok.Row, tok.Col)
+	return nil, tokenError(tok, "unexpected %s at the start of a line", describeToken(tok))
 }

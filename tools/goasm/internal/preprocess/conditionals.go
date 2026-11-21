@@ -1,18 +1,17 @@
 package preprocess
 
 import (
-	"fmt"
-
 	"github.com/natoga32/goasm/internal/token"
 )
 
 // handleConditional processes .ifdef/.ifndef NAME ... .else ... .endif
 func (p *Preprocessor) handleConditional(ts *tokenStream) ([]token.Token, error) {
-	directive := ts.advance().Value // consume .ifdef or .ifndef
+	dirTok := ts.advance() // consume .ifdef or .ifndef
+	directive := dirTok.Value
 
 	// Get the name
 	if !ts.check(token.IDENT) {
-		return nil, fmt.Errorf("expected identifier after %s at line %d", directive, ts.peek().Row)
+		return nil, locationError(dirTok, "%s: expected a name", directive)
 	}
 	name := ts.advance().Value
 
@@ -29,7 +28,7 @@ func (p *Preprocessor) handleConditional(ts *tokenStream) ([]token.Token, error)
 	}
 
 	// Collect true and false blocks
-	trueBlock, falseBlock, err := p.collectConditionalBlocks(ts)
+	trueBlock, falseBlock, err := p.collectConditionalBlocks(ts, dirTok)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +66,7 @@ func (p *Preprocessor) handleIf(ts *tokenStream) ([]token.Token, error) {
 	condition := value != 0
 
 	// Collect true and false blocks
-	trueBlock, falseBlock, err := p.collectConditionalBlocks(ts)
+	trueBlock, falseBlock, err := p.collectConditionalBlocks(ts, ifTok)
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +78,9 @@ func (p *Preprocessor) handleIf(ts *tokenStream) ([]token.Token, error) {
 	return falseBlock, nil
 }
 
-// collectConditionalBlocks collects tokens for true and false blocks
-func (p *Preprocessor) collectConditionalBlocks(ts *tokenStream) ([]token.Token, []token.Token, error) {
+// collectConditionalBlocks collects tokens for true and false blocks;
+// openTok is the .if/.ifdef/.ifndef, for the error when .endif is missing
+func (p *Preprocessor) collectConditionalBlocks(ts *tokenStream, openTok token.Token) ([]token.Token, []token.Token, error) {
 	var trueBlock []token.Token
 	var falseBlock []token.Token
 	inFalseBlock := false
@@ -137,7 +137,7 @@ func (p *Preprocessor) collectConditionalBlocks(ts *tokenStream) ([]token.Token,
 	}
 
 	if depth != 0 {
-		return nil, nil, fmt.Errorf("unterminated conditional block")
+		return nil, nil, locationError(openTok, "unterminated %s (missing .endif)", openTok.Value)
 	}
 
 	return trueBlock, falseBlock, nil

@@ -10,19 +10,18 @@ import (
 // handlePaste processes ## token pasting
 // Takes the previous token from result and concatenates it with the next token
 func (p *Preprocessor) handlePaste(ts *tokenStream, result *[]token.Token) (token.Token, error) {
-	row := ts.peek().Row
-	ts.advance() // consume ##
+	pasteTok := ts.advance() // consume ##
 
 	// Get left side (pop from result)
 	if len(*result) == 0 {
-		return token.Token{}, fmt.Errorf("## requires a token on the left side at line %d", row)
+		return token.Token{}, locationError(pasteTok, "## needs a token on its left")
 	}
 	left := (*result)[len(*result)-1]
 	*result = (*result)[:len(*result)-1]
 
 	// Get right side
 	if ts.atEnd() || ts.peek().Type == token.EOL || ts.peek().Type == token.EOF {
-		return token.Token{}, fmt.Errorf("## requires a token on the right side at line %d", row)
+		return token.Token{}, locationError(pasteTok, "## needs a token on its right")
 	}
 	right := ts.advance()
 
@@ -60,9 +59,10 @@ func (p *Preprocessor) handlePaste(ts *tokenStream, result *[]token.Token) (toke
 	}
 
 	return token.Token{
-		Type:  resultType,
-		Value: pastedValue,
-		Row:   left.Row,
-		Col:   left.Col,
+		Type:     resultType,
+		Value:    pastedValue,
+		Filename: left.Filename,
+		Row:      left.Row,
+		Col:      left.Col,
 	}, nil
 }

@@ -15,7 +15,7 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 
 	switch tok.Type {
 	case token.EOF:
-		return nil, fmt.Errorf("unexpected end of file in expression")
+		return nil, tokenError(tok, "expected a value at the end of the file")
 
 	case token.NUMBER:
 		val, err := helpers.ParseNumber(tok.Value)
@@ -55,7 +55,7 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 	case token.ABS_LO, token.ABS_HI, token.PCREL_LO, token.PCREL_HI:
 		// Relocation modifier: %lo(expr), %hi(expr), etc.
 		if !p.check(token.LPAREN) {
-			return nil, fmt.Errorf("expected '(' after relocation modifier")
+			return nil, tokenError(tok, "expected '(' after %s", tok.Value)
 		}
 		p.advance() // consume '('
 
@@ -127,32 +127,8 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 		return &ast.UnaryOp{Op: op, Operand: operand, Location: loc}, nil
 	}
 
-	return nil, fmt.Errorf("unexpected token in expression: %s (%q) at line %d", tok.Type, tok.Value, tok.Row)
-}
-
-// parseOffsetBase parses the (base) part of an offset(base) expression
-// Example: 4(sp), label(a0), (sp)
-func (p *Parser) parseOffsetBase(offset ast.Expression, loc ast.SourceLocation) (ast.Expression, error) {
-	// Consume the '('
-	p.advance()
-
-	// Parse the base register (must be an identifier)
-	if !p.check(token.IDENT) {
-		return nil, fmt.Errorf("expected register identifier in offset(base) expression")
+	if tok.Type == token.EOL {
+		return nil, tokenError(tok, "expected a value at the end of the line")
 	}
-
-	baseTok := p.advance()
-	base := &ast.Identifier{Name: baseTok.Value, Location: locationFromToken(baseTok)}
-
-	// Expect closing ')'
-	if !p.check(token.RPAREN) {
-		return nil, fmt.Errorf("expected ')' after base register in offset(base) expression")
-	}
-	p.advance()
-
-	return &ast.OffsetBase{
-		Offset:   offset,
-		Base:     base,
-		Location: loc,
-	}, nil
+	return nil, tokenError(tok, "unexpected %s in an expression", describeToken(tok))
 }

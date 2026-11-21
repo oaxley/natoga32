@@ -63,10 +63,13 @@ The path is relative to the directory of the **input file**, also inside a neste
 The included text replaces the line.
 Its `.define` names and macros stay visible after it.
 
+Each error gives the file and line of the `.include`:
+
 | Error | Cause |
 |-------|-------|
-| `cannot open include file 'X': ...` | The file does not exist. |
-| `recursive include detected: X` | A file includes itself, directly or not. |
+| `in.s:3: error: cannot open include file 'X': no such file or directory` | The file does not exist. |
+| `in.s:3: error: .include "X": the file includes itself` | A file includes itself, directly or not. |
+| `in.s:3: error: .include: expected a file name in quotes` | The name is not a string. |
 
 To insert raw bytes, use [`.incbin`](syntax.md#data-directives).
 
@@ -128,7 +131,8 @@ A name that is not defined counts as 0, so `.if !DEBUG` keeps the block when `DE
 - A wrong expression stops with an error at its line: `missing ')'`, `unexpected ')'`, `expected a value`, `division by zero`, `modulo by zero`, `shift amount 64 out of range (0..63)`.
 - Note that `==` binds tighter than `&`, as in C: `6 & 3 == 3` is `6 & (3 == 3)`, so 0. Write `(6 & 3) == 3`.
 Blocks can be nested.
-A block with no `.endif` stops with `unterminated conditional block`.
+A block with no `.endif` stops with `in.s:2: error: unterminated .ifdef (missing .endif)` (or `.if`, `.ifndef`), at the line of the opening directive.
+`.ifdef` and `.ifndef` without a name stop with `.ifdef: expected a name`.
 
 There is no `.elif`.
 
@@ -176,7 +180,7 @@ A negative count stops with `in.s:2: error: .dup count cannot be negative (-1)`.
 - A missing argument is replaced by nothing. The instruction that uses it usually fails to assemble, and the error points at that instruction, not at the missing argument.
 - A macro can call another macro, also one defined later, and macros can be nested.
 - A macro name hides an instruction of the same name.
-- `.macro` with no name stops with `expected macro name after .macro at line N`.
+- `.macro` with no name stops with `in.s:2: error: .macro: expected a name`. A macro with no `.endm` stops with `unterminated .macro M (missing .endm)`, at the line of the `.macro`.
 - A macro can call itself if a `.if` stops the calls (see below).
 - A macro that never stops calling itself, directly or through another macro, stops with `FILE:LINE: error: macro 'NAME' expanded too deeply (more than 1000 levels): recursive macro without an end?`. `FILE:LINE` is the last call that was expanded. The limits are 1000 nested levels and 100 000 macro calls in a whole program.
 
@@ -204,7 +208,7 @@ It is mostly used with a `.for` variable or a `.define` name:
 
 - A `.define` name or loop variable next to `##` is replaced by its number first, so `l##i##_x:` gives `l0_x:`, `l1_x:`, ...
 - A label token that ends with `:` is not replaced. In `handler##COUNT:` the text `COUNT` stays as it is. Put a suffix after the variable.
-- `##` with nothing on one side stops with `## requires a token ...`.
+- `##` with nothing on one side stops with `in.s:3: error: ## needs a token on its right` (or `left`).
 
 ## Environment variables
 

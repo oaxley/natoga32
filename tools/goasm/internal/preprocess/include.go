@@ -1,9 +1,8 @@
 package preprocess
 
 import (
-	"fmt"
+	"errors"
 	"os"
-
 	"path/filepath"
 
 	"github.com/natoga32/goasm/internal/lexer"
@@ -12,11 +11,11 @@ import (
 
 // handleInclude processes .include "filename"
 func (p *Preprocessor) handleInclude(ts *tokenStream) ([]token.Token, error) {
-	ts.advance() // consume .include
+	incTok := ts.advance() // consume .include
 
 	// Get the filename
 	if !ts.check(token.STRING) {
-		return nil, fmt.Errorf("expected string after .include at line %d", ts.peek().Row)
+		return nil, locationError(incTok, ".include: expected a file name in quotes")
 	}
 	filename := ts.advance().Value
 
@@ -35,7 +34,7 @@ func (p *Preprocessor) handleInclude(ts *tokenStream) ([]token.Token, error) {
 
 	// Check for recursive include
 	if p.includes[fullPath] {
-		return nil, fmt.Errorf("recursive include detected: %s", fullPath)
+		return nil, locationError(incTok, ".include \"%s\": the file includes itself", filename)
 	}
 
 	// Mark as included (will be cleared after full processing completes)
@@ -45,14 +44,14 @@ func (p *Preprocessor) handleInclude(ts *tokenStream) ([]token.Token, error) {
 	file, err := os.Open(fullPath)
 	if err != nil {
 		delete(p.includes, fullPath)
-		return nil, fmt.Errorf("cannot open include file '%s': %v", fullPath, err)
+		return nil, locationError(incTok, "cannot open include file '%s': %v", fullPath, unwrapPathError(err))
 	}
 	defer file.Close()
 
 	lex, err := lexer.NewFromReaderWithFile(file, fullPath)
 	if err != nil {
 		delete(p.includes, fullPath)
-		return nil, fmt.Errorf("error reading include file '%s': %v", fullPath, err)
+		return nil, locationError(incTok, "cannot read include file '%s': %v", fullPath, err)
 	}
 
 	tokens := lex.Tokenize()
@@ -82,4 +81,14 @@ func (p *Preprocessor) handleInclude(ts *tokenStream) ([]token.Token, error) {
 	}
 
 	return processed, nil
+}
+
+// unwrapPathError drops the "open FILE:" prefix of an os error: the
+// message already names the file
+func unwrapPathError(err error) error {
+	var pathErr *os.PathError
+	if errors.As(err, &pathErr) {
+		return pathErr.Err
+	}
+	return err
 }

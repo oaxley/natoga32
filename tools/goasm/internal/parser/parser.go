@@ -5,6 +5,8 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/natoga32/goasm/internal/ast"
 	"github.com/natoga32/goasm/internal/token"
 )
@@ -110,4 +112,25 @@ func locationFromToken(tok token.Token) ast.SourceLocation {
 		Line:     tok.Row,
 		Column:   tok.Col,
 	}
+}
+
+// tokenError prefixes an error with the file, line and column of tok
+func tokenError(tok token.Token, format string, args ...any) error {
+	return fmt.Errorf("%s: error: %s", locationFromToken(tok), fmt.Sprintf(format, args...))
+}
+
+// describeToken names a token for an error message: "number '1'", "')'",
+// "the end of the line"
+func describeToken(tok token.Token) string {
+	switch tok.Type {
+	case token.EOL:
+		return "the end of the line"
+	case token.EOF:
+		return "the end of the file"
+	case token.NUMBER:
+		return fmt.Sprintf("number '%s'", tok.Value)
+	case token.STRING:
+		return "string " + tok.Value
+	}
+	return fmt.Sprintf("'%s'", tok.Value)
 }

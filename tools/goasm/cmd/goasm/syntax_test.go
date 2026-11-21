@@ -457,3 +457,57 @@ func TestDupForErrorLocation(t *testing.T) {
 		})
 	}
 }
+
+// every preprocessor and parser error gives the file and the line
+func TestPreprocessParserErrorLocation(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct{ src, want, line string }{
+		{".ifdef\n.endif", ".ifdef: expected a name", "2"},
+		{"nop\n.ifndef 5\n.endif", ".ifndef: expected a name", "3"},
+		{"nop\n.ifdef X\nnop", "unterminated .ifdef (missing .endif)", "3"},
+		{".if 1\nnop", "unterminated .if (missing .endif)", "2"},
+		{".macro\n.endm", ".macro: expected a name", "2"},
+		{"nop\n.macro M\nnop", "unterminated .macro M (missing .endm)", "3"},
+		{".include 5", ".include: expected a file name in quotes", "2"},
+		{"nop\n.include \"nope.s\"", "nope.s': no such file or directory", "3"},
+		{".define X, 1\n.byte X ##", "## needs a token on its right", "3"},
+		{"nop\n) nop", "unexpected ')' at the start of a line", "3"},
+		{", nop", "unexpected ',' at the start of a line", "2"},
+		{"1 nop", "unexpected number '1' at the start of a line", "2"},
+		{".byte )", "unexpected ')' in an expression", "2"},
+		{"nop\n.byte 1+", "expected a value at the end of the line", "3"},
+		{"li a0, %hi 5", "expected '(' after %hi", "2"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			expectError(t, goasm, tt.src, tt.want, tt.line)
+		})
+	}
+
+	// in an included file, the location is that file
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "inc.s"), []byte("nop\n.macro M\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "main.s"), []byte(".rom\n.include \"inc.s\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(goasm, filepath.Join(dir, "main.s"), "-f", "rom", "-o", filepath.Join(dir, "out.rom")).CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "inc.s:2: error: unterminated .macro M (missing .endm)") {
+		t.Errorf("expected the error in inc.s:2, got (err=%v):\n%s", err, out)
+	}
+
+	// a recursive include names the file that includes itself and its line
+	if err := os.WriteFile(filepath.Join(dir, "self.s"), []byte("nop\n.include \"self.s\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "main.s"), []byte(".rom\n.include \"self.s\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, err = exec.Command(goasm, filepath.Join(dir, "main.s"), "-f", "rom", "-o", filepath.Join(dir, "out.rom")).CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "self.s:2: error: .include \"self.s\": the file includes itself") {
+		t.Errorf("expected the recursive include at self.s:2, got (err=%v):\n%s", err, out)
+	}
+}

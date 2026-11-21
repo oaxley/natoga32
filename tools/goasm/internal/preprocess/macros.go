@@ -1,19 +1,16 @@
 package preprocess
 
 import (
-	"fmt"
-
 	"github.com/natoga32/goasm/internal/token"
 )
 
 // handleMacro processes .macro NAME [params...] ... .endmacro
 func (p *Preprocessor) handleMacro(ts *tokenStream) error {
-	row := ts.peek().Row
-	ts.advance() // consume .macro
+	macroTok := ts.advance() // consume .macro
 
 	// Parse macro name
 	if !ts.check(token.IDENT) {
-		return fmt.Errorf("expected macro name after .macro at line %d", row)
+		return locationError(macroTok, ".macro: expected a name")
 	}
 	name := ts.advance().Value
 
@@ -35,7 +32,7 @@ func (p *Preprocessor) handleMacro(ts *tokenStream) error {
 	}
 
 	// Collect macro body until .endmacro
-	body, err := p.collectMacroBody(ts)
+	body, err := p.collectMacroBody(ts, macroTok, name)
 	if err != nil {
 		return err
 	}
@@ -51,7 +48,7 @@ func (p *Preprocessor) handleMacro(ts *tokenStream) error {
 }
 
 // collectMacroBody collects tokens between .macro and .endmacro, handling nesting
-func (p *Preprocessor) collectMacroBody(ts *tokenStream) ([]token.Token, error) {
+func (p *Preprocessor) collectMacroBody(ts *tokenStream, macroTok token.Token, name string) ([]token.Token, error) {
 	var body []token.Token
 	depth := 1
 
@@ -83,7 +80,7 @@ func (p *Preprocessor) collectMacroBody(ts *tokenStream) ([]token.Token, error) 
 	}
 
 	if depth != 0 {
-		return nil, fmt.Errorf("unterminated .macro (missing .endmacro)")
+		return nil, locationError(macroTok, "unterminated .macro %s (missing .endm)", name)
 	}
 
 	return body, nil

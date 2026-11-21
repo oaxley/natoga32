@@ -1,8 +1,6 @@
 package parser
 
 import (
-	"fmt"
-
 	"github.com/natoga32/goasm/internal/ast"
 	"github.com/natoga32/goasm/internal/token"
 )
@@ -11,7 +9,7 @@ import (
 func (p *Parser) parseInstruction() (*ast.Instruction, error) {
 	opTok := p.advance()
 	if opTok.Type != token.IDENT {
-		return nil, fmt.Errorf("expected instruction opcode, got %s", opTok.Type)
+		return nil, tokenError(opTok, "expected an instruction, got %s", describeToken(opTok))
 	}
 
 	operands, err := p.parseOperands()
