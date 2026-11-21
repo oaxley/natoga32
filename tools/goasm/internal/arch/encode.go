@@ -19,15 +19,15 @@ type EncodeResult struct {
 type RelocationType int
 
 const (
-	RelocNone RelocationType = iota
-	RelocHi20              // %hi(symbol) - upper 20 bits
-	RelocLo12I             // %lo(symbol) - lower 12 bits for I-type
-	RelocLo12S             // %lo(symbol) - lower 12 bits for S-type
-	RelocPCRelHi20         // %pcrel_hi(symbol) - PC-relative upper 20 bits
-	RelocPCRelLo12I        // %pcrel_lo(symbol) - PC-relative lower 12 bits for I-type
-	RelocPCRelLo12S        // %pcrel_lo(symbol) - PC-relative lower 12 bits for S-type
-	RelocBranch            // Branch offset (B-type)
-	RelocJump              // Jump offset (J-type)
+	RelocNone       RelocationType = iota
+	RelocHi20                      // %hi(symbol) - upper 20 bits
+	RelocLo12I                     // %lo(symbol) - lower 12 bits for I-type
+	RelocLo12S                     // %lo(symbol) - lower 12 bits for S-type
+	RelocPCRelHi20                 // %pcrel_hi(symbol) - PC-relative upper 20 bits
+	RelocPCRelLo12I                // %pcrel_lo(symbol) - PC-relative lower 12 bits for I-type
+	RelocPCRelLo12S                // %pcrel_lo(symbol) - PC-relative lower 12 bits for S-type
+	RelocBranch                    // Branch offset (B-type)
+	RelocJump                      // Jump offset (J-type)
 )
 
 // Relocation represents a relocation entry

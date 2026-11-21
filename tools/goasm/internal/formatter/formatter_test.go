@@ -422,9 +422,9 @@ func TestFormatWithMinimalOutput(t *testing.T) {
 
 func TestRegisterName(t *testing.T) {
 	tests := []struct {
-		reg     int
-		useABI  bool
-		want    string
+		reg    int
+		useABI bool
+		want   string
 	}{
 		{0, true, "zero"},
 		{0, false, "x0"},
