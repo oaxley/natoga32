@@ -70,14 +70,15 @@ Operand forms:
 | Instruction | Form | Note |
 |-------------|------|------|
 | `ecall` | `ecall` | Environment call. |
-| `mret` | `mret` | **Assembles to `0x0000_0073`, the word of `ecall`.** Write `.word 0x30200073`. |
-| `wfi` | `wfi` | **Assembled but not executed.** It also assembles to `0x0000_0073`, so it runs as `ecall`. Do not use it. |
+| `mret` | `mret` | Return from a trap handler (`0x3020_0073`). |
+| `wfi` | `wfi` | Assembles to `0x1050_0073`. **The CPU does not run it**: the word does nothing. |
 | `csrrw` `csrrs` `csrrc` | `csrrw rd, rs1, csr` | Operand order is `rd, rs1, csr`. |
 | `csrrwi` `csrrsi` `csrrci` | `csrrwi rd, uimm, csr` | `uimm` is 0 to 31. |
 
 - The standard RISC-V order is `rd, csr, rs1`. goasm puts the CSR **last**. The pseudo-instructions below hide this.
 - `csr` is a number from 0 to `0xFFF`. CSR names such as `mstatus` are not known: use a number or an `.equ` constant. The numbers are in [CSR](../../console/cpu/csr.md).
 - An immediate out of range stops with `csrrwi immediate 40 out of range (0..31)`.
+- `ecall`, `mret` and `wfi` take no operand. `mret a0` stops with `mret takes no operands`.
 
 The disassembler shows the `uimm` of `csrrwi` as a register name (`x5`).
 
@@ -91,7 +92,7 @@ The disassembler shows the `uimm` of `csrrwi` as a register name (`x5`).
     csrrw  a1, a0, 0x305
     csrwi  MSTATUS, 8
     csrrwi a2, 5, 0x340
-    .word  0x30200073       # mret
+    mret
     ecall
 ```
 
@@ -191,8 +192,7 @@ data:
 
 | Case | goasm | CPU |
 |------|-------|-----|
-| `wfi` | Assembled (as `0x0000_0073`). | Not decoded: a real `wfi` word does nothing. |
-| `mret` | Assembled as `ecall` (bug). | Decoded when the word is `0x3020_0073`. |
+| `wfi` | Assembled (`0x1050_0073`). | Not decoded: the word does nothing. |
 | `fence`, `fence.i`, `ebreak` | Not accepted. | Not decoded (`fence`: illegal instruction). |
 
 Every other instruction of the CPU list is accepted by goasm.

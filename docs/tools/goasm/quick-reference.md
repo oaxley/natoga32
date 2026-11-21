@@ -73,7 +73,7 @@ See [the overview](README.md).
 | Zbkb | `pack packh` |
 | Zicond | `czero.eqz czero.nez` |
 | CSR | `csrrw csrrs csrrc csrrwi csrrsi csrrci` (CSR last) |
-| System | `ecall`; `mret` and `wfi` assemble as `ecall` |
+| System | `ecall mret wfi` (`wfi` does nothing on the CPU) |
 | Threads | `new.t yield.t id.t sleep.t wake.t end.t` |
 
 ## Pseudo-instructions
@@ -115,7 +115,6 @@ again:
 
 | Problem | Workaround |
 |---------|------------|
-| `mret` and `wfi` assemble as `ecall` | `.word 0x30200073` for `mret`. |
 | `-O` can delete instructions | Do not use it. |
 | `<<` `>>` `&` `\|` `^` `%` give 0 in `.word` | Compute the value with `.define`. |
 | `.string` keeps `\n` as two bytes | Use `.byte 10`. |

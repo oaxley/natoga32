@@ -145,9 +145,6 @@ A handler that wants to run it again, or to resume somewhere else, writes `mepc`
 
 The trap entry does not change `mstatus`, so its bits only follow what the program wrote.
 
-goasm encodes the mnemonic `mret` as `0x0000_0073`, the same word as `ecall`.
-Write `.word 0x30200073` until it is fixed.
-
 ## Example: a handler for ecall
 
 ```asm
@@ -167,7 +164,7 @@ done:
 
 handler:
     addi a0, a0, 1          # result in a0
-    .word 0x30200073        # mret, resumes after the ecall
+    mret                    # resumes after the ecall
 ```
 
 ## See also
