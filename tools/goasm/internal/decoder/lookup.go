@@ -60,10 +60,30 @@ var shiftImmediateInstructions = map[string]bool{
 	"rori":  true,
 }
 
+// rs2ZeroAliases are instructions that share their whole encoding with another one,
+// except that rs2 is x0: they are kept out of the reverse table (same key) and
+// chosen by LookupInstruction when rs2 is 0. zext.h rd, rs1 is pack rd, rs1, x0.
+var rs2ZeroAliases = map[string]string{
+	"pack": "zext.h",
+}
+
+// isRs2ZeroAlias reports whether mnemonic is the rs2 = x0 alias of another instruction
+func isRs2ZeroAlias(mnemonic string) bool {
+	for _, alias := range rs2ZeroAliases {
+		if alias == mnemonic {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	reverseOpcodeTable = make(map[OpcodeKey]*OpcodeEntry)
 
 	for mnemonic, info := range arch.Opcodes {
+		if isRs2ZeroAlias(mnemonic) {
+			continue
+		}
 		key := buildKeyForMnemonic(mnemonic, info)
 		reverseOpcodeTable[key] = &OpcodeEntry{
 			Mnemonic: mnemonic,
@@ -109,6 +129,18 @@ func buildKeyForMnemonic(mnemonic string, info arch.InstrOpcode) OpcodeKey {
 
 // LookupInstruction finds the instruction mnemonic from encoded fields
 func LookupInstruction(word uint32) (*OpcodeEntry, bool) {
+	entry, ok := lookupInstruction(word)
+	if !ok {
+		return nil, false
+	}
+	if alias, hasAlias := rs2ZeroAliases[entry.Mnemonic]; hasAlias && extractRs2(word) == 0 {
+		return &OpcodeEntry{Mnemonic: alias, Info: arch.Opcodes[alias]}, true
+	}
+	return entry, true
+}
+
+// lookupInstruction finds the instruction from encoded fields, without the rs2 = x0 aliases
+func lookupInstruction(word uint32) (*OpcodeEntry, bool) {
 	opcode := extractOpcode(word)
 	funct3 := extractFunct3(word)
 	funct7 := extractFunct7(word)

@@ -481,6 +481,33 @@ func TestDecodeSystemInstructions(t *testing.T) {
 	}
 }
 
+// zext.h is pack with rs2 = x0: rs2 = 0 decodes as zext.h, any other rs2 as pack.
+// Both share opcode, funct3 and funct7, so the result must not depend on map order:
+// decode many times to catch a random winner.
+func TestDecodeZextHAndPack(t *testing.T) {
+	tests := []struct {
+		word uint32
+		want string
+		rs2  int
+	}{
+		{0x0805C533, "zext.h", NoRegister}, // zext.h a0, a1
+		{0x08C5C533, "pack", 12},           // pack a0, a1, a2
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			for i := 0; i < 50; i++ {
+				instr := Decode(tt.word)
+				if instr.Mnemonic != tt.want {
+					t.Fatalf("decode 0x%08X: got %q, want %q", tt.word, instr.Mnemonic, tt.want)
+				}
+				if instr.Rs2 != tt.rs2 {
+					t.Fatalf("decode 0x%08X: rs2 = %d, want %d", tt.word, instr.Rs2, tt.rs2)
+				}
+			}
+		})
+	}
+}
+
 // Test round-trip encoding/decoding for all instructions
 func TestRoundTripAllInstructions(t *testing.T) {
 	// Representative sample of each instruction type

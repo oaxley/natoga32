@@ -58,9 +58,10 @@ The CPU has a known bug in `mulhsu` (see [CPU](../../console/cpu/README.md)).
 
 Operand forms:
 
-- `clz rd, rs1`, same for `ctz cpop sext.b sext.h zext.h rev8`.
+- `clz rd, rs1`, same for `ctz cpop sext.b sext.h zext.h rev8`. Any other number of operands stops with `expects 2 operands (rd, rs1)`.
 - `min rd, rs1, rs2`, same for the other three-register instructions.
 - `zext.h` shares its encoding with `pack`. `pack rd, rs1, x0` is `zext.h rd, rs1`.
+  The disassembler shows the word with `rs2 = x0` as `zext.h rd, rs1`, and any other `rs2` as `pack`.
 - `rori rd, rs1, shamt`, same for `bseti bclri binvi bexti`. `shamt` is a number from 0 to 31, like for `slli srli srai`.
   A value outside 0..31 stops with `shift amount N out of range (0..31)`.
   A register in its place stops with `shift amount must be a number (0..31), not register R`.

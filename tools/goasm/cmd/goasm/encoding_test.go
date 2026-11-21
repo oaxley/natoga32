@@ -158,6 +158,51 @@ func TestShiftImmediateInvalid(t *testing.T) {
 	}
 }
 
+// zext.h rd, rs1 is pack rd, rs1, x0; pack keeps its three operands
+func TestZextHAndPackEncoding(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want []byte
+	}{
+		{"zext.h a0, a1", []byte{0x33, 0xc5, 0x05, 0x08}},    // 0x0805C533
+		{"pack a0, a1, x0", []byte{0x33, 0xc5, 0x05, 0x08}},  // same word
+		{"pack a0, a1, a2", []byte{0x33, 0xc5, 0xc5, 0x08}},  // 0x08C5C533
+		{"packh a0, a1, a2", []byte{0x33, 0xf5, 0xc5, 0x08}}, // 0x08C5F533
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("%s = % x, want % x", tt.src, data, tt.want)
+			}
+		})
+	}
+}
+
+// Unary instructions (zext.h, clz, ...) take exactly rd and rs1
+func TestUnaryOperandCount(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	for _, src := range []string{"zext.h a0, a1, a2", "clz a0, a1, a2", "rev8 a0", "sext.b a0, a1, a2"} {
+		t.Run(src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, "expects 2 operands (rd, rs1)") {
+				t.Errorf("expected 'expects 2 operands (rd, rs1)' in output, got:\n%s", out)
+			}
+		})
+	}
+}
+
 func TestCharLiteralImmediates(t *testing.T) {
 	goasm := buildGoasm(t)
 	defer os.Remove(goasm)
