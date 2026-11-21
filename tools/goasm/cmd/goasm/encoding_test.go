@@ -306,6 +306,36 @@ func TestDataDirectiveOperators(t *testing.T) {
 	}
 }
 
+// A data value that cannot be computed is an error, never a silent 0
+func TestDataDirectiveErrors(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{".word 5 % 0", "modulo by zero"},
+		{".half 1 / 0", "division by zero"},
+		{".byte undefined_name", "undefined symbol 'undefined_name'"},
+		{".word 1 << 64", "shift amount"},
+		{".word \"text\"", "cannot be used in an expression"},
+		{".global nowhere\n.word nowhere", "undefined symbol 'nowhere'"},
+		{".global nowhere\naddi a0, a0, nowhere", "undefined symbol 'nowhere'"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
+			}
+		})
+	}
+}
+
 // An expression that cannot be computed is an error, never a silent 0
 func TestExpressionErrors(t *testing.T) {
 	goasm := buildGoasm(t)

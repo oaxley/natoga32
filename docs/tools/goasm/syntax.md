@@ -80,19 +80,18 @@ Unary `+` and `-` and parentheses also work.
 Every operator works in instruction operands (immediates, branch and `jal` targets) and in `.byte`, `.half` and `.word`.
 Values are computed in 64 bits, then cut to the size of the field. `>>` keeps the sign: `-8 >> 1` is `-4`.
 
-In an instruction operand, these stop with an error:
+In an instruction operand and in `.byte`, `.half` and `.word`, these stop with an error:
 
 | Error | Cause |
 |-------|-------|
 | `division by zero` | `/` by 0. |
 | `modulo by zero` | `%` by 0. |
 | `shift amount N out of range (0..63)` | `<<` or `>>` by less than 0 or more than 63. |
-| `undefined symbol 'X'` | A name that is not a label or an `.equ`. |
+| `undefined symbol 'X'` | A name that is not a label or an `.equ`, also one that is only listed in `.global`. |
 | `string "x" cannot be used in an expression` | A string where a number is expected. |
 
 Limits of the current code:
 
-- In `.byte`, `.half` and `.word`, these errors are not reported: the value is 0.
 - The result of an immediate is not range-checked. `addi x1, x2, 5000` assembles to the low 12 bits.
 - The shift amount of `slli srli srai rori bseti bclri binvi bexti` must be 0..31; other values are an error.
 

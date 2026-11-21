@@ -61,7 +61,8 @@ func evalExpressionWithError(expr ast.Expression, symbols *symbol.Table, pc int6
 		return int64(e.Char), nil
 
 	case *ast.Identifier:
-		if sym := symbols.Lookup(e.Name); sym != nil {
+		// a name only listed in .global has no value yet: it is undefined
+		if sym := symbols.Lookup(e.Name); sym != nil && sym.Defined {
 			return sym.Value, nil
 		}
 		return 0, fmt.Errorf("%s: error: undefined symbol '%s'", e.Location, e.Name)
@@ -167,18 +168,6 @@ func exprKind(expr ast.Expression) string {
 		return "offset(register)"
 	}
 	return fmt.Sprintf("%T", expr)
-}
-
-// evalImmediate evaluates an expression as an immediate value (legacy, no error reporting)
-func evalImmediate(expr ast.Expression, symbols *symbol.Table, pc int64) int32 {
-	val, _ := evalImmediateWithError(expr, symbols, pc)
-	return val
-}
-
-// evalExpression evaluates an expression to get its value (legacy, no error reporting)
-func evalExpression(expr ast.Expression, symbols *symbol.Table, pc int64) int64 {
-	val, _ := evalExpressionWithError(expr, symbols, pc)
-	return val
 }
 
 // evalRegister evaluates an expression as a register number

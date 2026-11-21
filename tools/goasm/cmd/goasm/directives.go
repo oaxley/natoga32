@@ -127,19 +127,28 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 
 	case ".byte":
 		for _, arg := range dir.Args {
-			val := evalExpression(arg, symbols, sections.CurrentAddress())
+			val, err := evalExpressionWithError(arg, symbols, sections.CurrentAddress())
+			if err != nil {
+				return err
+			}
 			sections.EmitByte(byte(val))
 		}
 
 	case ".half", ".short":
 		for _, arg := range dir.Args {
-			val := evalExpression(arg, symbols, sections.CurrentAddress())
+			val, err := evalExpressionWithError(arg, symbols, sections.CurrentAddress())
+			if err != nil {
+				return err
+			}
 			sections.EmitHalf(uint16(val))
 		}
 
 	case ".word":
 		for _, arg := range dir.Args {
-			val := evalExpression(arg, symbols, sections.CurrentAddress())
+			val, err := evalExpressionWithError(arg, symbols, sections.CurrentAddress())
+			if err != nil {
+				return err
+			}
 			sections.EmitWord(uint32(val))
 		}
 
