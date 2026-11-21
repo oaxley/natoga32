@@ -253,6 +253,14 @@ func TestExpandSyscall(t *testing.T) {
 	}
 }
 
+// syscall with no operand is ecall alone
+func TestExpandSyscallNoOperand(t *testing.T) {
+	result := New().ExpandInstruction(&ast.Instruction{Opcode: "syscall"})
+	if len(result) != 1 || result[0].Opcode != "ecall" || len(result[0].Operands) != 0 {
+		t.Fatalf("expected a single ecall, got %+v", result)
+	}
+}
+
 func TestExpandProgram(t *testing.T) {
 	e := New()
 

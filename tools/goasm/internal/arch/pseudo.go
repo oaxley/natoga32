@@ -56,7 +56,8 @@ func IsPseudoInstruction(mnemonic string) bool {
 }
 
 // PseudoOperands gives the operand names of each pseudo-instruction: the
-// expected count, used in error messages
+// expected count, used in error messages. A name in brackets is optional
+// and can only be the last one.
 var PseudoOperands = map[string][]string{
 	"nop": {}, "ret": {},
 	"call": {"symbol"}, "j": {"label"}, "jr": {"rs"},
@@ -70,5 +71,5 @@ var PseudoOperands = map[string][]string{
 	"csrr": {"rd", "csr"},
 	"csrw": {"csr", "rs"}, "csrs": {"csr", "rs"}, "csrc": {"csr", "rs"},
 	"csrwi": {"csr", "uimm"}, "csrsi": {"csr", "uimm"}, "csrci": {"csr", "uimm"},
-	"syscall": {"N or rs"},
+	"syscall": {"[N or rs]"},
 }

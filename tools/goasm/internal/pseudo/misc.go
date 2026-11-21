@@ -41,10 +41,12 @@ func (e *Expander) expandNeg(i *ast.Instruction) []*ast.Instruction {
 	}
 }
 
-// syscall n - System call
+// syscall [n | rs] - System call: a7 = n or rs, then ecall. With no operand,
+// a7 is used as it is (ecall alone).
 func (e *Expander) expandSyscall(i *ast.Instruction) []*ast.Instruction {
-	if len(i.Operands) < 1 {
-		return []*ast.Instruction{i}
+	// no operand: a7 is already set, ecall alone
+	if len(i.Operands) == 0 {
+		return []*ast.Instruction{instr("ecall")}
 	}
 
 	param := i.Operands[0]

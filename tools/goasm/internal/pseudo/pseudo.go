@@ -164,11 +164,21 @@ func CheckOperands(instr *ast.Instruction) error {
 	if !ok || len(instr.Operands) == len(names) {
 		return nil
 	}
+	optional := len(names) > 0 && strings.HasPrefix(names[len(names)-1], "[")
+	if optional && len(instr.Operands) == len(names)-1 {
+		return nil
+	}
 	var want string
-	switch len(names) {
-	case 0:
+	switch {
+	case optional:
+		want = fmt.Sprintf("%d or %d operand", len(names)-1, len(names))
+		if len(names) > 1 {
+			want += "s"
+		}
+		want += " (" + strings.Join(names, ", ") + ")"
+	case len(names) == 0:
 		want = "no operands"
-	case 1:
+	case len(names) == 1:
 		want = "1 operand (" + names[0] + ")"
 	default:
 		want = fmt.Sprintf("%d operands (%s)", len(names), strings.Join(names, ", "))

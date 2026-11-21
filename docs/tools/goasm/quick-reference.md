@@ -80,7 +80,7 @@ See [the overview](README.md).
 
 ## Pseudo-instructions
 
-`nop mv li la call ret j jr not neg seqz snez sltz sgtz beqz bnez blez bgez bltz bgtz bgt ble bgtu bleu csrr csrw csrs csrc csrwi csrsi csrci syscall N`.
+`nop mv li la call ret j jr not neg seqz snez sltz sgtz beqz bnez blez bgez bltz bgtz bgt ble bgtu bleu csrr csrw csrs csrc csrwi csrsi csrci syscall [N|rs]`.
 Expansions are in [Instructions](instructions.md#pseudo-instructions).
 
 ## Patterns

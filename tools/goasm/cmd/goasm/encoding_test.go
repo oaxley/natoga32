@@ -482,7 +482,7 @@ func TestPseudoOperandCount(t *testing.T) {
 		{"csrr a0, 0x300, a1", "csrr expects 2 operands (rd, csr), got 3"},
 		{"csrw 0x300", "csrw expects 2 operands (csr, rs), got 1"},
 		{"csrwi 0x300, 1, 2", "csrwi expects 2 operands (csr, uimm), got 3"},
-		{"syscall", "syscall expects 1 operand (N or rs), got 0"},
+		{"syscall 1, 2", "syscall expects 0 or 1 operand ([N or rs]), got 2"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.src, func(t *testing.T) {

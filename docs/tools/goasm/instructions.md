@@ -184,6 +184,7 @@ goasm expands these in phase 4, before the labels are resolved.
 | `csrwi csr, imm` | `csrrwi x0, csr, imm` |
 | `csrsi csr, imm` | `csrrsi x0, csr, imm` |
 | `csrci csr, imm` | `csrrci x0, csr, imm` |
+| `syscall` | `ecall` (`a7` is used as it is) |
 | `syscall N` | `addi x17, x0, N` + `ecall` (`N` a number) |
 | `syscall rs` | `add x17, x0, rs` + `ecall` |
 
@@ -193,7 +194,7 @@ Notes:
 - `li` reads 0x80000000..0xFFFFFFFF as a 32-bit pattern: `li a0, 0xFFFFFFFF` is `li a0, -1` (one `addi`).
 - `li rd, label` loads the absolute address of the label (`lui` + `addi`). `la` is the PC-relative form.
 - `la` and `call` are relative to the PC.
-- `syscall` always needs one operand. The console defines no syscall numbers.
+- `syscall` with no operand is a plain `ecall`: set `a7` (`x17`) before it. More than one operand stops with `syscall expects 0 or 1 operand ([N or rs]), got 2`. The console defines no syscall numbers.
 - Each pseudo-instruction takes exactly the operands of the table. A wrong count stops with, for example, `beqz expects 2 operands (rs, label), got 1`; extra operands are never ignored.
 - `jal label` is `jal ra, label`: it jumps to `label` and puts the return address in `ra`. `jal` with no operand or more than two stops with `jal expects 1 or 2 operands ([rd,] target)`.
 
