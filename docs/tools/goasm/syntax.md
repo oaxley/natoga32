@@ -85,7 +85,7 @@ Limits of the current code:
 - In the immediate of an instruction (`addi`, `lui`, loads, stores, `li`), `%` gives 0. The other operators work.
 - A branch or `jal` target is evaluated like a data directive: only `+ - * /` work. `beq a0, a1, t|0` jumps to address 0.
 - The result of an immediate is not range-checked. `addi x1, x2, 5000` assembles to the low 12 bits.
-- A shift amount is masked to 5 bits.
+- The shift amount of `slli srli srai rori bseti bclri binvi bexti` must be 0..31; other values are an error.
 
 ## Relocation modifiers
 

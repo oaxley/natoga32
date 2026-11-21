@@ -103,9 +103,17 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			rs1 = evalRegister(instr.Operands[1])
 		}
 		if len(instr.Operands) >= 3 {
+			// the shift amount is a number, never a register
+			if ident, ok := instr.Operands[2].(*ast.Identifier); ok && arch.IsRegister(ident.Name) {
+				return fmt.Errorf("%s: error: %s shift amount must be a number (0..31), not register %s",
+					instr.Location, instr.Opcode, ident.Name)
+			}
 			val, err := evalImmediateWithError(instr.Operands[2], symbols, pc)
 			if err != nil {
 				return err
+			}
+			if val < 0 || val > 31 {
+				return fmt.Errorf("%s: error: %s shift amount %d out of range (0..31)", instr.Location, instr.Opcode, val)
 			}
 			shamt = uint32(val)
 		}

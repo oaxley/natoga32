@@ -68,15 +68,13 @@ See [the overview](README.md).
 | Jumps | `jal jalr` |
 | Upper | `lui auipc` |
 | M | `mul mulh mulhsu mulhu div divu rem remu` |
-| Zbb | `clz ctz cpop sext.b sext.h zext.h min minu max maxu rol ror rev8` |
-| Zbs | `bset bclr binv bext` |
+| Zbb | `clz ctz cpop sext.b sext.h zext.h min minu max maxu rol ror rori rev8` |
+| Zbs | `bset bclr binv bext bseti bclri binvi bexti` |
 | Zbkb | `pack packh` |
 | Zicond | `czero.eqz czero.nez` |
 | CSR | `csrrw csrrs csrrc csrrwi csrrsi csrrci` (CSR last) |
 | System | `ecall`; `mret` and `wfi` assemble as `ecall` |
 | Threads | `new.t yield.t id.t sleep.t wake.t end.t` |
-
-Do not use `rori bseti bclri binvi bexti`: they lose the shift amount.
 
 ## Pseudo-instructions
 
@@ -118,7 +116,6 @@ again:
 | Problem | Workaround |
 |---------|------------|
 | `mret` and `wfi` assemble as `ecall` | `.word 0x30200073` for `mret`. |
-| `rori bseti bclri binvi bexti` lose the shift amount | Use `ror bset bclr binv bext`. |
 | `-O` can delete instructions | Do not use it. |
 | `<<` `>>` `&` `\|` `^` `%` give 0 in `.word` | Compute the value with `.define`. |
 | `.string` keeps `\n` as two bytes | Use `.byte 10`. |

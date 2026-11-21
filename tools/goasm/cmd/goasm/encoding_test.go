@@ -101,6 +101,63 @@ func TestSystemInstructionEncoding(t *testing.T) {
 	}
 }
 
+// Zbb/Zbs immediate shifts: the third operand is a shift amount (0..31), not a register
+func TestShiftImmediateEncoding(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want []byte
+	}{
+		{"rori a0, a1, 7", []byte{0x13, 0xd5, 0x75, 0x60}},   // 0x6075D513
+		{"rori a0, a1, 31", []byte{0x13, 0xd5, 0xf5, 0x61}},  // 0x61F5D513
+		{"bseti t3, t4, 5", []byte{0x13, 0x9e, 0x5e, 0x28}},  // 0x285E9E13
+		{"bclri a2, a3, 10", []byte{0x13, 0x96, 0xa6, 0x48}}, // 0x48A69613
+		{"binvi a7, s0, 15", []byte{0x93, 0x18, 0xf4, 0x68}}, // 0x68F41893
+		{"bexti s4, s5, 20", []byte{0x13, 0xda, 0x4a, 0x49}}, // 0x494ADA13
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("%s = % x, want % x", tt.src, data, tt.want)
+			}
+		})
+	}
+}
+
+// A shift amount outside 0..31, or a register in its place, is an error
+func TestShiftImmediateInvalid(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{"rori a0, a1, 32", "out of range"},
+		{"bseti a0, a1, -1", "out of range"},
+		{"slli a0, a1, 32", "out of range"},
+		{"binvi a0, a1, a2", "shift amount"},
+		{"srai a0, a1, t0", "shift amount"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
+			}
+		})
+	}
+}
+
 func TestCharLiteralImmediates(t *testing.T) {
 	goasm := buildGoasm(t)
 	defer os.Remove(goasm)

@@ -61,11 +61,9 @@ Operand forms:
 - `clz rd, rs1`, same for `ctz cpop sext.b sext.h zext.h rev8`.
 - `min rd, rs1, rs2`, same for the other three-register instructions.
 - `zext.h` shares its encoding with `pack`. `pack rd, rs1, x0` is `zext.h rd, rs1`.
-
-Known problem: the immediate forms `rori`, `bseti`, `bclri`, `binvi` and `bexti` read their third operand as a **register**, not as a number.
-`rori x1, x2, 3` encodes a shift amount of 0.
-`rori x1, x2, x3` encodes a shift amount of 3.
-Use the register forms (`ror`, `bset`, ...) instead.
+- `rori rd, rs1, shamt`, same for `bseti bclri binvi bexti`. `shamt` is a number from 0 to 31, like for `slli srli srai`.
+  A value outside 0..31 stops with `shift amount N out of range (0..31)`.
+  A register in its place stops with `shift amount must be a number (0..31), not register R`.
 
 ## System and CSR
 
