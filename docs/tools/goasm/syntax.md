@@ -169,16 +169,19 @@ A non-zero value stops with `.bss section holds non-zero data at 0xADDR: use .da
 | `.word a, ...` | 4 bytes per value, little-endian. |
 | `.string "s"` / `.asciz` | The bytes of `s`, then a 0 byte. |
 | `.ascii "s"` | The bytes of `s`, no 0 byte. |
-| `.space N` / `.skip N` | `N` zero bytes. `N` must be a number or a `.define` name. |
-| `.align N` | Pad with zeros to a multiple of `2^N`. `N` must be a number. |
+| `.space N` / `.skip N` | `N` zero bytes. `N` must not be negative. |
+| `.align N` | Pad with zeros to a multiple of `2^N`. `N` is 0..31. |
 | `.org ADDR` | Pad with zeros up to the **absolute** address `ADDR`. |
-| `.equ NAME, N` / `.set` | Define a constant. |
+| `.equ NAME, VALUE` / `.set` | Define a constant. |
 | `.global NAME` / `.globl` | Mark a label as global in the `dSYM` chunk. |
 | `.incbin "file"` | Insert the bytes of a file. |
 
 Notes:
 
-- `.equ NAME, N` accepts a decimal, hexadecimal (`0x`), binary (`0b`) or octal (`0o`) number only. A negative number, a character, an expression or another name leaves `NAME` undefined (error `undefined symbol` when it is used). Use [`.define`](preprocessor.md#constants) for those. An `.equ` name works in instructions and in `.byte`/`.half`/`.word`, but not in `.space` or `.align`.
+- The operand of `.space`, `.align`, `.org` and the value of `.equ` are [expressions](#expressions): `.equ MASK, (1 << 4) - 1`, `.equ NEG, -2`, `.equ LETTER, 'A'`, `.space SIZE * 2`, `.org $ + 16`.
+- These four are computed while goasm lays out the addresses, so they can only use labels and `.equ` names defined **above** them. A name defined later stops with `undefined symbol`. `.byte`, `.half`, `.word` and instructions can use names defined anywhere.
+- An `.equ` name works everywhere an expression is accepted. Defining it twice stops with `symbol 'X' already defined`.
+- A wrong operand count stops with `.space expects 1 operand` (or `.align`, `.org`), or `.equ expects 2 operands (name, value)`. `.space -1` stops with `size -1 is negative`, `.align 32` with `out of range (0..31)`.
 - `.org` takes an absolute address, not an offset: `.org 0x100` in `.rom`, `.org 0x01A00010` in `.text`. An address before the current one stops with `.org address 0xX is before current address 0xY`.
 - `.global` must come **after** the label it marks. Before the label, it has no effect.
 - `.incbin` reads the file relative to the directory of the input file. The bytes count in the section size. A missing file stops with `cannot stat incbin file`.

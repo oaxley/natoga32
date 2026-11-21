@@ -306,6 +306,81 @@ func TestDataDirectiveOperators(t *testing.T) {
 	}
 }
 
+// .space, .align, .org and .equ take full expressions
+func TestLayoutDirectiveExpressions(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		name string
+		src  string
+		want []byte
+	}{
+		{"space expr", ".byte 1\n.space 1 + 2\n.byte 2", []byte{1, 0, 0, 0, 2}},
+		{"space equ", ".equ N, 2\n.byte 1\n.space N\n.byte 2", []byte{1, 0, 0, 2}},
+		{"space label diff", "a: .byte 1, 2\nb: .space b - a\n.byte 3", []byte{1, 2, 0, 0, 3}},
+		{"align expr", ".byte 1\n.align 1 + 1\n.byte 2", []byte{1, 0, 0, 0, 2}},
+		{"align equ", ".equ A, 3\n.byte 1\n.align A\n.byte 2", []byte{1, 0, 0, 0, 0, 0, 0, 0, 2}},
+		{"org expr", ".byte 1\n.org 2 * 2\n.byte 2", []byte{1, 0, 0, 0, 2}},
+		{"org dollar", ".byte 1\n.org $ + 2\n.byte 2", []byte{1, 0, 0, 2}},
+		{"org equ", ".equ START, 3\n.org START\n.byte 2", []byte{0, 0, 0, 2}},
+		{"equ negative", ".equ M, -2\n.word M", []byte{0xFE, 0xFF, 0xFF, 0xFF}},
+		{"equ char", ".equ C, 'A'\n.byte C", []byte{0x41}},
+		{"equ expr", ".equ X, (1 << 4) | 3\n.byte X", []byte{0x13}},
+		{"equ of equ", ".equ X, 5\n.equ Y, X * 2\n.byte Y", []byte{10}},
+		{"equ of label", "here: .byte 7\n.equ H, here + 1\n.byte H", []byte{7, 1}},
+		{"equ in addi", ".equ M, -2\naddi a0, a0, M", []byte{0x13, 0x05, 0xE5, 0xFF}},
+		{"set", ".set S, 1 + 1\n.byte S", []byte{2}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("% x, want % x", data, tt.want)
+			}
+		})
+	}
+}
+
+// Bad operands of .space, .align, .org and .equ are errors, not ignored
+func TestLayoutDirectiveErrors(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{".space", ".space expects 1 operand"},
+		{".space -1", ".space size -1 is negative"},
+		{".space later\nlater: nop", "undefined symbol 'later'"},
+		{".space 1 / 0", "division by zero"},
+		{".align", ".align expects 1 operand"},
+		{".align 32", ".align 32 out of range (0..31)"},
+		{".align -1", ".align -1 out of range (0..31)"},
+		{".org", ".org expects 1 operand"},
+		{".org \"x\"", "cannot be used in an expression"},
+		{".equ X", ".equ expects 2 operands (name, value)"},
+		{".equ 5, 3", ".equ expects a name"},
+		{".equ X, nothing", "undefined symbol 'nothing'"},
+		{".equ X, 1\n.equ X, 2", "already defined"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
+			}
+		})
+	}
+}
+
 // A data value that cannot be computed is an error, never a silent 0
 func TestDataDirectiveErrors(t *testing.T) {
 	goasm := buildGoasm(t)

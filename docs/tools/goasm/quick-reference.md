@@ -34,7 +34,7 @@ See [the overview](README.md).
 | `.byte` `.half` `.word` | Values of 1, 2, 4 bytes. |
 | `.string` `.asciz` / `.ascii` | Text with / without a 0 byte. No escape translation. |
 | `.space N` / `.align N` / `.org ADDR` | Zeros; to a multiple of `2^N`; up to an absolute address. |
-| `.equ NAME, N` | Constant (a plain number: decimal, `0x`, `0b`, `0o`). |
+| `.equ NAME, VALUE` | Constant (any expression of names defined above). |
 | `.global NAME` | After the label. |
 | `.incbin "f"` / `.include "f"` | Bytes / source, relative to the input file. |
 | `.define NAME V` | Constant, evaluated left to right. |

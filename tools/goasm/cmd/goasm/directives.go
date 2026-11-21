@@ -34,28 +34,21 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 		sections.Current().Size += int64(len(dir.Args) * 4)
 
 	case ".align":
-		if len(dir.Args) > 0 {
-			if num, ok := dir.Args[0].(*ast.Number); ok {
-				alignment := 1 << num.Value // .align N means align to 2^N
-				sections.Align(alignment)
-			}
+		alignment, err := alignOperand(dir, symbols, sections)
+		if err != nil {
+			return err
 		}
+		sections.Align(alignment)
 
 	case ".space", ".skip":
-		if len(dir.Args) > 0 {
-			if num, ok := dir.Args[0].(*ast.Number); ok {
-				sections.Current().Size += num.Value
-			}
+		size, err := spaceOperand(dir, symbols, sections)
+		if err != nil {
+			return err
 		}
+		sections.Current().Size += size
 
 	case ".equ", ".set":
-		if len(dir.Args) >= 2 {
-			if ident, ok := dir.Args[0].(*ast.Identifier); ok {
-				if num, ok := dir.Args[1].(*ast.Number); ok {
-					return symbols.DefineConstant(ident.Name, num.Value, 0)
-				}
-			}
-		}
+		return defineEqu(dir, symbols, sections)
 
 	case ".global", ".globl":
 		for _, arg := range dir.Args {
@@ -91,17 +84,11 @@ func handleDirective(dir *ast.Directive, symbols *symbol.Table, sections *sectio
 		}
 
 	case ".org":
-		if len(dir.Args) > 0 {
-			if num, ok := dir.Args[0].(*ast.Number); ok {
-				targetAddr := num.Value
-				currentAddr := sections.CurrentAddress()
-				gap := targetAddr - currentAddr
-				if gap < 0 {
-					return fmt.Errorf("%s: error: .org address 0x%X is before current address 0x%X", dir.Location, targetAddr, currentAddr)
-				}
-				sections.Current().Size += gap
-			}
+		gap, err := orgGap(dir, symbols, sections)
+		if err != nil {
+			return err
 		}
+		sections.Current().Size += gap
 
 	default:
 		// never silently ignore a directive: a typo would put data in the wrong section
@@ -153,20 +140,19 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 		}
 
 	case ".align":
-		if len(dir.Args) > 0 {
-			if num, ok := dir.Args[0].(*ast.Number); ok {
-				alignment := 1 << num.Value
-				sections.Align(alignment)
-			}
+		alignment, err := alignOperand(dir, symbols, sections)
+		if err != nil {
+			return err
 		}
+		sections.Align(alignment)
 
 	case ".space", ".skip":
-		if len(dir.Args) > 0 {
-			if num, ok := dir.Args[0].(*ast.Number); ok {
-				for i := int64(0); i < num.Value; i++ {
-					sections.EmitByte(0)
-				}
-			}
+		size, err := spaceOperand(dir, symbols, sections)
+		if err != nil {
+			return err
+		}
+		for i := int64(0); i < size; i++ {
+			sections.EmitByte(0)
 		}
 
 	case ".string", ".asciz":
@@ -201,20 +187,82 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 		}
 
 	case ".org":
-		if len(dir.Args) > 0 {
-			if num, ok := dir.Args[0].(*ast.Number); ok {
-				targetAddr := num.Value
-				currentAddr := sections.CurrentAddress()
-				gap := targetAddr - currentAddr
-				if gap < 0 {
-					return fmt.Errorf("%s: error: .org address 0x%X is before current address 0x%X", dir.Location, targetAddr, currentAddr)
-				}
-				for i := int64(0); i < gap; i++ {
-					sections.EmitByte(0)
-				}
-			}
+		gap, err := orgGap(dir, symbols, sections)
+		if err != nil {
+			return err
+		}
+		for i := int64(0); i < gap; i++ {
+			sections.EmitByte(0)
 		}
 	}
 
+	return nil
+}
+
+// The operands of .space, .align, .org and .equ change addresses or define a
+// name, so they are computed in pass 1: they can only use names defined above
+// them. Both passes call the same helpers, so they always agree.
+
+// singleOperand evaluates the only operand of a directive; $ is the current address
+func singleOperand(dir *ast.Directive, symbols *symbol.Table, sections *section.Manager) (int64, error) {
+	if len(dir.Args) != 1 {
+		return 0, fmt.Errorf("%s: error: %s expects 1 operand, got %d", dir.Location, dir.Name, len(dir.Args))
+	}
+	return evalExpressionWithError(dir.Args[0], symbols, sections.CurrentAddress())
+}
+
+// spaceOperand returns the number of zero bytes of .space N
+func spaceOperand(dir *ast.Directive, symbols *symbol.Table, sections *section.Manager) (int64, error) {
+	size, err := singleOperand(dir, symbols, sections)
+	if err != nil {
+		return 0, err
+	}
+	if size < 0 {
+		return 0, fmt.Errorf("%s: error: %s size %d is negative", dir.Location, dir.Name, size)
+	}
+	return size, nil
+}
+
+// alignOperand returns the alignment in bytes of .align N (2^N)
+func alignOperand(dir *ast.Directive, symbols *symbol.Table, sections *section.Manager) (int, error) {
+	n, err := singleOperand(dir, symbols, sections)
+	if err != nil {
+		return 0, err
+	}
+	if n < 0 || n > 31 {
+		return 0, fmt.Errorf("%s: error: .align %d out of range (0..31)", dir.Location, n)
+	}
+	return 1 << n, nil
+}
+
+// orgGap returns the number of zero bytes up to the absolute address of .org ADDR
+func orgGap(dir *ast.Directive, symbols *symbol.Table, sections *section.Manager) (int64, error) {
+	targetAddr, err := singleOperand(dir, symbols, sections)
+	if err != nil {
+		return 0, err
+	}
+	currentAddr := sections.CurrentAddress()
+	if targetAddr < currentAddr {
+		return 0, fmt.Errorf("%s: error: .org address 0x%X is before current address 0x%X", dir.Location, targetAddr, currentAddr)
+	}
+	return targetAddr - currentAddr, nil
+}
+
+// defineEqu defines the constant of .equ NAME, VALUE (pass 1 only)
+func defineEqu(dir *ast.Directive, symbols *symbol.Table, sections *section.Manager) error {
+	if len(dir.Args) != 2 {
+		return fmt.Errorf("%s: error: %s expects 2 operands (name, value), got %d", dir.Location, dir.Name, len(dir.Args))
+	}
+	ident, ok := dir.Args[0].(*ast.Identifier)
+	if !ok {
+		return fmt.Errorf("%s: error: %s expects a name as first operand", dir.Location, dir.Name)
+	}
+	value, err := evalExpressionWithError(dir.Args[1], symbols, sections.CurrentAddress())
+	if err != nil {
+		return err
+	}
+	if err := symbols.DefineConstant(ident.Name, value, dir.Location.Line); err != nil {
+		return fmt.Errorf("%s: error: %v", dir.Location, err)
+	}
 	return nil
 }
