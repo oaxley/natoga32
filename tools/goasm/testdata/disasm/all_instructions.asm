@@ -232,7 +232,7 @@ thread_instrs:
     yield.t
     id.t   t2
     sleep.t ra, t3
-    wake.t  ra, t4
+    wake.t  ra
     end.t
 
 ; =============================================================================

@@ -85,6 +85,10 @@ func (f *Formatter) formatInstruction(addr uint32, instr *decoder.DecodedInstruc
 		}
 	}
 
+	if text, ok := f.formatThread(instr); ok {
+		return text
+	}
+
 	switch instr.Type {
 	case arch.TypeR:
 		return f.formatTypeR(instr)
@@ -115,6 +119,23 @@ func (f *Formatter) formatInstruction(addr uint32, instr *decoder.DecodedInstruc
 	default:
 		return fmt.Sprintf(".word 0x%08X", instr.RawWord)
 	}
+}
+
+// formatThread formats the thread instructions in their syntax, which has
+// fewer operands than their R or I format: new.t rd, rs1; yield.t; id.t rd;
+// sleep.t rs1, rs2; wake.t rs1; end.t
+func (f *Formatter) formatThread(instr *decoder.DecodedInstruction) (string, bool) {
+	switch instr.Mnemonic {
+	case "new.t":
+		return fmt.Sprintf("new.t %s, %s", f.regName(instr.Rd), f.regName(instr.Rs1)), true
+	case "yield.t", "end.t":
+		return instr.Mnemonic, true
+	case "id.t":
+		return "id.t " + f.regName(instr.Rd), true
+	case "wake.t":
+		return "wake.t " + f.regName(instr.Rs1), true
+	}
+	return "", false
 }
 
 // formatTypeR formats R-type instructions: mnemonic rd, rs1, rs2

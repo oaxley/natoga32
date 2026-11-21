@@ -617,3 +617,28 @@ func TestLayoutForwardNames(t *testing.T) {
 		})
 	}
 }
+
+// the disassembler prints the thread instructions in their syntax
+func TestDisasmThreadSyntax(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	src := ".rom\nnew.t a1, a0\nyield.t\nid.t a2\nsleep.t a0, a1\nwake.t a0\nend.t\n"
+	data, out, err := assembleSource(t, goasm, src, "rom")
+	if err != nil {
+		t.Fatalf("assembling failed: %v\n%s", err, out)
+	}
+	path := filepath.Join(t.TempDir(), "t.rom")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dis, err := exec.Command(goasm, "--disasm", path, "--base", "0").CombinedOutput()
+	if err != nil {
+		t.Fatalf("disasm failed: %v\n%s", err, dis)
+	}
+	for _, want := range []string{"new.t a1, a0\n", "yield.t\n", "id.t a2\n", "sleep.t a0, a1\n", "wake.t a0\n", "end.t\n"} {
+		if !strings.Contains(string(dis), want) {
+			t.Errorf("expected %q in:\n%s", want, dis)
+		}
+	}
+}

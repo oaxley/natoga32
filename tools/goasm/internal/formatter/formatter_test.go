@@ -75,7 +75,7 @@ func TestFormatR2Type(t *testing.T) {
 		want     string
 	}{
 		{"sleep.t", "sleep.t", 1, 2, "sleep.t ra, sp"},
-		{"wake.t", "wake.t", 10, 11, "wake.t a0, a1"},
+		{"wake.t", "wake.t", 10, 0, "wake.t a0"},
 	}
 
 	for _, tt := range tests {
