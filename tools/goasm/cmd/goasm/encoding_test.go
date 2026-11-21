@@ -164,6 +164,57 @@ func TestFenceInvalid(t *testing.T) {
 	}
 }
 
+// jal label is jal ra, label (RISC-V standard one-operand form)
+func TestJalEncoding(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		name string
+		src  string
+		want []byte
+	}{
+		// 0x00: nop, 0x04: jal, 0x08: nop, 0x0C: target
+		{"one operand forward", "nop\njal target\nnop\ntarget: nop",
+			[]byte{0x13, 0, 0, 0, 0xef, 0x00, 0x80, 0x00, 0x13, 0, 0, 0, 0x13, 0, 0, 0}}, // jal ra, +8 = 0x008000EF
+		{"one operand same as jal ra", "nop\njal ra, target\nnop\ntarget: nop",
+			[]byte{0x13, 0, 0, 0, 0xef, 0x00, 0x80, 0x00, 0x13, 0, 0, 0, 0x13, 0, 0, 0}},
+		{"one operand backward", "target: nop\njal target",
+			[]byte{0x13, 0, 0, 0, 0xef, 0xf0, 0xdf, 0xff}}, // jal ra, -4 = 0xFFDFF0EF
+		{"two operands rd x0", "jal x0, target\ntarget: nop",
+			[]byte{0x6f, 0x00, 0x40, 0x00, 0x13, 0, 0, 0}}, // jal zero, +4 = 0x0040006F
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("% x, want % x", data, tt.want)
+			}
+		})
+	}
+}
+
+// jal takes 1 or 2 operands
+func TestJalOperandCount(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	for _, src := range []string{"jal", "jal ra, target, target"} {
+		t.Run(src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+src+"\ntarget: nop\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, "jal expects 1 or 2 operands") {
+				t.Errorf("expected 'jal expects 1 or 2 operands' in output, got:\n%s", out)
+			}
+		})
+	}
+}
+
 // Zbb/Zbs immediate shifts: the third operand is a shift amount (0..31), not a register
 func TestShiftImmediateEncoding(t *testing.T) {
 	goasm := buildGoasm(t)

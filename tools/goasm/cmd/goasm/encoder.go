@@ -179,19 +179,25 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		encoded = arch.EncodeTypeU(op, rd, imm)
 
 	case arch.TypeJ:
-		rd := uint32(0)
-		imm := int32(0)
-		if len(instr.Operands) >= 1 {
+		// jal rd, target; jal target is jal ra, target
+		var rd uint32
+		var targetExpr ast.Expression
+		switch len(instr.Operands) {
+		case 1:
+			rd = 1 // ra
+			targetExpr = instr.Operands[0]
+		case 2:
 			rd = evalRegister(instr.Operands[0])
+			targetExpr = instr.Operands[1]
+		default:
+			return fmt.Errorf("%s: error: %s expects 1 or 2 operands ([rd,] target), got %d",
+				instr.Location, instr.Opcode, len(instr.Operands))
 		}
-		if len(instr.Operands) >= 2 {
-			target, err := evalExpressionWithError(instr.Operands[1], symbols, pc)
-			if err != nil {
-				return err
-			}
-			imm = int32(target - pc)
+		target, err := evalExpressionWithError(targetExpr, symbols, pc)
+		if err != nil {
+			return err
 		}
-		encoded = arch.EncodeTypeJ(op, rd, imm)
+		encoded = arch.EncodeTypeJ(op, rd, int32(target-pc))
 
 	case arch.TypeSystem:
 		// ecall, ebreak, wfi, mret, fence.i: the whole upper field is fixed by the opcode

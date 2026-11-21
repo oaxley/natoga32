@@ -188,7 +188,7 @@ Notes:
 - `li rd, label` loads the absolute address of the label (`lui` + `addi`). `la` is the PC-relative form.
 - `la` and `call` are relative to the PC.
 - `syscall` always needs one operand. The console defines no syscall numbers.
-- `jal label` with a single operand does not jump to `label`. Write `j label` or `jal ra, label`.
+- `jal label` is `jal ra, label`: it jumps to `label` and puts the return address in `ra`. `jal` with no operand or more than two stops with `jal expects 1 or 2 operands ([rd,] target)`.
 
 ```asm
 .text
