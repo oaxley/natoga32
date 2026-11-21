@@ -139,22 +139,22 @@ It makes one sweep over each run and has two rules:
 | Rule | Replaces | By |
 |------|----------|----|
 | Zero operand | `add rd, rs, zero`, `add rd, zero, rs`, `or rd, rs, zero`, `or rd, zero, rs` | `addi rd, rs, 0` |
-| Redundant move | `addi x, y, 0` then `addi z, x, 0` | `addi z, y, 0` |
+| Redundant move | `addi x, y, 0` then `addi y, x, 0` (or `addi x, x, 0`) | `addi x, y, 0` |
 
-**Do not use `-O` for code that matters.**
-After a replacement by the zero-operand rule, the optimizer skips the next instruction, and that instruction is lost.
-The redundant-move rule replaces its own pair of instructions and loses nothing else.
-This program:
+Each rule changes only the instructions it replaces: the instructions around them stay.
+The registers hold the same values after the optimized code as after the original code.
+
+The redundant-move rule only removes a second move that has no effect.
+A chain `mv t0, t1` / `mv t2, t0` is kept as it is: the assembler does not know whether a later instruction reads `t0`.
+A move through `x0` is also kept (`mv x0, t1` / `mv t1, x0` writes 0 into `t1`).
 
 ```asm
 .text
-    add t0, t1, zero
-    addi t2, t0, 0
+    add  t0, t1, zero       ; becomes addi t0, t1, 0
+    li   a0, 1
+    mv   t2, t0
+    mv   t0, t2             ; removed: t0 already holds t2
 ```
-
-becomes the single instruction `addi t0, t1, 0` with `-O`: the `addi t2, t0, 0` has gone.
-In `add t0, t1, zero` / `li a0, 1` / `li a1, 2`, the `li a0, 1` is lost.
-Even when no instruction is lost, the redundant-move rule can remove the only write to a register that a later instruction reads.
 
 ## See also
 

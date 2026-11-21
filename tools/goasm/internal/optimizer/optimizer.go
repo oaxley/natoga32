@@ -9,10 +9,10 @@ import "github.com/natoga32/goasm/internal/ast"
 // OptimizationPass represents a single optimization
 type OptimizationPass interface {
 	Name() string
-	// Optimize attempts to optimize starting at the given index
-	// Returns replacement instructions and whether optimization was applied
-	// If applied, the optimizer will skip the next instruction
-	Optimize(instructions []*ast.Instruction, index int) ([]*ast.Instruction, bool)
+	// Optimize attempts to optimize starting at the given index.
+	// It returns the replacement instructions and the number of input
+	// instructions they replace (0 when the pass does not apply).
+	Optimize(instructions []*ast.Instruction, index int) ([]*ast.Instruction, int)
 }
 
 // Optimizer performs peephole optimizations on AST
@@ -74,10 +74,10 @@ func (o *Optimizer) optimizeSequence(instructions []*ast.Instruction) []*ast.Ins
 
 		// Try each optimization pass
 		for _, pass := range o.optimizations {
-			replacement, applied := pass.Optimize(instructions, i)
-			if applied {
+			replacement, consumed := pass.Optimize(instructions, i)
+			if consumed > 0 {
 				result = append(result, replacement...)
-				i += 2 // Most peephole optimizations look at 2 instructions
+				i += consumed // skip only the instructions that were replaced
 				optimized = true
 				break
 			}

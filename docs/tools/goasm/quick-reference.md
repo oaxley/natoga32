@@ -116,7 +116,6 @@ again:
 
 | Problem | Workaround |
 |---------|------------|
-| `-O` can delete instructions | Do not use it. |
 | `<<` `>>` `&` `\|` `^` `%` give 0 in `.word` | Compute the value with `.define`. |
 | `.string` keeps `\n` as two bytes | Use `.byte 10`. |
 | `_` in numbers is not read | Write `0x206800`. |

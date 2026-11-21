@@ -164,6 +164,36 @@ func TestFenceInvalid(t *testing.T) {
 	}
 }
 
+// -O keeps the instruction after a replacement, and only drops a move with no effect
+func TestOptimizerEndToEnd(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "in.s")
+	output := filepath.Join(dir, "out.rom")
+	src := ".rom\nadd t0, t1, zero\nli a0, 1\nli a1, 2\nmv t2, t0\nmv t0, t2\n"
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command(goasm, input, "-O", "-f", "rom", "-o", output).CombinedOutput(); err != nil {
+		t.Fatalf("assembling failed: %v\n%s", err, out)
+	}
+	data, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []byte{
+		0x93, 0x02, 0x03, 0x00, // addi t0, t1, 0 (was add t0, t1, zero)
+		0x13, 0x05, 0x10, 0x00, // addi a0, zero, 1
+		0x93, 0x05, 0x20, 0x00, // addi a1, zero, 2
+		0x93, 0x83, 0x02, 0x00, // addi t2, t0, 0 (the mv t0, t2 after it is dropped)
+	}
+	if !bytes.Equal(data, want) {
+		t.Errorf("-O output = % x, want % x", data, want)
+	}
+}
+
 // jal label is jal ra, label (RISC-V standard one-operand form)
 func TestJalEncoding(t *testing.T) {
 	goasm := buildGoasm(t)

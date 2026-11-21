@@ -19,9 +19,9 @@ func (z *ZeroConstOptimization) Name() string {
 }
 
 // Optimize detects patterns that can use zero register more efficiently
-func (z *ZeroConstOptimization) Optimize(instructions []*ast.Instruction, index int) ([]*ast.Instruction, bool) {
+func (z *ZeroConstOptimization) Optimize(instructions []*ast.Instruction, index int) ([]*ast.Instruction, int) {
 	if index >= len(instructions) {
-		return nil, false
+		return nil, 0
 	}
 
 	instr := instructions[index]
@@ -45,7 +45,7 @@ func (z *ZeroConstOptimization) Optimize(instructions []*ast.Instruction, index 
 					},
 					Location: instr.Location,
 				},
-			}, true
+			}, 1
 		}
 
 		// Check if left operand is zero
@@ -61,7 +61,7 @@ func (z *ZeroConstOptimization) Optimize(instructions []*ast.Instruction, index 
 					},
 					Location: instr.Location,
 				},
-			}, true
+			}, 1
 		}
 	}
 
@@ -83,7 +83,7 @@ func (z *ZeroConstOptimization) Optimize(instructions []*ast.Instruction, index 
 					},
 					Location: instr.Location,
 				},
-			}, true
+			}, 1
 		}
 
 		// Check if left operand is zero
@@ -98,9 +98,9 @@ func (z *ZeroConstOptimization) Optimize(instructions []*ast.Instruction, index 
 					},
 					Location: instr.Location,
 				},
-			}, true
+			}, 1
 		}
 	}
 
-	return nil, false
+	return nil, 0
 }
