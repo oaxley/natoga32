@@ -99,6 +99,7 @@ A value that does not fit its field stops with an error; it is never cut:
 | CSR number of `csrrw csrrs csrrc` | 0..0xFFF | `CSR number 0x1000 out of range (0..0xfff)` |
 | Branch offset (`beq`..., `beqz`...) | -4096..4094, even | `beq offset 5000 out of range (-4096..4094)`, `beq offset 3 is odd` |
 | `jal` / `j` offset | -1048576..1048574, even | `jal offset N out of range (-1048576..1048574)` |
+| `.byte` / `.half` / `.word` value | signed or unsigned 8 / 16 / 32 bits | `.byte value 256 out of range (-128..255)` |
 
 A [relocation modifier](#relocation-modifiers) (`%lo`, `%hi`, `%pcrel_lo`, `%pcrel_hi`) is already the bits of its field and is not checked: `addi a0, a0, %lo(X)` is fine when `%lo(X)` is 4095.
 An error in an instruction made by a pseudo-instruction (`beqz`, `j`, `li`...) is reported at the line of the pseudo-instruction, with the name of the real instruction (`beq`, `jal`, `lui`).
@@ -174,9 +175,9 @@ A non-zero value stops with `.bss section holds non-zero data at 0xADDR: use .da
 
 | Directive | Effect |
 |-----------|--------|
-| `.byte a, b, ...` | 1 byte per value. |
-| `.half a, ...` / `.short` | 2 bytes per value, little-endian. |
-| `.word a, ...` | 4 bytes per value, little-endian. |
+| `.byte a, b, ...` | 1 byte per value, -128..255. |
+| `.half a, ...` / `.short` | 2 bytes per value, little-endian, -32768..65535. |
+| `.word a, ...` | 4 bytes per value, little-endian, -2147483648..4294967295. |
 | `.string "s"` / `.asciz` | The bytes of `s`, then a 0 byte. |
 | `.ascii "s"` | The bytes of `s`, no 0 byte. |
 | `.space N` / `.skip N` | `N` zero bytes. `N` must not be negative. |

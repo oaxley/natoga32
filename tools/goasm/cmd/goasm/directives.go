@@ -114,7 +114,7 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 
 	case ".byte":
 		for _, arg := range dir.Args {
-			val, err := evalExpressionWithError(arg, symbols, sections.CurrentAddress())
+			val, err := dataValue(dir, arg, 1, symbols, sections)
 			if err != nil {
 				return err
 			}
@@ -123,7 +123,7 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 
 	case ".half", ".short":
 		for _, arg := range dir.Args {
-			val, err := evalExpressionWithError(arg, symbols, sections.CurrentAddress())
+			val, err := dataValue(dir, arg, 2, symbols, sections)
 			if err != nil {
 				return err
 			}
@@ -132,7 +132,7 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 
 	case ".word":
 		for _, arg := range dir.Args {
-			val, err := evalExpressionWithError(arg, symbols, sections.CurrentAddress())
+			val, err := dataValue(dir, arg, 4, symbols, sections)
 			if err != nil {
 				return err
 			}
@@ -265,4 +265,19 @@ func defineEqu(dir *ast.Directive, symbols *symbol.Table, sections *section.Mana
 		return fmt.Errorf("%s: error: %v", dir.Location, err)
 	}
 	return nil
+}
+
+// dataValue evaluates a .byte/.half/.word value and checks that it fits its
+// size, as a signed or an unsigned number (.byte -1 and .byte 255 are both 0xFF)
+func dataValue(dir *ast.Directive, arg ast.Expression, size int, symbols *symbol.Table, sections *section.Manager) (int64, error) {
+	val, err := evalExpressionWithError(arg, symbols, sections.CurrentAddress())
+	if err != nil {
+		return 0, err
+	}
+	bits := uint(size * 8)
+	low, high := -(int64(1) << (bits - 1)), (int64(1)<<bits)-1
+	if val < low || val > high {
+		return 0, fmt.Errorf("%s: error: %s value %d out of range (%d..%d)", dir.Location, dir.Name, val, low, high)
+	}
+	return val, nil
 }

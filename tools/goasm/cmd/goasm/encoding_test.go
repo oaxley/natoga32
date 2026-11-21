@@ -500,6 +500,48 @@ func TestPseudoOperandCount(t *testing.T) {
 	}
 }
 
+// A data value that does not fit its size (signed or unsigned) is an error, never cut
+func TestDataDirectiveRange(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	errors := []struct {
+		src  string
+		want string
+	}{
+		{".byte 256", ".byte value 256 out of range (-128..255)"},
+		{".byte -129", ".byte value -129 out of range (-128..255)"},
+		{".half 0x10000", ".half value 65536 out of range (-32768..65535)"},
+		{".short -32769", ".short value -32769 out of range (-32768..65535)"},
+		{".word 0x100000000", ".word value 4294967296 out of range (-2147483648..4294967295)"},
+		{".word -0x80000001", ".word value -2147483649 out of range"},
+	}
+	for _, tt := range errors {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
+			}
+			if !strings.Contains(out, "in.s:2:") {
+				t.Errorf("expected the location in.s:2 in output, got:\n%s", out)
+			}
+		})
+	}
+
+	src := ".byte 255, -128, -1\n.half 65535, -32768\n.word 0xFFFFFFFF, -2147483648\n"
+	data, out, err := assembleSource(t, goasm, ".rom\n"+src, "rom")
+	if err != nil {
+		t.Fatalf("assembling failed: %v\n%s", err, out)
+	}
+	want := []byte{0xFF, 0x80, 0xFF, 0xFF, 0xFF, 0x00, 0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x80}
+	if !bytes.Equal(data, want) {
+		t.Errorf("% x, want % x", data, want)
+	}
+}
+
 // li of a value whose low 12 bits are 0 is a single lui
 func TestLiWithoutUselessAddi(t *testing.T) {
 	goasm := buildGoasm(t)
