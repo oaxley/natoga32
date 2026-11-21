@@ -272,3 +272,51 @@ func TestSyscallForms(t *testing.T) {
 	expectAssembles(t, goasm, "syscall 5", append([]byte{0x93, 0x08, 0x50, 0x00}, ecall...))  // addi a7, zero, 5
 	expectAssembles(t, goasm, "syscall a0", append([]byte{0xb3, 0x08, 0xa0, 0x00}, ecall...)) // add a7, zero, a0
 }
+
+// -f bin is removed: it is refused before any file is written
+func TestBinFormatRemoved(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "in.s")
+	output := filepath.Join(dir, "out.bin")
+	if err := os.WriteFile(input, []byte(".text\nnop\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(goasm, input, "-f", "bin", "-o", output).CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "unknown output format: bin") {
+		t.Errorf("expected 'unknown output format: bin', got (err=%v):\n%s", err, out)
+	}
+	if _, statErr := os.Stat(output); !os.IsNotExist(statErr) {
+		t.Errorf("%s should not have been created", output)
+	}
+	help, _ := exec.Command(goasm, "--help").CombinedOutput()
+	if strings.Contains(string(help), "rscv, bin") {
+		t.Errorf("--help still lists bin:\n%s", help)
+	}
+}
+
+// a raw file (a rom image) is disassembled as "raw" at --base
+func TestDisasmRawFormatName(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	data, out, err := assembleSource(t, goasm, ".rom\nnop\n", "rom")
+	if err != nil {
+		t.Fatalf("assembling failed: %v\n%s", err, out)
+	}
+	rom := filepath.Join(t.TempDir(), "x.rom")
+	if err := os.WriteFile(rom, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dis, err := exec.Command(goasm, "--disasm", rom, "--base", "0").CombinedOutput()
+	if err != nil {
+		t.Fatalf("disasm failed: %v\n%s", err, dis)
+	}
+	for _, want := range []string{"(raw format)", "0x00000000:"} {
+		if !strings.Contains(string(dis), want) {
+			t.Errorf("expected %q in output, got:\n%s", want, dis)
+		}
+	}
+}

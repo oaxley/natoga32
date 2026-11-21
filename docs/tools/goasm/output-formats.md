@@ -1,6 +1,6 @@
 # goasm output formats
 
-This page describes the three output formats of goasm (`rscv`, `rom`, `bin`), the symbol file written by `--sym`, and the optimizer.
+This page describes the two output formats of goasm (`rscv`, `rom`), the symbol file written by `--sym`, and the optimizer.
 
 The format is chosen with `-f`.
 The default is `rscv`.
@@ -9,8 +9,8 @@ The default is `rscv`.
 |--------|---------|-------------|
 | `rscv` | A complete `RSCV` chunk: `.text`, `.data`, `.rodata`, `.bss`. | Game code, packed by [n32pack](../n32pack/README.md). |
 | `rom` | The bytes of the `.rom` section, from address `0x0000_0000`. | The boot ROM. |
-| `bin` | The bytes of the `.text` section only. | Quick tests. |
 
+Another format, such as the old `bin`, stops with `unknown output format: bin (use rscv or rom)` before anything is read.
 All checks run before the output file is created.
 When a check fails, goasm writes no file.
 
@@ -67,25 +67,11 @@ This program gives a file of 264 bytes: `j boot` at offset 0, zeros up to offset
 
 Other sections of the program are ignored by `-f rom`.
 
-## bin
+A ROM image has no header, so `goasm --disasm` reads it as a raw file. Give `--base 0`, the ROM address:
 
 ```bash
-goasm game.s -f bin -o game.bin
+goasm --disasm rombios.sys --base 0
 ```
-
-The file holds the bytes of the `.text` section and nothing else.
-There is no header and no address.
-The `.data`, `.rodata` and `.rom` sections are **not** written.
-When `.rodata` holds bytes, goasm prints this on stderr:
-
-```text
-warning: .rodata section (3 bytes) is not written to bin output yet
-```
-
-There is no such warning for `.data`.
-To get all sections, use `rscv`.
-
-`goasm --disasm` can read a `bin` file back: it places it at `--base` (default `0x01A0_0000`).
 
 ## Symbol file (--sym)
 

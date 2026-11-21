@@ -22,7 +22,7 @@ The project has four parts:
 - A cartridge device: the console checks a `.n32` file at reset, reads its chunk index and exposes it through a control block and a bank-switched window.
 - A boot ROM that draws a logo with a fade-in and an "insert a cartridge" message in Framebuffer A (640x384, RGB565), and a trap screen.
 - `vchost`: window or headless run at 25 MHz and 60 fps, with the boot ROM and a cartridge given on the command line.
-- `goasm`: assembler and disassembler with a preprocessor, and the `rscv`, `bin` and `rom` outputs.
+- `goasm`: assembler and disassembler with a preprocessor, and the `rscv` and `rom` outputs.
 - `n32pack`: builds a `.n32` cartridge from a JSON manifest, the chunks of `goasm` and asset files.
 
 Everything else (video modes, GPU, inputs, audio, DMA, DSP, memory card) is not built and is not documented here.
@@ -86,7 +86,7 @@ Everything else (video modes, GPU, inputs, audio, DMA, DSP, memory card) is not 
 | [goasm syntax](tools/goasm/syntax.md) | Sections, labels, registers, numbers and data directives |
 | [goasm preprocessor](tools/goasm/preprocessor.md) | Constants, includes, conditions, loops, macros |
 | [goasm instructions](tools/goasm/instructions.md) | Supported instructions and pseudo-instructions |
-| [goasm output formats](tools/goasm/output-formats.md) | The `rscv`, `rom` and `bin` outputs, the symbol file and the optimizer |
+| [goasm output formats](tools/goasm/output-formats.md) | The `rscv` and `rom` outputs, the symbol file and the optimizer |
 | [goasm quick reference](tools/goasm/quick-reference.md) | One-screen summary |
 | [n32pack](tools/n32pack/README.md) | The cartridge packer: build, options, place in the cartridge build, checks |
 | [n32pack manifest](tools/n32pack/manifest.md) | The JSON manifest and the `assets.inc` file |

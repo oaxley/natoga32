@@ -27,9 +27,6 @@ goasm game.s -o game.rscv --sym game.sym
 # Boot ROM image
 goasm boot.s -f rom -o rombios.sys
 
-# Raw binary of the .text section
-goasm game.s -f bin -o game.bin
-
 # Disassemble a file
 goasm --disasm game.rscv
 ```
@@ -42,7 +39,7 @@ Options can come before or after it.
 | Option | Default | Meaning |
 |--------|---------|---------|
 | `-o`, `--output FILE` | `a.out` | Output file. |
-| `-f`, `--format FMT` | `rscv` | `rscv`, `bin` or `rom`. See [Output formats](output-formats.md). |
+| `-f`, `--format FMT` | `rscv` | `rscv` or `rom`. See [Output formats](output-formats.md). |
 | `--sym FILE` | none | Also write the labels as a `dSYM` chunk. Needs `-f rscv`. |
 | `-O`, `--optimize` | off | Peephole optimizer. See [Output formats](output-formats.md#optimizer). |
 | `-d`, `--debug N` | `0` | Print the result of a phase. See below. |
@@ -83,10 +80,10 @@ Use `-o FILE` to write it to a file instead.
 
 - If bytes 4 to 7 of the file are `RSCV`, the file is read as an [RSCV chunk](../../console/cartridge/chunks.md#rscv).
   A damaged chunk stops with `invalid RSCV chunk: ...`.
-- Otherwise the file is a raw binary, placed at `--base`.
+- Otherwise the file is raw bytes of code (a ROM image, for example), placed at `--base`. For a ROM image, use `--base 0`.
 - An empty file stops with `file is empty`.
 
-The output starts with `; Disassembly of FILE (rscv format)` (or `bin`), then one line per section, then the listing.
+The output starts with `; Disassembly of FILE (rscv format)` (or `raw format`), then one line per section, then the listing.
 Text sections show address, word, mnemonic and operands.
 Data sections show a hex dump with ASCII.
 A `.bss` section shows as `.space N`.
@@ -99,7 +96,7 @@ A word that is not an instruction shows as `.word 0x...`.
 | [Syntax](syntax.md) | Comments, labels, numbers, expressions, registers, sections, data directives. |
 | [Preprocessor](preprocessor.md) | `.include`, `.define`, conditions, `.for`, `.dup`, macros, `##`, environment variables. |
 | [Instructions](instructions.md) | Every instruction and pseudo-instruction. |
-| [Output formats](output-formats.md) | `rscv`, `rom`, `bin`, `--sym` and `-O`. |
+| [Output formats](output-formats.md) | `rscv`, `rom`, `--sym` and `-O`. |
 | [Quick reference](quick-reference.md) | One-page tables. |
 
 ## See also

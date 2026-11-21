@@ -259,8 +259,8 @@ helper:
 		t.Fatal(err)
 	}
 
-	// -f bin: the source has a .rom section, which an RSCV cartridge refuses
-	cmd := exec.Command(goasm, input, "-f", "bin", "-o", filepath.Join(dir, "all.bin"))
+	// -f rom: the source has a .rom section, which an RSCV cartridge refuses
+	cmd := exec.Command(goasm, input, "-f", "rom", "-o", filepath.Join(dir, "all.rom"))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("assembling all documented directives failed: %v\n%s", err, out)
 	}
@@ -380,21 +380,22 @@ func TestCsrPseudoEndToEnd(t *testing.T) {
 
 	dir := t.TempDir()
 	input := filepath.Join(dir, "csr.s")
-	output := filepath.Join(dir, "csr.bin")
+	output := filepath.Join(dir, "csr.rscv")
 	src := ".text\nmain:\n csrw 0x305, t0\n csrr t1, 0x342\n"
 	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	cmd := exec.Command(goasm, input, "-f", "bin", "-o", output)
+	cmd := exec.Command(goasm, input, "-f", "rscv", "-o", output)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("assembling csr pseudos failed: %v\n%s", err, out)
 	}
 
-	data, err := os.ReadFile(output)
+	chunk, err := os.ReadFile(output)
 	if err != nil {
 		t.Fatal(err)
 	}
+	data := rscvText(t, chunk)
 	want := []byte{0x73, 0x90, 0x52, 0x30, 0x73, 0x23, 0x20, 0x34}
 	if !bytes.Equal(data, want) {
 		t.Errorf("csr words = % x, want % x", data, want)
@@ -433,39 +434,6 @@ func TestPCRelPairEndToEnd(t *testing.T) {
 	}
 	if !bytes.Equal(data, want) {
 		t.Errorf("la/call words = % x, want % x", data, want)
-	}
-}
-
-// TestRodataNotWrittenWarns checks that goasm warns when .rodata bytes
-// are dropped because the output format does not support them yet.
-func TestRodataNotWrittenWarns(t *testing.T) {
-	goasm := buildGoasm(t)
-	defer os.Remove(goasm)
-
-	dir := t.TempDir()
-	input := filepath.Join(dir, "rodata.asm")
-	output := filepath.Join(dir, "rodata.bin")
-	src := ".rodata\n.word 1\n.text\nnop\n"
-	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	cmd := exec.Command(goasm, input, "-f", "bin", "-o", output)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("assembling failed: %v\n%s", err, out)
-	}
-	want := "warning: .rodata section (4 bytes) is not written to bin output yet"
-	if !strings.Contains(string(out), want) {
-		t.Errorf("expected %q in output, got:\n%s", want, out)
-	}
-
-	info, err := os.Stat(output)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if info.Size() != 4 {
-		t.Errorf("expected bin file of 4 bytes (nop), got %d", info.Size())
 	}
 }
 
@@ -557,16 +525,16 @@ func TestSymNeedsRscv(t *testing.T) {
 
 	dir := t.TempDir()
 	input := filepath.Join(dir, "x.s")
-	output := filepath.Join(dir, "x.bin")
+	output := filepath.Join(dir, "x.rom")
 	symOut := filepath.Join(dir, "x.sym")
-	if err := os.WriteFile(input, []byte(".text\nmain: nop\n"), 0o644); err != nil {
+	if err := os.WriteFile(input, []byte(".rom\nmain: nop\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	cmd := exec.Command(goasm, input, "-f", "bin", "-o", output, "--sym", symOut)
+	cmd := exec.Command(goasm, input, "-f", "rom", "-o", output, "--sym", symOut)
 	out, err := cmd.CombinedOutput()
 	if err == nil {
-		t.Fatalf("expected goasm to refuse --sym with -f bin, it succeeded:\n%s", out)
+		t.Fatalf("expected goasm to refuse --sym with -f rom, it succeeded:\n%s", out)
 	}
 	if !strings.Contains(string(out), "--sym needs -f rscv") {
 		t.Errorf("expected '--sym needs -f rscv' in output, got:\n%s", out)

@@ -23,6 +23,10 @@ func assemble(inputFile string) error {
 
 	fmt.Printf("Assembling '%s' to '%s' (format: %s)...\n", inputFile, outputFile, outputFormat)
 
+	if outputFormat != "rscv" && outputFormat != "rom" {
+		return fmt.Errorf("unknown output format: %s (use rscv or rom)", outputFormat)
+	}
+
 	// the dSYM chunk goes with a cartridge: refuse it before anything is written
 	if symFile != "" && outputFormat != "rscv" {
 		return fmt.Errorf("--sym needs -f rscv")

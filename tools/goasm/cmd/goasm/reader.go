@@ -22,7 +22,7 @@ type ReadSection struct {
 
 // BinaryReader reads and parses binary files for disassembly
 type BinaryReader struct {
-	Format   string        // "bin" or "rscv"
+	Format   string        // "raw" or "rscv"
 	Sections []ReadSection // file order
 }
 
@@ -52,7 +52,7 @@ func NewBinaryReader(filename string, baseAddr uint32) (*BinaryReader, error) {
 
 	// Raw binary format: the whole file is .text
 	return &BinaryReader{
-		Format: "bin",
+		Format: "raw",
 		Sections: []ReadSection{{
 			Kind: rscvKindText,
 			Name: ".text",

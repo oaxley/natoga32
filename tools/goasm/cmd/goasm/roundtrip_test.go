@@ -330,8 +330,8 @@ func TestDisasmRawBinary(t *testing.T) {
 	outStr := string(output)
 
 	// Verify output
-	if !strings.Contains(outStr, "(bin format)") {
-		t.Errorf("Output should indicate bin format\nFull output:\n%s", outStr)
+	if !strings.Contains(outStr, "(raw format)") {
+		t.Errorf("Output should indicate raw format\nFull output:\n%s", outStr)
 	}
 	if !strings.Contains(outStr, "0x00001000:") {
 		t.Errorf("Output should use custom base address 0x1000\nFull output:\n%s", outStr)

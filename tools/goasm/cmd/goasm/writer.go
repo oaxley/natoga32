@@ -14,7 +14,7 @@ const maxRomSize = 2 * 1024 * 1024
 func writeOutput(sections *section.Manager, filename, format string) error {
 	// validate the format and the ROM image before creating the output file
 	switch format {
-	case "rscv", "bin", "rom":
+	case "rscv", "rom":
 	default:
 		return fmt.Errorf("unknown output format: %s", format)
 	}
@@ -41,24 +41,10 @@ func writeOutput(sections *section.Manager, filename, format string) error {
 	}
 	defer file.Close()
 
-	// .rodata is not part of the bin output yet: never drop it silently
-	if format == "bin" {
-		if ro := sections.Get(".rodata"); ro != nil && ro.Size > 0 {
-			fmt.Fprintf(os.Stderr, "warning: .rodata section (%d bytes) is not written to %s output yet\n", ro.Size, format)
-		}
-	}
-
 	switch format {
 	case "rscv":
 		// Cartridge RSCV chunk - every loadable section
 		_, err = file.Write(rscv)
-
-	case "bin":
-		// Raw binary - just write .text section
-		textSec := sections.Get(".text")
-		if textSec != nil {
-			_, err = file.Write(textSec.Data)
-		}
 
 	case "rom":
 		// ROM image - the .rom section bytes, starting at address 0

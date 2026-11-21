@@ -9,12 +9,12 @@ Details are in the other goasm pages.
 goasm in.s -o out.rscv               # RSCV chunk (default)
 goasm in.s -o out.rscv --sym out.sym # plus the dSYM chunk
 goasm boot.s -f rom -o rombios.sys   # boot ROM image
-goasm in.s -f bin -o out.bin         # .text bytes only
 goasm --disasm out.rscv --pseudo     # disassemble
+goasm --disasm rombios.sys --base 0  # disassemble a ROM image
 goasm in.s -d 3                      # stop after phase 3 (AST)
 ```
 
-Options: `-o`, `-f rscv|bin|rom`, `--sym`, `-O`, `-d 0..7`, `--disasm`, `--base`, `--pseudo`, `--hex`, `--no-abi`.
+Options: `-o`, `-f rscv|rom`, `--sym`, `-O`, `-d 0..7`, `--disasm`, `--base`, `--pseudo`, `--hex`, `--no-abi`.
 See [the overview](README.md).
 
 ## Sections

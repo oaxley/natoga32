@@ -27,7 +27,26 @@ func assembleSource(t *testing.T, goasm, src, format string) ([]byte, string, er
 	if readErr != nil {
 		t.Fatal(readErr)
 	}
+	if format == "rscv" {
+		data = rscvText(t, data)
+	}
 	return data, string(out), nil
+}
+
+// rscvText returns the bytes of the .text section of an RSCV chunk
+func rscvText(t *testing.T, chunk []byte) []byte {
+	t.Helper()
+	sections, err := parseRscvChunk(chunk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sec := range sections {
+		if sec.Name == ".text" {
+			return sec.Data
+		}
+	}
+	t.Fatalf("no .text section in the RSCV chunk")
+	return nil
 }
 
 func TestCsrImmediateEncoding(t *testing.T) {
@@ -49,7 +68,7 @@ func TestCsrImmediateEncoding(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			data, out, err := assembleSource(t, goasm, ".text\n"+tt.src+"\n", "bin")
+			data, out, err := assembleSource(t, goasm, ".text\n"+tt.src+"\n", "rscv")
 			if err != nil {
 				t.Fatalf("assembling failed: %v\n%s", err, out)
 			}
@@ -132,7 +151,7 @@ func TestCsrImmediateOutOfRange(t *testing.T) {
 	defer os.Remove(goasm)
 
 	for _, src := range []string{"csrwi 0x305, 32", "csrrsi a0, 0x300, -1"} {
-		_, out, err := assembleSource(t, goasm, ".text\n"+src+"\n", "bin")
+		_, out, err := assembleSource(t, goasm, ".text\n"+src+"\n", "rscv")
 		if err == nil {
 			t.Errorf("%q: expected an error, assembled fine", src)
 			continue
@@ -986,7 +1005,7 @@ func TestCharLiteralImmediates(t *testing.T) {
 		"addi a0, a0, 'A' - 10\n" +
 		"li a0, 'A'\n" +
 		".byte 'Z', 0, 0, 0\n"
-	data, out, err := assembleSource(t, goasm, src, "bin")
+	data, out, err := assembleSource(t, goasm, src, "rscv")
 	if err != nil {
 		t.Fatalf("assembling failed: %v\n%s", err, out)
 	}
