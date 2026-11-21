@@ -104,6 +104,9 @@ func (f *Formatter) formatInstruction(addr uint32, instr *decoder.DecodedInstruc
 		return f.formatTypeU(instr)
 	case arch.TypeJ:
 		return f.formatTypeJ(addr, instr)
+	case arch.TypeSystem:
+		// ecall, wfi, mret: no operands
+		return instr.Mnemonic
 	default:
 		return fmt.Sprintf(".word 0x%08X", instr.RawWord)
 	}
@@ -145,11 +148,6 @@ func (f *Formatter) formatTypeI(instr *decoder.DecodedInstruction) string {
 	// CSR instructions have special formatting
 	if isCSRInstruction(instr.Mnemonic) {
 		return f.formatCSR(instr)
-	}
-
-	// System instructions with no operands
-	if instr.Mnemonic == "ecall" || instr.Mnemonic == "mret" || instr.Mnemonic == "wfi" {
-		return instr.Mnemonic
 	}
 
 	// JALR: jalr rd, rs1, offset (or jalr rd, offset(rs1) in some conventions)

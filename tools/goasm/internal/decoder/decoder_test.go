@@ -455,6 +455,32 @@ func TestExtractBitFields(t *testing.T) {
 	}
 }
 
+// System instructions are told apart by their funct12 field only
+func TestDecodeSystemInstructions(t *testing.T) {
+	tests := []struct {
+		word uint32
+		want string
+	}{
+		{0x00000073, "ecall"},
+		{0x10500073, "wfi"},
+		{0x30200073, "mret"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			if got := encodeForTest(tt.want, 0, 0, 0, 0); got != tt.word {
+				t.Errorf("encode %s: got 0x%08X, want 0x%08X", tt.want, got, tt.word)
+			}
+			instr := Decode(tt.word)
+			if instr.Mnemonic != tt.want {
+				t.Errorf("decode 0x%08X: got %q, want %q", tt.word, instr.Mnemonic, tt.want)
+			}
+			if instr.Type != arch.TypeSystem {
+				t.Errorf("type: got %v, want %v", instr.Type, arch.TypeSystem)
+			}
+		})
+	}
+}
+
 // Test round-trip encoding/decoding for all instructions
 func TestRoundTripAllInstructions(t *testing.T) {
 	// Representative sample of each instruction type

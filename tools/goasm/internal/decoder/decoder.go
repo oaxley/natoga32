@@ -52,6 +52,8 @@ func Decode(word uint32) *DecodedInstruction {
 		decodeTypeU(word, instr)
 	case arch.TypeJ:
 		decodeTypeJ(word, instr)
+	case arch.TypeSystem:
+		// ecall, wfi, mret: no operands
 	}
 
 	return instr

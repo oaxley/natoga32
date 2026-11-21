@@ -126,9 +126,10 @@ var Opcodes = map[string]InstrOpcode{
 	// ========================================
 	// Opcode 0x73 (115) - System instructions
 	// ========================================
-	"ecall":  {TypeI, 0b111_0011, 0, 0b000, 0, 0, 0b000_0000},
-	"mret":   {TypeI, 0b111_0011, 0, 0b000, 0, 0b00010, 0b001_1000},
-	"wfi":    {TypeI, 0b111_0011, 0, 0b000, 0, 0b00101, 0b000_1000},
+	// funct12 = Funct7 << 5 | Rs2: ecall 0x000, wfi 0x105, mret 0x302
+	"ecall":  {TypeSystem, 0b111_0011, 0, 0b000, 0, 0, 0b000_0000},
+	"mret":   {TypeSystem, 0b111_0011, 0, 0b000, 0, 0b00010, 0b001_1000},
+	"wfi":    {TypeSystem, 0b111_0011, 0, 0b000, 0, 0b00101, 0b000_1000},
 	"csrrw":  {TypeI, 0b111_0011, 0, 0b001, 0, 0, 0},
 	"csrrs":  {TypeI, 0b111_0011, 0, 0b010, 0, 0, 0},
 	"csrrc":  {TypeI, 0b111_0011, 0, 0b011, 0, 0, 0},

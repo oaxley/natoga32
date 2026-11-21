@@ -186,6 +186,13 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		}
 		encoded = arch.EncodeTypeJ(op, rd, imm)
 
+	case arch.TypeSystem:
+		// ecall, wfi, mret: the whole upper field is fixed by the opcode
+		if len(instr.Operands) != 0 {
+			return fmt.Errorf("%s: error: %s takes no operands", instr.Location, instr.Opcode)
+		}
+		encoded = arch.EncodeTypeSystem(op)
+
 	default:
 		return fmt.Errorf("%s: error: unsupported instruction type '%v'", instr.Location, op.Type)
 	}

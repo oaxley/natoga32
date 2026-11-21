@@ -8,29 +8,31 @@ package arch
 type InstrType int
 
 const (
-	TypeR   InstrType = iota // R-type: register-register operations
-	TypeR2                   // R-type with rs1, rs2 only (rd=0)
-	TypeRU                   // R-type unary: rd, rs1 only, rs2 is fixed from opcode (Zbb: clz, ctz, etc.)
-	TypeI                    // I-type: immediate operations, loads
-	TypeI2                   // I-type variant: shift immediate (uses funct7)
-	TypeS                    // S-type: stores
-	TypeB                    // B-type: conditional branches
-	TypeU                    // U-type: upper immediate (lui, auipc)
-	TypeJ                    // J-type: unconditional jumps (jal)
+	TypeR      InstrType = iota // R-type: register-register operations
+	TypeR2                      // R-type with rs1, rs2 only (rd=0)
+	TypeRU                      // R-type unary: rd, rs1 only, rs2 is fixed from opcode (Zbb: clz, ctz, etc.)
+	TypeI                       // I-type: immediate operations, loads
+	TypeI2                      // I-type variant: shift immediate (uses funct7)
+	TypeS                       // S-type: stores
+	TypeB                       // B-type: conditional branches
+	TypeU                       // U-type: upper immediate (lui, auipc)
+	TypeJ                       // J-type: unconditional jumps (jal)
+	TypeSystem                  // System: no operands, funct12 fixed by the opcode (ecall, wfi, mret)
 )
 
 // String returns the string representation of an instruction type
 func (t InstrType) String() string {
 	names := [...]string{
-		TypeR:  "R",
-		TypeR2: "R2",
-		TypeRU: "RU",
-		TypeI:  "I",
-		TypeI2: "I2",
-		TypeS:  "S",
-		TypeB:  "B",
-		TypeU:  "U",
-		TypeJ:  "J",
+		TypeR:      "R",
+		TypeR2:     "R2",
+		TypeRU:     "RU",
+		TypeI:      "I",
+		TypeI2:     "I2",
+		TypeS:      "S",
+		TypeB:      "B",
+		TypeU:      "U",
+		TypeJ:      "J",
+		TypeSystem: "SYSTEM",
 	}
 	if int(t) < len(names) {
 		return names[t]

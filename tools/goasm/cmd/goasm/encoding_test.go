@@ -75,6 +75,32 @@ func TestCsrImmediateOutOfRange(t *testing.T) {
 	}
 }
 
+// System instructions with a fixed funct12 field: ecall (0x000), wfi (0x105), mret (0x302)
+func TestSystemInstructionEncoding(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want []byte
+	}{
+		{"ecall", []byte{0x73, 0x00, 0x00, 0x00}}, // 0x00000073
+		{"wfi", []byte{0x73, 0x00, 0x50, 0x10}},   // 0x10500073
+		{"mret", []byte{0x73, 0x00, 0x20, 0x30}},  // 0x30200073
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("%s = % x, want % x", tt.src, data, tt.want)
+			}
+		})
+	}
+}
+
 func TestCharLiteralImmediates(t *testing.T) {
 	goasm := buildGoasm(t)
 	defer os.Remove(goasm)
