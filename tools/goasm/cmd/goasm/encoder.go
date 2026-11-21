@@ -17,6 +17,10 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		return fmt.Errorf("%s: error: unknown instruction '%s'", instr.Location, instr.Opcode)
 	}
 
+	if err := checkOperandCount(instr, op); err != nil {
+		return err
+	}
+
 	pc := sections.CurrentAddress()
 	var encoded []byte
 	var err error
@@ -95,21 +99,21 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			}
 		}
 
-		// Check for standard RISC-V syntax: lw rd, offset(rs1)
+		// loads: lw rd, offset(rs1); jalr rd, offset(rs1) too
 		if len(instr.Operands) == 2 {
-			if offsetBase, ok := instr.Operands[1].(*ast.OffsetBase); ok {
-				if rs1, err = evalRegister(instr, offsetBase.Base); err != nil {
-					return err
-				}
-				imm, err = evalIImmediate(offsetBase.Offset, symbols, pc, ctx)
-				if err != nil {
-					return err
-				}
-			} else {
-				return fmt.Errorf("%s: error: invalid operand format for %s (expected offset(base))", instr.Location, instr.Opcode)
+			offsetBase, ok := instr.Operands[1].(*ast.OffsetBase)
+			if !ok {
+				return offsetBaseError(instr)
 			}
-		} else if len(instr.Operands) >= 3 {
-			// Legacy syntax: lw rd, rs1, offset
+			if rs1, err = evalRegister(instr, offsetBase.Base); err != nil {
+				return err
+			}
+			imm, err = evalIImmediate(offsetBase.Offset, symbols, pc, ctx)
+			if err != nil {
+				return err
+			}
+		} else if len(instr.Operands) == 3 {
+			// addi rd, rs1, imm (and jalr rd, rs1, imm)
 			if rs1, err = evalRegister(instr, instr.Operands[1]); err != nil {
 				return err
 			}
@@ -168,37 +172,19 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			}
 		}
 
-		// Check for standard RISC-V syntax: sw rs2, offset(rs1)
-		if len(instr.Operands) == 2 {
-			if offsetBase, ok := instr.Operands[1].(*ast.OffsetBase); ok {
-				if rs1, err = evalRegister(instr, offsetBase.Base); err != nil {
-					return err
-				}
-				imm, err = evalIImmediate(offsetBase.Offset, symbols, pc, ctx)
-				if err != nil {
-					return err
-				}
-			} else {
-				return fmt.Errorf("%s: error: invalid operand format for %s (expected offset(base))", instr.Location, instr.Opcode)
-			}
-		} else if len(instr.Operands) >= 3 {
-			// Legacy syntax: sw rs2, offset, rs1
-			imm, err = evalIImmediate(instr.Operands[1], symbols, pc, ctx)
-			if err != nil {
-				return err
-			}
-			if rs1, err = evalRegister(instr, instr.Operands[2]); err != nil {
-				return err
-			}
+		// sw rs2, offset(rs1)
+		offsetBase, ok := instr.Operands[1].(*ast.OffsetBase)
+		if !ok {
+			return offsetBaseError(instr)
 		}
-		if len(instr.Operands) >= 2 {
-			immExpr := instr.Operands[1]
-			if ob, ok := immExpr.(*ast.OffsetBase); ok {
-				immExpr = ob.Offset
-			}
-			if err := checkIImmediate(instr, immExpr, imm); err != nil {
-				return err
-			}
+		if rs1, err = evalRegister(instr, offsetBase.Base); err != nil {
+			return err
+		}
+		if imm, err = evalIImmediate(offsetBase.Offset, symbols, pc, ctx); err != nil {
+			return err
+		}
+		if err := checkIImmediate(instr, offsetBase.Offset, imm); err != nil {
+			return err
 		}
 		encoded = arch.EncodeTypeS(op, rs1, rs2, imm)
 
@@ -328,7 +314,6 @@ func evalFenceSet(instr *ast.Instruction, operand ast.Expression) (uint32, error
 	return set, nil
 }
 
-// isCSR reports whether mnemonic is one of the six CSR instructions
 // jalrOperands rewrites the short forms of jalr to "rd, rs, 0":
 // "jalr rs" is "jalr ra, rs, 0" and "jalr rd, rs" is "jalr rd, rs, 0".
 // "jalr rd, rs, imm" and "jalr rd, imm(rs)" are kept.
@@ -349,6 +334,7 @@ func jalrOperands(instr *ast.Instruction) error {
 	return nil
 }
 
+// isCSR reports whether mnemonic is one of the six CSR instructions
 func isCSR(mnemonic string) bool {
 	switch mnemonic {
 	case "csrrw", "csrrs", "csrrc", "csrrwi", "csrrsi", "csrrci":
@@ -462,4 +448,69 @@ func checkOffset(instr *ast.Instruction, offset int64, limit int64) error {
 		return fmt.Errorf("%s: error: %s offset %d is odd", instr.Location, instr.Opcode, offset)
 	}
 	return nil
+}
+
+// operandNames gives the operands of an instruction, by name, for the count
+// check and its message. ok is false for the instructions that check their
+// own operands (jal, jalr, fence, the CSR, unary and system instructions).
+func operandNames(mnemonic string, op arch.InstrOpcode) (names []string, ok bool) {
+	switch mnemonic {
+	case "new.t":
+		return []string{"rd", "rs1"}, true
+	case "yield.t", "end.t":
+		return []string{}, true
+	case "id.t":
+		return []string{"rd"}, true
+	case "wake.t":
+		return []string{"rs1"}, true
+	case "jalr":
+		return nil, false
+	}
+	if isCSR(mnemonic) {
+		return nil, false
+	}
+	switch op.Type {
+	case arch.TypeR:
+		return []string{"rd", "rs1", "rs2"}, true
+	case arch.TypeR2:
+		return []string{"rs1", "rs2"}, true
+	case arch.TypeI:
+		if op.Opcode == 0b000_0011 { // loads
+			return []string{"rd", "offset(rs1)"}, true
+		}
+		return []string{"rd", "rs1", "imm"}, true
+	case arch.TypeI2:
+		return []string{"rd", "rs1", "shamt"}, true
+	case arch.TypeS:
+		return []string{"rs2", "offset(rs1)"}, true
+	case arch.TypeB:
+		return []string{"rs1", "rs2", "label"}, true
+	case arch.TypeU:
+		return []string{"rd", "imm"}, true
+	}
+	return nil, false
+}
+
+// checkOperandCount stops an instruction with too few or too many operands:
+// a missing one would be read as x0 or 0, an extra one dropped
+func checkOperandCount(instr *ast.Instruction, op arch.InstrOpcode) error {
+	names, ok := operandNames(instr.Opcode, op)
+	if !ok || len(instr.Operands) == len(names) {
+		return nil
+	}
+	var want string
+	switch len(names) {
+	case 0:
+		want = "no operands"
+	case 1:
+		want = "1 operand (" + names[0] + ")"
+	default:
+		want = fmt.Sprintf("%d operands (%s)", len(names), strings.Join(names, ", "))
+	}
+	return fmt.Errorf("%s: error: %s expects %s, got %d", instr.Location, instr.Opcode, want, len(instr.Operands))
+}
+
+// offsetBaseError reports a load or store whose address is not offset(rs1)
+func offsetBaseError(instr *ast.Instruction) error {
+	return fmt.Errorf("%s: error: %s: the second operand must be offset(rs1), such as 0(sp)", instr.Location, instr.Opcode)
 }

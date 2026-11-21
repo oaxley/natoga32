@@ -618,6 +618,67 @@ func TestLayoutForwardNames(t *testing.T) {
 	}
 }
 
+// every instruction takes exactly the operands of its form: a missing one is
+// not read as x0 or 0, an extra one is not dropped
+func TestInstructionOperandCounts(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	errs := []struct{ src, want string }{
+		{"add a0, a1", "add expects 3 operands (rd, rs1, rs2), got 2"},
+		{"add a0, a1, a2, a3", "add expects 3 operands (rd, rs1, rs2), got 4"},
+		{"mul a0", "mul expects 3 operands (rd, rs1, rs2), got 1"},
+		{"andn a0, a1", "andn expects 3 operands (rd, rs1, rs2), got 2"},
+		{"addi a0, a1", "addi expects 3 operands (rd, rs1, imm), got 2"},
+		{"xori a0, a1, 1, 2", "xori expects 3 operands (rd, rs1, imm), got 4"},
+		{"slli a0, a1", "slli expects 3 operands (rd, rs1, shamt), got 2"},
+		{"rori a0, a1, 1, 2", "rori expects 3 operands (rd, rs1, shamt), got 4"},
+		{"lw a0", "lw expects 2 operands (rd, offset(rs1)), got 1"},
+		{"lw a0, 0(a1), 5", "lw expects 2 operands (rd, offset(rs1)), got 3"},
+		{"sw a0", "sw expects 2 operands (rs2, offset(rs1)), got 1"},
+		{"beq a0", "beq expects 3 operands (rs1, rs2, label), got 1"},
+		{"beq a0, a1", "beq expects 3 operands (rs1, rs2, label), got 2"},
+		{"lui a0", "lui expects 2 operands (rd, imm), got 1"},
+		{"auipc a0, 1, 2", "auipc expects 2 operands (rd, imm), got 3"},
+		{"new.t a1", "new.t expects 2 operands (rd, rs1), got 1"},
+		{"new.t a1, a0, a2", "new.t expects 2 operands (rd, rs1), got 3"},
+		{"yield.t a0", "yield.t expects no operands, got 1"},
+		{"end.t a0", "end.t expects no operands, got 1"},
+		{"id.t", "id.t expects 1 operand (rd), got 0"},
+		{"id.t a0, a1", "id.t expects 1 operand (rd), got 2"},
+		{"wake.t", "wake.t expects 1 operand (rs1), got 0"},
+		{"wake.t a0, a1", "wake.t expects 1 operand (rs1), got 2"},
+		{"sleep.t a0", "sleep.t expects 2 operands (rs1, rs2), got 1"},
+		{"sleep.t a0, a1, a2", "sleep.t expects 2 operands (rs1, rs2), got 3"},
+		// the old forms lw rd, rs1, off and sw rs2, off, rs1 are refused
+		{"lw a0, sp, 4", "lw expects 2 operands (rd, offset(rs1)), got 3"},
+		{"sw a0, 4, sp", "sw expects 2 operands (rs2, offset(rs1)), got 3"},
+		{"lw a0, sp", "lw: the second operand must be offset(rs1), such as 0(sp)"},
+		{"sw a0, 4", "sw: the second operand must be offset(rs1), such as 0(sp)"},
+	}
+	for _, tt := range errs {
+		t.Run(tt.src, func(t *testing.T) {
+			expectError(t, goasm, tt.src, tt.want, "2:1")
+		})
+	}
+
+	ok := []struct {
+		src  string
+		want []byte
+	}{
+		{"lw a0, (sp)", []byte{0x03, 0x25, 0x01, 0x00}},
+		{"sw a0, -4(sp)", []byte{0x23, 0x2e, 0xa1, 0xfe}},
+		{"new.t a1, a0", []byte{0x8b, 0x05, 0x05, 0x00}},
+		{"wake.t a0", []byte{0x0b, 0x50, 0x05, 0x00}},
+		{"yield.t", []byte{0x0b, 0x10, 0x00, 0x00}},
+	}
+	for _, tt := range ok {
+		t.Run(tt.src, func(t *testing.T) {
+			expectAssembles(t, goasm, tt.src, tt.want)
+		})
+	}
+}
+
 // the disassembler prints the thread instructions in their syntax
 func TestDisasmThreadSyntax(t *testing.T) {
 	goasm := buildGoasm(t)

@@ -406,7 +406,7 @@ func TestImmediateRangeErrors(t *testing.T) {
 		{"addi a0, a0, -2049", "addi immediate -2049 out of range (-2048..2047)"},
 		{"andi a0, a0, 0xFFF", "andi immediate 4095 out of range (-2048..2047)"},
 		{"lw a0, 5000(sp)", "lw immediate 5000 out of range (-2048..2047)"},
-		{"lw a0, sp, -3000", "lw immediate -3000 out of range (-2048..2047)"},
+		{"lw a0, -3000(sp)", "lw immediate -3000 out of range (-2048..2047)"},
 		{"sw a0, 2048(sp)", "sw immediate 2048 out of range (-2048..2047)"},
 		{"jalr ra, 4096(a0)", "jalr immediate 4096 out of range (-2048..2047)"},
 		{"lui a0, 0x100000", "lui immediate 1048576 out of range (-524288..1048575)"},
@@ -632,7 +632,7 @@ func TestUnknownRegisterIsAnError(t *testing.T) {
 		{"addi a0, b1, 1", "'b1' is not a register"},      // I
 		{"addi 5, a0, 1", "expected a register"},          // I, number as rd
 		{"lw a0, 0(spp)", "'spp' is not a register"},      // I, offset(base)
-		{"lw a0, spp, 0", "'spp' is not a register"},      // I, legacy form
+		{"jalr a0, spp, 0", "'spp' is not a register"},    // I, jalr rd, rs1, imm
 		{"slli a0, t9, 1", "'t9' is not a register"},      // I2
 		{"sw a0, 4(sb)", "'sb' is not a register"},        // S, base
 		{"sw r0, 4(sp)", "'r0' is not a register"},        // S, rs2

@@ -143,6 +143,7 @@ The disassembler prints the same order: `csrrw t0, 0x300, a0`, `csrrsi a1, 0x304
 
 They use the custom opcode `0x0B`.
 Syntax, encoding and behaviour are in [Thread instructions](../../console/cpu/instructions.md).
+Each one takes exactly the operands of its syntax: `wake.t a0, a1` stops with `wake.t expects 1 operand (rs1), got 2`, `yield.t a0` with `yield.t expects no operands, got 1`.
 The disassembler prints them the same way (`new.t a1, a0`, `yield.t`, `wake.t a0`).
 
 ```asm

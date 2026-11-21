@@ -224,9 +224,16 @@ An undefined label stops with `file:line:col: error: undefined symbol 'X'`.
 | `jal` | `jal rd, label` or `jal label` (`rd` = `ra`). Write `j label` for `rd` = `x0` |
 | `jalr` | `jalr rd, rs1, off` or `jalr rd, off(rs1)`; `jalr rs1` (rd = `ra`) and `jalr rd, rs1` (off = 0) |
 | `lui`, `auipc` | `lui rd, imm` (20 bits) |
+| Register-register (`add`, `mul`, `andn`, ...) | `add rd, rs1, rs2` |
+| Register-immediate (`addi`, `slli`, ...) | `addi rd, rs1, imm` |
 
 `lw rd, label` is not accepted.
 Use `la` and then `lw rd, 0(rd)`.
+
+Each instruction takes exactly the operands of its form: a missing operand is not read as `x0` or 0, and an extra one is not dropped.
+A wrong count stops with, for example, `add expects 3 operands (rd, rs1, rs2), got 2` or `lw expects 2 operands (rd, offset(rs1)), got 3`.
+A load or a store has a single address operand, `offset(rs1)`: `lw a0, sp` stops with `lw: the second operand must be offset(rs1), such as 0(sp)`.
+The forms `lw rd, rs1, off` and `sw rs2, off, rs1`, accepted before, are refused.
 
 ## See also
 
