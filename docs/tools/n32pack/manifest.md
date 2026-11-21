@@ -40,7 +40,7 @@ How the fields reach the cartridge:
 
 Notes:
 
-- `date`: a time zone offset is accepted. A date more than 2^32 - 1 seconds after 2026-01-01 is refused.
+- `date`: a time zone offset is accepted: `Z`, or `+hh:mm` / `-hh:mm` with `hh` 00 to 23 and `mm` 00 to 59. Other offsets (`+24:00`, `+0100`) and a date without an offset give `date must be RFC 3339`. A date more than 2^32 - 1 seconds after 2026-01-01 is refused.
   Without `date`, n32pack uses the current time, so two runs do not give the same file.
 - The console does not use the version, the minimum ROM version, the languages, the date or the graphics mode.
 - `entry` has three forms:
@@ -145,7 +145,9 @@ Some messages, as n32pack prints them (`n32pack: <file>: <message>`):
 | Same asset name twice | `duplicate asset name "X"` |
 | Unknown asset type | `asset "X": unknown type "Y"` |
 | No asset file | `asset "X": file is required` |
-| Number out of range, for example `count` 70000 | `json: cannot unmarshal number 70000 into Go struct field ...` |
+| Asset number out of range or not an integer, for example `count` 70000 | `asset "X": count must be an integer from 0 to 65535` (`format`: 0 to 255) |
+| Wrong JSON type | `version must be a string`, `regions must be a list of strings`, `assets must be a list of objects`, `asset "X": boot must be true or false`. An asset without a usable name is named by its index: `assets[1]: slot must be ...` |
+| Not an object | `the manifest must be a JSON object` |
 | Label without `dsym` | `entry "main": no dsym file given` |
 | Unknown label | `entry "x": unknown symbol` |
 | Bad entry point | `entry 0x... is not 4-byte aligned`, `entry 0x... is not in a .text section` |

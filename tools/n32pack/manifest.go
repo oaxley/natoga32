@@ -73,6 +73,8 @@ var (
 	versionRe   = regexp.MustCompile(`^([0-9]{1,2})\.([0-9]{2})$`)
 	minRomRe    = regexp.MustCompile(`^([0-9]{1,3})\.([0-9]{1,3})$`)
 	assetNameRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+	// RFC 3339 time offset: Z, or +-hh:mm with hh 00-23 and mm 00-59
+	dateOffsetRe = regexp.MustCompile(`(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$`)
 )
 
 const (
@@ -85,6 +87,10 @@ func loadManifest(path string) (*Manifest, error) {
 	file, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
+	}
+
+	if err := checkTypes(file); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 
 	m := &Manifest{}
@@ -145,9 +151,9 @@ func (m *Manifest) validate() error {
 		}
 	}
 	if m.Date != "" {
-		date, err := time.Parse(time.RFC3339, m.Date)
+		date, err := parseDate(m.Date)
 		if err != nil {
-			return errors.New("date must be RFC 3339")
+			return err
 		}
 		if date.Before(dateEpoch) {
 			return errors.New("date is before 2026-01-01")
@@ -251,8 +257,8 @@ func (m *Manifest) dateSeconds(now time.Time) (uint32, error) {
 	date := now
 	if m.Date != "" {
 		var err error
-		if date, err = time.Parse(time.RFC3339, m.Date); err != nil {
-			return 0, errors.New("date must be RFC 3339")
+		if date, err = parseDate(m.Date); err != nil {
+			return 0, err
 		}
 	}
 	if date.Before(dateEpoch) {
@@ -263,4 +269,121 @@ func (m *Manifest) dateSeconds(now time.Time) (uint32, error) {
 		return 0, errors.New("date is too far in the future")
 	}
 	return uint32(seconds), nil
+}
+
+// parseDate parses an RFC 3339 date. time.Parse also takes offsets such as
+// +24:00 or +01:60, which RFC 3339 does not allow: they are refused here.
+func parseDate(s string) (time.Time, error) {
+	date, err := time.Parse(time.RFC3339, s)
+	if err != nil || !dateOffsetRe.MatchString(s) {
+		return time.Time{}, errors.New("date must be RFC 3339")
+	}
+	return date, nil
+}
+
+// checkTypes checks the JSON type of every manifest field, and the range of
+// the asset numbers, so that a wrong value gets a plain message instead of
+// the decoder's "json: cannot unmarshal ..." text. A null value is the same
+// as an absent field. Syntax errors and unknown fields are left to the decoder.
+func checkTypes(file []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(file))
+	dec.UseNumber()
+	var doc any
+	if err := dec.Decode(&doc); err != nil {
+		return nil // reported by the strict decoding
+	}
+	top, ok := doc.(map[string]any)
+	if !ok {
+		return errors.New("the manifest must be a JSON object")
+	}
+	for _, name := range []string{"name", "version", "min_rom", "date", "rscv", "dsym", "entry"} {
+		if v, ok := top[name]; ok && v != nil {
+			if _, ok := v.(string); !ok {
+				return fmt.Errorf("%s must be a string", name)
+			}
+		}
+	}
+	for _, name := range []string{"regions", "languages"} {
+		if v, ok := top[name]; ok && v != nil && !isStringList(v) {
+			return fmt.Errorf("%s must be a list of strings", name)
+		}
+	}
+	if v, ok := top["graphics_mode"]; ok && v != nil {
+		if _, ok := jsonInt(v); !ok {
+			return errors.New("graphics_mode must be 0 to 3")
+		}
+	}
+	v, ok := top["assets"]
+	if !ok || v == nil {
+		return nil
+	}
+	assets, ok := v.([]any)
+	if !ok {
+		return errors.New("assets must be a list of objects")
+	}
+	for i, item := range assets {
+		asset, ok := item.(map[string]any)
+		if !ok {
+			return fmt.Errorf("assets[%d] must be an object", i)
+		}
+		if err := checkAssetTypes(asset); err != nil {
+			// name the asset when it has a name, else its index
+			if name, ok := asset["name"].(string); ok {
+				return fmt.Errorf("asset %q: %w", name, err)
+			}
+			return fmt.Errorf("assets[%d]: %w", i, err)
+		}
+	}
+	return nil
+}
+
+// checkAssetTypes checks the fields of one asset
+func checkAssetTypes(asset map[string]any) error {
+	for _, name := range []string{"name", "type", "file"} {
+		if v, ok := asset[name]; ok && v != nil {
+			if _, ok := v.(string); !ok {
+				return fmt.Errorf("%s must be a string", name)
+			}
+		}
+	}
+	for _, f := range []struct {
+		name string
+		max  int64
+	}{{"slot", 0xFFFF}, {"format", 0xFF}, {"count", 0xFFFF}} {
+		if v, ok := asset[f.name]; ok && v != nil {
+			if n, ok := jsonInt(v); !ok || n < 0 || n > f.max {
+				return fmt.Errorf("%s must be an integer from 0 to %d", f.name, f.max)
+			}
+		}
+	}
+	if v, ok := asset["boot"]; ok && v != nil {
+		if _, ok := v.(bool); !ok {
+			return errors.New("boot must be true or false")
+		}
+	}
+	return nil
+}
+
+// jsonInt returns the value of a JSON integer (decoded with UseNumber)
+func jsonInt(v any) (int64, bool) {
+	n, ok := v.(json.Number)
+	if !ok {
+		return 0, false
+	}
+	i, err := strconv.ParseInt(n.String(), 10, 64)
+	return i, err == nil
+}
+
+// isStringList reports whether v is a JSON list of strings
+func isStringList(v any) bool {
+	list, ok := v.([]any)
+	if !ok {
+		return false
+	}
+	for _, item := range list {
+		if _, ok := item.(string); !ok {
+			return false
+		}
+	}
+	return true
 }

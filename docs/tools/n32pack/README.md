@@ -78,7 +78,7 @@ This is what n32pack chooses:
 
 n32pack refuses to build a cartridge when:
 
-- The manifest is not one valid JSON object, has an unknown field, a missing required field, or a value out of range. The rules of each field are in [Manifest](manifest.md).
+- The manifest is not one valid JSON object, has an unknown field, a missing required field, a value of the wrong JSON type, or a value out of range. The message names the field (and the asset), for example `asset "TILES": slot must be an integer from 0 to 65535`. The rules of each field are in [Manifest](manifest.md).
 - Two assets have the same name.
 - The `rscv` or `dsym` file is not exactly one chunk of the right type: length, CRC-32 and zero padding are checked.
 - An `RSCV` section has an unknown kind, non-zero reserved bytes, runs past the chunk, is outside the region of its kind, or overlaps another section. There must be a `.text` section. See [RSCV](../../console/cartridge/chunks.md#rscv).
