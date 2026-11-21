@@ -3,6 +3,7 @@ package preprocess
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/natoga32/goasm/internal/token"
@@ -1651,5 +1652,73 @@ func TestEnvVarInExpression(t *testing.T) {
 	}
 	if result[0].Value != "4352" {
 		t.Errorf("expected '4352', got '%s'", result[0].Value)
+	}
+}
+
+// tokenizeMacroTest builds the tokens of a small source, one statement per line
+func macroTestTokens(lines ...[]token.Token) []token.Token {
+	var tokens []token.Token
+	for i, line := range lines {
+		for _, tok := range line {
+			tok.Filename = "m.s"
+			tok.Row = i + 1
+			tokens = append(tokens, tok)
+		}
+		tokens = append(tokens, token.Token{Type: token.EOL, Filename: "m.s", Row: i + 1})
+	}
+	return append(tokens, token.Token{Type: token.EOF, Filename: "m.s", Row: len(lines) + 1})
+}
+
+func dir(v string) token.Token   { return token.Token{Type: token.DIRECTIVE, Value: v} }
+func ident(v string) token.Token { return token.Token{Type: token.IDENT, Value: v} }
+
+// A macro that calls itself stops with an error naming it, not a stack overflow
+func TestMacroSelfRecursionError(t *testing.T) {
+	tokens := macroTestTokens(
+		[]token.Token{dir(".macro"), ident("boom")},
+		[]token.Token{ident("boom")},
+		[]token.Token{dir(".endm")},
+		[]token.Token{ident("boom")},
+	)
+	_, err := New("").Process(tokens)
+	if err == nil {
+		t.Fatal("expected an error for a recursive macro")
+	}
+	for _, want := range []string{"macro 'boom'", "recursive", "m.s:2"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not contain %q", err, want)
+		}
+	}
+}
+
+// Two macros that call each other stop with an error
+func TestMacroMutualRecursionError(t *testing.T) {
+	tokens := macroTestTokens(
+		[]token.Token{dir(".macro"), ident("a")},
+		[]token.Token{ident("b")},
+		[]token.Token{dir(".endm")},
+		[]token.Token{dir(".macro"), ident("b")},
+		[]token.Token{ident("a")},
+		[]token.Token{dir(".endm")},
+		[]token.Token{ident("a")},
+	)
+	_, err := New("").Process(tokens)
+	if err == nil || !strings.Contains(err.Error(), "recursive") {
+		t.Fatalf("expected a recursive macro error, got %v", err)
+	}
+}
+
+// A macro that calls itself twice grows without end: it must stop too
+func TestMacroGrowingRecursionError(t *testing.T) {
+	tokens := macroTestTokens(
+		[]token.Token{dir(".macro"), ident("boom")},
+		[]token.Token{ident("boom")},
+		[]token.Token{ident("boom")},
+		[]token.Token{dir(".endm")},
+		[]token.Token{ident("boom")},
+	)
+	_, err := New("").Process(tokens)
+	if err == nil || !strings.Contains(err.Error(), "macro 'boom'") {
+		t.Fatalf("expected a macro error, got %v", err)
 	}
 }

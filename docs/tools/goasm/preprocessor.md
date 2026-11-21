@@ -149,7 +149,19 @@ A negative count is an error.
 - A macro can call another macro, also one defined later, and macros can be nested.
 - A macro name hides an instruction of the same name.
 - `.macro` with no name stops with `expected macro name after .macro at line N`.
-- A macro that calls itself crashes goasm with a Go stack overflow. Do not write recursive macros.
+- A macro can call itself if a `.if` stops the calls (see below).
+- A macro that never stops calling itself, directly or through another macro, stops with `FILE:LINE: error: macro 'NAME' expanded too deeply (more than 1000 levels): recursive macro without an end?`. `FILE:LINE` is the last call that was expanded. The limits are 1000 nested levels and 100 000 macro calls in a whole program.
+
+```asm
+.macro cnt n
+.if \n > 0
+    addi a0, a0, \n
+    cnt \n - 1             ; stops when n reaches 0
+.endif
+.endm
+
+    cnt 3                   ; addi a0, a0, 3 / 2 / 1
+```
 
 ## Token pasting
 

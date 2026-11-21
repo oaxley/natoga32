@@ -25,6 +25,8 @@ type Preprocessor struct {
 	macros   map[string]*Macro // Defined macros
 	includes map[string]bool   // Track included files to prevent recursion
 	baseDir  string            // Base directory for resolving includes
+
+	macroExpansions int // macro calls expanded so far, see maxMacroExpansions
 }
 
 // New creates a new preprocessor
@@ -42,10 +44,57 @@ func (p *Preprocessor) Process(tokens []token.Token) ([]token.Token, error) {
 	return p.processTokens(tokens)
 }
 
-// processTokens processes tokens recursively
+// Limits on macro expansion, so that a recursive macro stops with an error.
+// A pass expands one level of macros: maxMacroDepth is the number of nested
+// levels, maxMacroExpansions the number of macro calls in a whole Process.
+const (
+	maxMacroDepth      = 1000
+	maxMacroExpansions = 100000
+)
+
+// macroCall records a macro call, for the recursion error
+type macroCall struct {
+	name string
+	tok  token.Token
+}
+
+// processTokens runs passes over tokens until no directive or macro is left to expand
 func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error) {
+	depth := 0
+	for {
+		result, needsReprocess, call, err := p.processPass(tokens)
+		if err != nil {
+			return nil, err
+		}
+		if !needsReprocess {
+			return result, nil
+		}
+		if call != nil {
+			depth++
+			if depth > maxMacroDepth {
+				return nil, macroRecursionError(call, fmt.Sprintf("more than %d levels", maxMacroDepth))
+			}
+		}
+		tokens = result
+	}
+}
+
+// macroRecursionError reports a macro that expands without end
+func macroRecursionError(call *macroCall, why string) error {
+	loc := fmt.Sprintf("line %d", call.tok.Row)
+	if call.tok.Filename != "" {
+		loc = fmt.Sprintf("%s:%d", call.tok.Filename, call.tok.Row)
+	}
+	return fmt.Errorf("%s: error: macro '%s' expanded too deeply (%s): recursive macro without an end?",
+		loc, call.name, why)
+}
+
+// processPass processes tokens once. It reports whether the result needs another
+// pass, and the last macro it expanded (nil when none).
+func (p *Preprocessor) processPass(tokens []token.Token) ([]token.Token, bool, *macroCall, error) {
 	result := make([]token.Token, 0, len(tokens))
 	needsReprocess := false
+	var lastCall *macroCall
 
 	ts := newTokenStream(tokens)
 
@@ -61,14 +110,14 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 			switch tok.Value {
 			case ".define":
 				if err := p.handleDefine(ts); err != nil {
-					return nil, err
+					return nil, false, nil, err
 				}
 				continue
 
 			case ".include":
 				included, err := p.handleInclude(ts)
 				if err != nil {
-					return nil, err
+					return nil, false, nil, err
 				}
 				result = append(result, included...)
 				// handleInclude now processes tokens internally, no reprocess needed
@@ -77,7 +126,7 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 			case ".ifdef", ".ifndef":
 				conditional, err := p.handleConditional(ts)
 				if err != nil {
-					return nil, err
+					return nil, false, nil, err
 				}
 				result = append(result, conditional...)
 				needsReprocess = true
@@ -86,7 +135,7 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 			case ".if":
 				conditional, err := p.handleIf(ts)
 				if err != nil {
-					return nil, err
+					return nil, false, nil, err
 				}
 				result = append(result, conditional...)
 				needsReprocess = true
@@ -95,7 +144,7 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 			case ".dup":
 				expanded, err := p.handleDup(ts)
 				if err != nil {
-					return nil, err
+					return nil, false, nil, err
 				}
 				result = append(result, expanded...)
 				continue
@@ -103,7 +152,7 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 			case ".for":
 				expanded, err := p.handleFor(ts)
 				if err != nil {
-					return nil, err
+					return nil, false, nil, err
 				}
 				result = append(result, expanded...)
 				needsReprocess = true // Body may contain directives that need processing
@@ -111,7 +160,7 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 
 			case ".macro":
 				if err := p.handleMacro(ts); err != nil {
-					return nil, err
+					return nil, false, nil, err
 				}
 				continue
 			}
@@ -121,7 +170,7 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 		if tok.Type == token.PASTE {
 			pasted, err := p.handlePaste(ts, &result)
 			if err != nil {
-				return nil, err
+				return nil, false, nil, err
 			}
 			result = append(result, pasted)
 			continue
@@ -169,10 +218,16 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 
 			// Expand macros
 			if macro, ok := p.macros[tok.Value]; ok {
+				p.macroExpansions++
+				lastCall = &macroCall{name: tok.Value, tok: tok}
+				if p.macroExpansions > maxMacroExpansions {
+					return nil, false, nil, macroRecursionError(lastCall,
+						fmt.Sprintf("more than %d calls", maxMacroExpansions))
+				}
 				ts.advance() // consume macro name
 				expanded, err := p.expandMacro(macro, ts)
 				if err != nil {
-					return nil, err
+					return nil, false, nil, err
 				}
 				result = append(result, expanded...)
 				needsReprocess = true // Expanded content may need processing
@@ -190,12 +245,7 @@ func (p *Preprocessor) processTokens(tokens []token.Token) ([]token.Token, error
 		result = append(result, token.Token{Type: token.EOF})
 	}
 
-	// Recursively process if we made changes
-	if needsReprocess {
-		return p.processTokens(result)
-	}
-
-	return result, nil
+	return result, needsReprocess, lastCall, nil
 }
 
 // evaluateExpr evaluates a simple expression

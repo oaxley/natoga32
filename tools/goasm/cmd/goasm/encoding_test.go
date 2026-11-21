@@ -194,6 +194,46 @@ func TestOptimizerEndToEnd(t *testing.T) {
 	}
 }
 
+// A recursive macro with no end stops with an error; one that ends through .if works
+func TestRecursiveMacro(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	errors := []struct {
+		name, src, want string
+	}{
+		{"self", ".macro boom\nboom\n.endm\n.rom\nboom", "macro 'boom' expanded too deeply"},
+		{"mutual", ".macro a\nb\n.endm\n.macro b\na\n.endm\n.rom\na", "expanded too deeply"},
+	}
+	for _, tt := range errors {
+		t.Run(tt.name, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) || !strings.Contains(out, "in.s:") {
+				t.Errorf("expected %q with the file name in output, got:\n%s", tt.want, out)
+			}
+		})
+	}
+
+	t.Run("ends through .if", func(t *testing.T) {
+		src := ".macro cnt n\n.if \\n > 0\naddi a0, a0, \\n\ncnt \\n - 1\n.endif\n.endm\n.rom\ncnt 3\n"
+		data, out, err := assembleSource(t, goasm, src, "rom")
+		if err != nil {
+			t.Fatalf("assembling failed: %v\n%s", err, out)
+		}
+		want := []byte{
+			0x13, 0x05, 0x35, 0x00, // addi a0, a0, 3
+			0x13, 0x05, 0x25, 0x00, // addi a0, a0, 2
+			0x13, 0x05, 0x15, 0x00, // addi a0, a0, 1
+		}
+		if !bytes.Equal(data, want) {
+			t.Errorf("% x, want % x", data, want)
+		}
+	})
+}
+
 // jal label is jal ra, label (RISC-V standard one-operand form)
 func TestJalEncoding(t *testing.T) {
 	goasm := buildGoasm(t)
