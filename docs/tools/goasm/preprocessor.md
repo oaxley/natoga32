@@ -145,7 +145,7 @@ A negative count is an error.
 - A parameter is used as `\name` in the body.
 - A call is the macro name followed by arguments separated by commas: `push ra`.
 - An argument such as `4(sp)` is one argument.
-- A missing argument becomes nothing.
+- A missing argument is replaced by nothing. The instruction that uses it usually fails to assemble, and the error points at that instruction, not at the missing argument.
 - A macro can call another macro, also one defined later, and macros can be nested.
 - A macro name hides an instruction of the same name.
 - `.macro` with no name stops with `expected macro name after .macro at line N`.
