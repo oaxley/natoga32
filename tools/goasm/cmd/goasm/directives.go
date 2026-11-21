@@ -262,9 +262,21 @@ func defineEqu(dir *ast.Directive, symbols *symbol.Table, sections *section.Mana
 		return err
 	}
 	if err := symbols.DefineConstant(ident.Name, value, dir.Location.Line); err != nil {
-		return fmt.Errorf("%s: error: %v", dir.Location, err)
+		return duplicateError(dir.Location, ident.Name, symbols)
 	}
+	symbols.Lookup(ident.Name).File = dir.Location.Filename
 	return nil
+}
+
+// duplicateError reports a name defined a second time at loc, with the place
+// of the first definition (its file too when it is another file)
+func duplicateError(loc ast.SourceLocation, name string, symbols *symbol.Table) error {
+	first := symbols.Lookup(name)
+	where := fmt.Sprintf("line %d", first.Line)
+	if first.File != "" && first.File != loc.Filename {
+		where = fmt.Sprintf("%s:%d", first.File, first.Line)
+	}
+	return fmt.Errorf("%s: error: symbol '%s' already defined at %s", loc, name, where)
 }
 
 // dataValue evaluates a .byte/.half/.word value and checks that it fits its

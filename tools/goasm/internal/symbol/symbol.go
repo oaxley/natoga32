@@ -39,6 +39,7 @@ type Symbol struct {
 	Defined bool       // True if symbol has been defined
 	Global  bool       // True if symbol is exported (global)
 	Line    int        // Source line where symbol was defined
+	File    string     // Source file of that line (set by the caller, for messages)
 }
 
 // Table is the symbol table

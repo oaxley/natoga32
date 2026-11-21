@@ -86,9 +86,10 @@ func semanticPass1(program *ast.Program, symbols *symbol.Table, sections *sectio
 		switch s := stmt.(type) {
 		case *ast.Label:
 			addr := sections.CurrentAddress()
-			if err := symbols.DefineLabel(s.Name, addr, sections.CurrentName(), 0); err != nil {
-				return err
+			if err := symbols.DefineLabel(s.Name, addr, sections.CurrentName(), s.Location.Line); err != nil {
+				return duplicateError(s.Location, s.Name, symbols)
 			}
+			symbols.Lookup(s.Name).File = s.Location.Filename
 
 		case *ast.Instruction:
 			// Each instruction is 4 bytes

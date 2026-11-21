@@ -37,7 +37,7 @@ A comment starts with `;`, `#` or `//` and runs to the end of the line.
 A label is a name followed by `:`.
 A label can share a line with an instruction or a directive.
 A name can contain letters, digits, `_` and `.`.
-A label defined twice stops with `symbol 'l' already defined at line 0`. The line number is always 0.
+A label defined twice stops at the second one with `in.s:4:1: error: symbol 'l' already defined at line 2`. When the first one is in another file (an `.include`), its file is given: `already defined at inc.s:1`.
 
 Instruction and directive names are case-sensitive and lower case: `ADDI` gives `unknown instruction 'ADDI'`, and `.TEXT` gives `unknown directive`.
 Register names are not case-sensitive.
@@ -193,7 +193,7 @@ Notes:
 
 - The operand of `.space`, `.align`, `.org` and the value of `.equ` are [expressions](#expressions): `.equ MASK, (1 << 4) - 1`, `.equ NEG, -2`, `.equ LETTER, 'A'`, `.space SIZE * 2`, `.org $ + 16`.
 - These four are computed while goasm lays out the addresses, so they can only use labels and `.equ` names defined **above** them. A name defined later stops with `undefined symbol`. `.byte`, `.half`, `.word` and instructions can use names defined anywhere.
-- An `.equ` name works everywhere an expression is accepted. Defining it twice stops with `symbol 'X' already defined`.
+- An `.equ` name works everywhere an expression is accepted. Defining it twice, or with the name of a label, stops with `symbol 'X' already defined at line N`.
 - A wrong operand count stops with `.space expects 1 operand` (or `.align`, `.org`), or `.equ expects 2 operands (name, value)`. `.space -1` stops with `size -1 is negative`, `.align 32` with `out of range (0..31)`.
 - `.org` takes an absolute address, not an offset: `.org 0x100` in `.rom`, `.org 0x01A00010` in `.text`. An address before the current one stops with `.org address 0xX is before current address 0xY`.
 - `.global` can come before or after the label it marks.

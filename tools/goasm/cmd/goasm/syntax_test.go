@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -230,4 +232,32 @@ func TestDefineCommaForm(t *testing.T) {
 	expectAssembles(t, goasm, ".define FLAG\n.ifdef FLAG\n.byte 1\n.endif", []byte{1})
 	expectError(t, goasm, ".define A,", ".define A: expected a value after ','", "2")
 	expectError(t, goasm, ".define , 5", "expected a name after .define", "2")
+}
+
+// A name defined twice reports both lines: the second definition and the first one
+func TestDuplicateLabelLine(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	expectError(t, goasm, "main:\nnop\nmain:\nnop", "symbol 'main' already defined at line 2", "4")
+	expectError(t, goasm, "nop\nfoo: nop\n.equ foo, 3", "symbol 'foo' already defined at line 3", "4")
+	expectError(t, goasm, ".equ K, 1\nK:", "symbol 'K' already defined at line 2", "3")
+	// the first definition in an included file gives its file name
+	t.Run("include", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "inc.s"), []byte("main:\nnop\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		input := filepath.Join(dir, "in.s")
+		if err := os.WriteFile(input, []byte(".rom\n.include \"inc.s\"\nmain:\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		out, err := exec.Command(goasm, input, "-f", "rom", "-o", filepath.Join(dir, "out.rom")).CombinedOutput()
+		want := "in.s:3:1: error: symbol 'main' already defined at " + filepath.Join(dir, "inc.s") + ":1"
+		if err == nil || !strings.Contains(string(out), want) {
+			t.Errorf("expected %q in output, got:\n%s", want, out)
+		}
+	})
+	// a .global before the label is not a definition
+	expectAssembles(t, goasm, ".global g\ng: nop", []byte{0x13, 0x00, 0x00, 0x00})
 }
