@@ -248,118 +248,192 @@ func (p *Preprocessor) processPass(tokens []token.Token) ([]token.Token, bool, *
 	return result, needsReprocess, lastCall, nil
 }
 
-// evaluateExpr evaluates a simple expression
+// evaluateExpr evaluates a preprocessor expression (.if, .define, .dup, .for)
+// with the C rules: unary ! - + ~, then * / %, + -, << >>, < <= > >=, == !=,
+// &, ^, |, && and || (both short-circuit), and parentheses. An empty
+// expression is 0. A name that is not a .define name is 0.
 func (p *Preprocessor) evaluateExpr(tokens []token.Token) (int64, error) {
 	if len(tokens) == 0 {
 		return 0, nil
 	}
-
-	// Simple case: single token
-	if len(tokens) == 1 {
-		return p.evalToken(tokens[0])
-	}
-
-	// Handle unary minus at start
-	i := 0
-	negate := false
-	if tokens[0].Type == token.MINUS {
-		negate = true
-		i = 1
-	}
-
-	if i >= len(tokens) {
-		return 0, fmt.Errorf("expected value after unary minus")
-	}
-
-	// For now, evaluate left to right with basic operators
-	result, err := p.evalToken(tokens[i])
+	e := &exprEval{p: p, toks: tokens}
+	val, err := e.binary(0, true)
 	if err != nil {
 		return 0, err
 	}
-
-	if negate {
-		result = -result
+	if e.pos < len(e.toks) {
+		tok := e.toks[e.pos]
+		if tok.Type == token.RPAREN {
+			return 0, fmt.Errorf("unexpected ')'")
+		}
+		return 0, fmt.Errorf("unexpected '%s' after the expression", tokenText(tok))
 	}
+	return val, nil
+}
 
-	i++
-	for i < len(tokens) {
-		if i+1 >= len(tokens) {
+// exprEval walks the tokens of one preprocessor expression
+type exprEval struct {
+	p    *Preprocessor
+	toks []token.Token
+	pos  int
+}
+
+// binaryPrec gives the precedence of each binary operator (higher binds tighter)
+var binaryPrec = map[token.Type]int{
+	token.LOR: 1, token.LAND: 2,
+	token.OR: 3, token.XOR: 4, token.AND: 5,
+	token.EQ: 6, token.NEQ: 6,
+	token.LT: 7, token.LTE: 7, token.GT: 7, token.GTE: 7,
+	token.LSHIFT: 8, token.RSHIFT: 8,
+	token.PLUS: 9, token.MINUS: 9,
+	token.STAR: 10, token.SLASH: 10, token.MODULO: 10,
+}
+
+// binary parses operators of precedence above minPrec. When eval is false
+// (the skipped side of && or ||) the value is not computed, so 0 && 1/0 is 0.
+func (e *exprEval) binary(minPrec int, eval bool) (int64, error) {
+	left, err := e.unary(eval)
+	if err != nil {
+		return 0, err
+	}
+	for e.pos < len(e.toks) {
+		op := e.toks[e.pos]
+		prec, ok := binaryPrec[op.Type]
+		if !ok || prec <= minPrec {
 			break
 		}
-
-		opTok := tokens[i]
-		valTok := tokens[i+1]
-
-		val, err := p.evalToken(valTok)
+		e.pos++
+		evalRight := eval
+		if op.Type == token.LAND && left == 0 || op.Type == token.LOR && left != 0 {
+			evalRight = false
+		}
+		right, err := e.binary(prec, evalRight)
 		if err != nil {
 			return 0, err
 		}
-
-		switch opTok.Type {
-		case token.PLUS:
-			result += val
-		case token.MINUS:
-			result -= val
-		case token.STAR:
-			result *= val
-		case token.SLASH:
-			if val != 0 {
-				result /= val
-			}
-		case token.AND:
-			result &= val
-		case token.OR:
-			result |= val
-		case token.XOR:
-			result ^= val
-		case token.LSHIFT:
-			result <<= uint(val)
-		case token.RSHIFT:
-			result >>= uint(val)
-		case token.EQ:
-			if result == val {
-				result = 1
-			} else {
-				result = 0
-			}
-		case token.NEQ:
-			if result != val {
-				result = 1
-			} else {
-				result = 0
-			}
-		case token.LT:
-			if result < val {
-				result = 1
-			} else {
-				result = 0
-			}
-		case token.GT:
-			if result > val {
-				result = 1
-			} else {
-				result = 0
-			}
-		case token.LTE:
-			if result <= val {
-				result = 1
-			} else {
-				result = 0
-			}
-		case token.GTE:
-			if result >= val {
-				result = 1
-			} else {
-				result = 0
-			}
-		default:
-			return 0, fmt.Errorf("unexpected operator: %s", opTok.Value)
+		if !eval {
+			continue
 		}
-
-		i += 2
+		if left, err = applyBinary(op, left, right); err != nil {
+			return 0, err
+		}
 	}
+	return left, nil
+}
 
-	return result, nil
+func boolValue(b bool) int64 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+// applyBinary computes "left op right"
+func applyBinary(op token.Token, left, right int64) (int64, error) {
+	switch op.Type {
+	case token.PLUS:
+		return left + right, nil
+	case token.MINUS:
+		return left - right, nil
+	case token.STAR:
+		return left * right, nil
+	case token.SLASH:
+		if right == 0 {
+			return 0, fmt.Errorf("division by zero")
+		}
+		return left / right, nil
+	case token.MODULO:
+		if right == 0 {
+			return 0, fmt.Errorf("modulo by zero")
+		}
+		return left % right, nil
+	case token.LSHIFT, token.RSHIFT:
+		if right < 0 || right > 63 {
+			return 0, fmt.Errorf("shift amount %d out of range (0..63)", right)
+		}
+		if op.Type == token.LSHIFT {
+			return left << uint(right), nil
+		}
+		return left >> uint(right), nil
+	case token.AND:
+		return left & right, nil
+	case token.OR:
+		return left | right, nil
+	case token.XOR:
+		return left ^ right, nil
+	case token.EQ:
+		return boolValue(left == right), nil
+	case token.NEQ:
+		return boolValue(left != right), nil
+	case token.LT:
+		return boolValue(left < right), nil
+	case token.LTE:
+		return boolValue(left <= right), nil
+	case token.GT:
+		return boolValue(left > right), nil
+	case token.GTE:
+		return boolValue(left >= right), nil
+	case token.LAND:
+		return boolValue(left != 0 && right != 0), nil
+	case token.LOR:
+		return boolValue(left != 0 || right != 0), nil
+	}
+	return 0, fmt.Errorf("unknown operator '%s'", tokenText(op))
+}
+
+// unary parses a value with its prefix operators: ! - + ~, ( ... ), a token
+func (e *exprEval) unary(eval bool) (int64, error) {
+	if e.pos >= len(e.toks) {
+		return 0, fmt.Errorf("expected a value at the end of the expression")
+	}
+	tok := e.toks[e.pos]
+	e.pos++
+	switch tok.Type {
+	case token.NOT, token.MINUS, token.PLUS, token.TILDE:
+		val, err := e.unary(eval)
+		if err != nil {
+			return 0, err
+		}
+		switch tok.Type {
+		case token.NOT:
+			return boolValue(val == 0), nil
+		case token.MINUS:
+			return -val, nil
+		case token.TILDE:
+			return ^val, nil
+		}
+		return val, nil
+	case token.LPAREN:
+		val, err := e.binary(0, eval)
+		if err != nil {
+			return 0, err
+		}
+		if e.pos >= len(e.toks) || e.toks[e.pos].Type != token.RPAREN {
+			return 0, fmt.Errorf("missing ')'")
+		}
+		e.pos++
+		return val, nil
+	case token.NUMBER, token.IDENT, token.ENVVAR, token.CHAR:
+		return e.p.evalToken(tok)
+	}
+	return 0, fmt.Errorf("expected a value, got '%s'", tokenText(tok))
+}
+
+// tokenText is the source text of a token, for error messages
+func tokenText(tok token.Token) string {
+	if tok.Value != "" {
+		return tok.Value
+	}
+	return tok.Type.String()
+}
+
+// locationError prefixes an error with the file and line of tok
+func locationError(tok token.Token, format string, args ...any) error {
+	loc := fmt.Sprintf("line %d", tok.Row)
+	if tok.Filename != "" {
+		loc = fmt.Sprintf("%s:%d", tok.Filename, tok.Row)
+	}
+	return fmt.Errorf("%s: error: %s", loc, fmt.Sprintf(format, args...))
 }
 
 // evalToken evaluates a single token to a value
@@ -382,29 +456,7 @@ func (p *Preprocessor) evalToken(tok token.Token) (int64, error) {
 		return 0, nil // Undefined env var is 0
 
 	case token.CHAR:
-		// Handle character literals
-		s := tok.Value
-		if len(s) >= 2 && s[0] == '\'' && s[len(s)-1] == '\'' {
-			s = s[1 : len(s)-1]
-		}
-		if len(s) > 0 {
-			if s[0] == '\\' && len(s) > 1 {
-				switch s[1] {
-				case 'n':
-					return int64('\n'), nil
-				case 't':
-					return int64('\t'), nil
-				case 'r':
-					return int64('\r'), nil
-				case '0':
-					return 0, nil
-				default:
-					return int64(s[1]), nil
-				}
-			}
-			return int64(s[0]), nil
-		}
-		return 0, nil
+		return helpers.CharValue(tok.Value)
 	}
 
 	return 0, fmt.Errorf("cannot evaluate token: %s", tok.Value)

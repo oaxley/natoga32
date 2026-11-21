@@ -32,12 +32,12 @@ See [the overview](README.md).
 | Directive | Meaning |
 |-----------|---------|
 | `.byte` `.half` `.word` | Values of 1, 2, 4 bytes. |
-| `.string` `.asciz` / `.ascii` | Text with / without a 0 byte. No escape translation. |
+| `.string` `.asciz` / `.ascii` | Text with / without a 0 byte. Escapes `\n \t \r \0 \\ \' \" \xHH`. |
 | `.space N` / `.align N` / `.org ADDR` | Zeros; to a multiple of `2^N`; up to an absolute address. |
 | `.equ NAME, VALUE` | Constant (any expression of names defined above). |
 | `.global NAME` | After the label. |
 | `.incbin "f"` / `.include "f"` | Bytes / source, relative to the input file. |
-| `.define NAME V` | Constant, evaluated left to right. |
+| `.define NAME V` | Constant (`.define NAME, V` also works). C precedence, `( ) ! ~ && \|\|`. |
 | `.if` `.ifdef` `.ifndef` `.else` `.endif` | Conditions. |
 | `.for i = a, b[, s]` ... `.endf` | Loop, `b` excluded. |
 | `.macro n p` ... `.endm` | Macro, `\p` in the body. |
@@ -112,14 +112,6 @@ again:
     addi t3, t3, 0x678
     call func
 ```
-
-## Known problems
-
-| Problem | Workaround |
-|---------|------------|
-| `.string` keeps `\n` as two bytes | Use `.byte 10`. |
-| `_` in numbers is not read | Write `0x206800`. |
-| `.if !X` is read as `.if X`, with no error | Write `.if X == 0`. |
 
 ## See also
 

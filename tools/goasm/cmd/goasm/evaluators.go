@@ -104,6 +104,8 @@ func evalExpressionWithError(expr ast.Expression, symbols *symbol.Table, pc int6
 			return -operand, nil
 		case "+":
 			return operand, nil
+		case "~":
+			return ^operand, nil
 		}
 		return 0, fmt.Errorf("%s: error: unknown unary operator '%s'", e.Location, e.Op)
 

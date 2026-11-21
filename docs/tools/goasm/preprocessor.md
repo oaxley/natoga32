@@ -72,7 +72,7 @@ To insert raw bytes, use [`.incbin`](syntax.md#data-directives).
 
 ## Constants
 
-`.define NAME VALUE` replaces every later use of `NAME` by the number `VALUE`.
+`.define NAME VALUE` (or `.define NAME, VALUE`) replaces every later use of `NAME` by the number `VALUE`.
 
 ```asm
 .define STACK_SIZE 256
@@ -80,9 +80,8 @@ To insert raw bytes, use [`.incbin`](syntax.md#data-directives).
 ```
 
 - `.define NAME` with no value defines `NAME` as `0`. Use it as a flag with `.ifdef`.
-- Write `.define NAME VALUE` without a comma. `.define A, 5` fails with `cannot evaluate token: ,`.
-- The value is evaluated **from left to right**, with no precedence and no parentheses. `.define D 2+3*4` gives 20.
-- It accepts numbers, characters, other `.define` names, environment variables, a leading `-`, and these operators: `+ - * / & | ^ << >> == != < > <= >=`.
+- The comma is optional: `.define A, 5` is `.define A 5`. `.define A,` with no value stops with `expected a value after ','`.
+- The value is an expression, computed in 64 bits with the C rules (see [Expressions](#expressions)). `.define D 2+3*4` gives 14.
 - `.define` names are not the same as `.equ` names. An `.equ` constant is invisible to `.ifdef` and `.if`. See [Syntax](syntax.md#data-directives).
 
 ## Conditions
@@ -95,10 +94,39 @@ To insert raw bytes, use [`.incbin`](syntax.md#data-directives).
 | `.else` | Other branch. |
 | `.endif` | End of the block. |
 
-`.if` uses the same left-to-right evaluator as `.define`.
-`&&`, `||` and parentheses are **not** supported, and give `cannot evaluate token: ...`.
-`!` is a trap: the lexer drops a `!` that is not followed by `=`, so `.if !X` is read as `.if X` and no error is given. Write `.if X == 0` instead.
-A name that is not defined counts as 0.
+`.if` takes an expression (see below); `.if` with nothing after it stops with `.if expects an expression`.
+A name that is not defined counts as 0, so `.if !DEBUG` keeps the block when `DEBUG` is not defined.
+
+```asm
+.if (COUNT > 3 && !FAST) || MODE == 2
+    nop
+.endif
+```
+
+### Expressions
+
+`.if`, `.define`, `.dup` and `.for` use the same evaluator, with the C precedence:
+
+| Operator | Precedence |
+|----------|------------|
+| `!` `-` `+` `~` (unary) | 11 (highest) |
+| `*` `/` `%` | 10 |
+| `+` `-` | 9 |
+| `<<` `>>` | 8 |
+| `<` `<=` `>` `>=` | 7 |
+| `==` `!=` | 6 |
+| `&` | 5 |
+| `^` | 4 |
+| `\|` | 3 |
+| `&&` | 2 |
+| `\|\|` | 1 (lowest) |
+
+- Parentheses group: `(2+3)*4` is 20.
+- Comparisons, `!`, `&&` and `||` give 1 or 0.
+- `&&` and `||` stop early: in `0 && 1/0` the division is not computed.
+- The values are numbers, characters, `.define` names (another name is 0) and environment variables.
+- A wrong expression stops with an error at its line: `missing ')'`, `unexpected ')'`, `expected a value`, `division by zero`, `modulo by zero`, `shift amount 64 out of range (0..63)`.
+- Note that `==` binds tighter than `&`, as in C: `6 & 3 == 3` is `6 & (3 == 3)`, so 0. Write `(6 & 3) == 3`.
 Blocks can be nested.
 A block with no `.endif` stops with `unterminated conditional block`.
 

@@ -1,20 +1,26 @@
 package preprocess
 
 import (
-	"fmt"
-
 	"github.com/natoga32/goasm/internal/token"
 )
 
-// handleDefine processes .define NAME value
+// handleDefine processes ".define NAME value" and ".define NAME, value".
+// With no value, NAME is defined as 0 (a flag for .ifdef).
 func (p *Preprocessor) handleDefine(ts *tokenStream) error {
-	ts.advance() // consume .define
+	defTok := ts.advance() // consume .define
 
 	// Get the name
 	if !ts.check(token.IDENT) {
-		return fmt.Errorf("expected identifier after .define at line %d", ts.peek().Row)
+		return locationError(defTok, "expected a name after .define")
 	}
 	name := ts.advance().Value
+
+	// an optional comma between the name and the value
+	comma := false
+	if ts.check(token.COMMA) {
+		ts.advance()
+		comma = true
+	}
 
 	// Collect tokens until EOL
 	var valueToks []token.Token
@@ -27,10 +33,14 @@ func (p *Preprocessor) handleDefine(ts *tokenStream) error {
 		ts.advance()
 	}
 
+	if comma && len(valueToks) == 0 {
+		return locationError(defTok, ".define %s: expected a value after ','", name)
+	}
+
 	// Evaluate the expression
 	value, err := p.evaluateExpr(valueToks)
 	if err != nil {
-		return fmt.Errorf("error evaluating .define expression: %v", err)
+		return locationError(defTok, ".define %s: %v", name, err)
 	}
 
 	p.defines[name] = value

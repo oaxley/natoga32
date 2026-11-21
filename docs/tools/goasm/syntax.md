@@ -52,15 +52,15 @@ Register names are not case-sensitive.
 | Octal | `0o52` |
 | Character | `'A'`, `'\n'` |
 
-A `_` inside a number is **not** supported.
-Write `0x206800` in source, not `0x0020_6800`.
+A `_` can separate digits: `0x0020_6800`, `1_000_000`, `0b1010_0101`.
+It must be between two digits: `1__0`, `1_` and `0x_1` stop with `invalid number`.
 
 A character literal is a number.
-The escapes are `\n`, `\t`, `\r`, `\0`, `\\` and `\'`.
+The escapes are `\n`, `\t`, `\r`, `\0`, `\\`, `\'`, `\"` and `\xHH` (two hex digits, `\x41` is `A`).
 
 Strings use double quotes and are used by `.string`, `.ascii`, `.asciz`, `.include` and `.incbin`.
-In `.string` and `.ascii`, an escape such as `\n` is **not** translated: the bytes of `"a\nb"` are `61 5C 6E 62 00`.
-To put a newline in a string, end the string and add `.byte 10`.
+Strings use the same escapes: the bytes of `.string "a\nb"` are `61 0A 62 00`.
+Any other escape stops with `unknown escape '\q'`; `\x` with fewer than two hex digits stops with `escape '\x' needs 2 hex digits`.
 
 ## Expressions
 
@@ -76,7 +76,8 @@ Instruction operands and data directives accept expressions with numbers, charac
 | `^` | 2 |
 | `\|` | 1 (lowest) |
 
-Unary `+` and `-` and parentheses also work.
+Unary `+`, `-`, `~` (bitwise not) and parentheses also work.
+`!`, `&&` and `||` are only for `.if` and `.define` (see [Preprocessor](preprocessor.md#conditions)); in an instruction or a data directive they stop with `'&&' can be used only in .if and .define`.
 Every operator works in instruction operands (immediates, branch and `jal` targets) and in `.byte`, `.half` and `.word`.
 Values are computed in 64 bits, then cut to the size of the field. `>>` keeps the sign: `-8 >> 1` is `-4`.
 

@@ -20,7 +20,7 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 	case token.NUMBER:
 		val, err := helpers.ParseNumber(tok.Value)
 		if err != nil {
-			return nil, fmt.Errorf("invalid number %q: %v", tok.Value, err)
+			return nil, fmt.Errorf("%s: error: invalid number %q: %v", loc, tok.Value, err)
 		}
 		return &ast.Number{Value: val, Location: loc}, nil
 
@@ -31,44 +31,26 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 		return &ast.CurrentPC{Location: loc}, nil
 
 	case token.STRING:
-		// Strip quotes
+		// Strip quotes, then translate the escapes
 		s := tok.Value
 		if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
 			s = s[1 : len(s)-1]
 		}
-		return &ast.StringLiteral{Text: s, Location: loc}, nil
+		text, err := helpers.Unescape(s)
+		if err != nil {
+			return nil, fmt.Errorf("%s: error: %v", loc, err)
+		}
+		return &ast.StringLiteral{Text: text, Location: loc}, nil
 
 	case token.CHAR:
-		// Strip quotes and get character
-		s := tok.Value
-		if len(s) >= 2 && s[0] == '\'' && s[len(s)-1] == '\'' {
-			s = s[1 : len(s)-1]
+		ch, err := helpers.CharValue(tok.Value)
+		if err != nil {
+			return nil, fmt.Errorf("%s: error: %v", loc, err)
 		}
-		var ch rune = 0
-		if len(s) > 0 {
-			if s[0] == '\\' && len(s) > 1 {
-				// Handle escape sequences
-				switch s[1] {
-				case 'n':
-					ch = '\n'
-				case 't':
-					ch = '\t'
-				case 'r':
-					ch = '\r'
-				case '0':
-					ch = 0
-				case '\\':
-					ch = '\\'
-				case '\'':
-					ch = '\''
-				default:
-					ch = rune(s[1])
-				}
-			} else {
-				ch = rune(s[0])
-			}
-		}
-		return &ast.CharLiteral{Char: ch, Location: loc}, nil
+		return &ast.CharLiteral{Char: rune(ch), Location: loc}, nil
+
+	case token.NOT, token.LAND, token.LOR:
+		return nil, fmt.Errorf("%s: error: '%s' can be used only in .if and .define", loc, tok.Value)
 
 	case token.ABS_LO, token.ABS_HI, token.PCREL_LO, token.PCREL_HI:
 		// Relocation modifier: %lo(expr), %hi(expr), etc.
@@ -135,12 +117,9 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 		}
 		return expr, nil
 
-	case token.PLUS, token.MINUS:
+	case token.PLUS, token.MINUS, token.TILDE:
 		// Unary operator
-		op := "+"
-		if tok.Type == token.MINUS {
-			op = "-"
-		}
+		op := tok.Value
 		operand, err := p.parsePrimary()
 		if err != nil {
 			return nil, err

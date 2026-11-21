@@ -16,21 +16,21 @@ func (l *Lexer) scanNumber(first byte, row, col int) {
 		next := l.peek()
 		if next == 'x' || next == 'X' {
 			sb.WriteByte(l.advance())
-			for !l.atEnd() && isHexDigit(l.peek()) {
+			for !l.atEnd() && (isHexDigit(l.peek()) || l.peek() == '_') {
 				sb.WriteByte(l.advance())
 			}
 			l.addToken(token.NUMBER, sb.String(), row, col)
 			return
 		} else if next == 'b' || next == 'B' {
 			sb.WriteByte(l.advance())
-			for !l.atEnd() && (l.peek() == '0' || l.peek() == '1') {
+			for !l.atEnd() && (l.peek() == '0' || l.peek() == '1' || l.peek() == '_') {
 				sb.WriteByte(l.advance())
 			}
 			l.addToken(token.NUMBER, sb.String(), row, col)
 			return
 		} else if next == 'o' || next == 'O' {
 			sb.WriteByte(l.advance())
-			for !l.atEnd() && isOctalDigit(l.peek()) {
+			for !l.atEnd() && (isOctalDigit(l.peek()) || l.peek() == '_') {
 				sb.WriteByte(l.advance())
 			}
 			l.addToken(token.NUMBER, sb.String(), row, col)
@@ -38,8 +38,8 @@ func (l *Lexer) scanNumber(first byte, row, col int) {
 		}
 	}
 
-	// Decimal number
-	for !l.atEnd() && isDigit(l.peek()) {
+	// Decimal number ('_' separators are checked by helpers.ParseNumber)
+	for !l.atEnd() && (isDigit(l.peek()) || l.peek() == '_') {
 		sb.WriteByte(l.advance())
 	}
 

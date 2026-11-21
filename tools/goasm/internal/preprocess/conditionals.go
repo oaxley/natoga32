@@ -43,7 +43,7 @@ func (p *Preprocessor) handleConditional(ts *tokenStream) ([]token.Token, error)
 
 // handleIf processes .if EXPR ... .else ... .endif
 func (p *Preprocessor) handleIf(ts *tokenStream) ([]token.Token, error) {
-	ts.advance() // consume .if
+	ifTok := ts.advance() // consume .if
 
 	// Collect expression until EOL
 	var exprToks []token.Token
@@ -57,9 +57,12 @@ func (p *Preprocessor) handleIf(ts *tokenStream) ([]token.Token, error) {
 	}
 
 	// Evaluate condition
+	if len(exprToks) == 0 {
+		return nil, locationError(ifTok, ".if expects an expression")
+	}
 	value, err := p.evaluateExpr(exprToks)
 	if err != nil {
-		return nil, fmt.Errorf("error evaluating .if expression: %v", err)
+		return nil, locationError(ifTok, ".if: %v", err)
 	}
 	condition := value != 0
 

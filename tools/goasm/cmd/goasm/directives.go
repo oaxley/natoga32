@@ -158,8 +158,8 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 	case ".string", ".asciz":
 		for _, arg := range dir.Args {
 			if str, ok := arg.(*ast.StringLiteral); ok {
-				for _, ch := range str.Text {
-					sections.EmitByte(byte(ch))
+				for i := 0; i < len(str.Text); i++ {
+					sections.EmitByte(str.Text[i])
 				}
 				sections.EmitByte(0) // Null terminator
 			}
@@ -168,8 +168,8 @@ func emitDirective(dir *ast.Directive, symbols *symbol.Table, sections *section.
 	case ".ascii":
 		for _, arg := range dir.Args {
 			if str, ok := arg.(*ast.StringLiteral); ok {
-				for _, ch := range str.Text {
-					sections.EmitByte(byte(ch))
+				for i := 0; i < len(str.Text); i++ {
+					sections.EmitByte(str.Text[i])
 				}
 			}
 		}

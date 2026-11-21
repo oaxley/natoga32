@@ -74,10 +74,21 @@ func (l *Lexer) scanToken() {
 		}
 
 	case '&':
-		l.addToken(token.AND, "&", startRow, startCol)
+		if l.match('&') {
+			l.addToken(token.LAND, "&&", startRow, startCol)
+		} else {
+			l.addToken(token.AND, "&", startRow, startCol)
+		}
 
 	case '|':
-		l.addToken(token.OR, "|", startRow, startCol)
+		if l.match('|') {
+			l.addToken(token.LOR, "||", startRow, startCol)
+		} else {
+			l.addToken(token.OR, "|", startRow, startCol)
+		}
+
+	case '~':
+		l.addToken(token.TILDE, "~", startRow, startCol)
 
 	case '^':
 		l.addToken(token.XOR, "^", startRow, startCol)
@@ -100,6 +111,8 @@ func (l *Lexer) scanToken() {
 	case '!':
 		if l.match('=') {
 			l.addToken(token.NEQ, "!=", startRow, startCol)
+		} else {
+			l.addToken(token.NOT, "!", startRow, startCol)
 		}
 
 	case '<':

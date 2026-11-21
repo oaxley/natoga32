@@ -47,6 +47,10 @@ const (
 	OR     // '|'
 	XOR    // '^'
 	DOLLAR // '$' - alias for current PC
+	NOT    // '!' (.if and .define only)
+	TILDE  // '~'
+	LAND   // '&&' (.if and .define only)
+	LOR    // '||' (.if and .define only)
 
 	// Misc
 	PASTE       // Token pasting '##'
@@ -94,6 +98,10 @@ func (t Type) String() string {
 		OR:          "OR",
 		XOR:         "XOR",
 		DOLLAR:      "DOLLAR",
+		NOT:         "NOT",
+		TILDE:       "TILDE",
+		LAND:        "LAND",
+		LOR:         "LOR",
 		PASTE:       "PASTE",
 		MACRO_PARAM: "MACRO_PARAM",
 		SKIP:        "SKIP",
