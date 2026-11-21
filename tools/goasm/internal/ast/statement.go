@@ -19,6 +19,7 @@ type Instruction struct {
 	Operands []Expression
 	Address  int // Set during semantic analysis
 	Location SourceLocation
+	Pseudo   string // the pseudo-instruction it was expanded from ("li"), or ""
 }
 
 func (i *Instruction) node()      {}

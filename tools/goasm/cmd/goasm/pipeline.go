@@ -13,7 +13,6 @@ import (
 	"github.com/natoga32/goasm/internal/preprocess"
 	"github.com/natoga32/goasm/internal/pseudo"
 	"github.com/natoga32/goasm/internal/section"
-	"github.com/natoga32/goasm/internal/symbol"
 )
 
 func assemble(inputFile string) error {
@@ -114,22 +113,12 @@ func assemble(inputFile string) error {
 		program = opt.OptimizeProgram(program)
 	}
 
-	// Initialize symbol table and section manager
-	symbols := symbol.New()
-	sections := section.NewManager()
-	// Set base addresses according to NATOGA32 memory map
-	sections.SetBaseAddresses(
-		MMAP_TEXT_SEGMENT,
-		MMAP_DATA_SEGMENT,
-		MMAP_BSS_SEGMENT,
-		MMAP_ROM_SEGMENT,
-		MMAP_RODATA_SEGMENT,
-	)
-
-	// Phase 5: Semantic Analysis - Pass 1 (calculate addresses)
+	// Phase 5: Semantic Analysis - Pass 1 (calculate addresses), again
+	// until each li with a name has its shortest form
 	fmt.Println("Phase 5: Semantic Analyzer - pass 1")
-	if err := semanticPass1(program, symbols, sections); err != nil {
-		return fmt.Errorf("semantic pass 1 error: %v", err)
+	symbols, sections, err := relaxLi(program, newSectionManager)
+	if err != nil {
+		return err
 	}
 	if err := checkSectionSizes(sections); err != nil {
 		return err

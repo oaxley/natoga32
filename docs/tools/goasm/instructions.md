@@ -210,9 +210,10 @@ goasm expands these in phase 4, before the labels are resolved.
 
 Notes:
 
-- `li` with a number outside -2048 to 2047, or with an expression, uses `lui` with `%hi` and `addi` with `%lo`. `li a0, 100000` gives `lui a0, 0x18` and `addi a0, a0, 1696` (100000 is `0x186A0`; `%lo` is `0x6A0`).
-- `li` reads 0x80000000..0xFFFFFFFF as a 32-bit pattern: `li a0, 0xFFFFFFFF` is `li a0, -1` (one `addi`).
-- `li rd, label` loads the absolute address of the label (`lui` + `addi`). `la` is the PC-relative form.
+- `li` with a number outside -2048 to 2047 uses `lui` with `%hi` and `addi` with `%lo`. `li a0, 100000` gives `lui a0, 0x18` and `addi a0, a0, 1696` (100000 is `0x186A0`; `%lo` is `0x6A0`).
+- `li` with a name or an expression takes the same forms, once the value is known: `.equ F, 8` then `li a0, F` gives `addi a0, zero, 8`, also when `F` is defined below. goasm first gives each such `li` one instruction, and makes it two when its value does not fit, which moves the labels below it. A `li` that uses `$` always takes two instructions.
+- `li` reads 0x80000000..0xFFFFFFFF as a 32-bit pattern: `li a0, 0xFFFFFFFF` is `li a0, -1` (one `addi`). A value outside -0x80000000 to 0xFFFFFFFF stops with `li value 4294967296 (0x100000000) does not fit 32 bits`.
+- `li rd, label` loads the absolute address of the label. In the ROM, at low addresses, that is often one `addi`. `la` is the PC-relative form.
 - `la`, `call` and `tail` are relative to the PC. `tail` jumps without saving a return address; it uses `t1` (`x6`), so `t1` is lost.
 - `rdcycle`, `rdtime` and `rdinstret` read the low 32 bits of the counters, the `h` forms the high 32 bits.
 - `unimp` writes `cycle`, a read-only CSR, so the CPU raises an illegal-instruction trap. Use it to mark code that must never run.

@@ -15,8 +15,10 @@ func (e *Expander) expandLi(i *ast.Instruction) []*ast.Instruction {
 		imm = &ast.Number{Value: int64(ch.Char), Location: ch.Location}
 	}
 
-	// If immediate is a number, check if it fits in 12 bits
-	if num, ok := imm.(*ast.Number); ok {
+	// A number checks if it fits in 12 bits. A number outside -0x80000000 to
+	// 0xFFFFFFFF takes the %hi/%lo form below, which the assembler reports
+	// as out of range once it has the values (relaxLi).
+	if num, ok := imm.(*ast.Number); ok && num.Value >= -0x80000000 && num.Value <= 0xFFFFFFFF {
 		// 0x80000000..0xFFFFFFFF is a 32-bit pattern: li a0, 0xFFFFFFFF is li a0, -1
 		if num.Value > 0x7FFFFFFF && num.Value <= 0xFFFFFFFF {
 			num = &ast.Number{Value: int64(int32(uint32(num.Value))), Location: num.Location}
@@ -43,7 +45,8 @@ func (e *Expander) expandLi(i *ast.Instruction) []*ast.Instruction {
 		}
 	}
 
-	// Symbol: use %hi/%lo relocations
+	// Symbol or expression: %hi/%lo. Once the names have their values, the
+	// assembler makes it one instruction when the value allows it (relaxLi).
 	return []*ast.Instruction{
 		instr("lui", rd, &ast.HiRel{Expr: imm}),
 		instr("addi", rd, rd, &ast.LoRel{Expr: imm}),

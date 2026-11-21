@@ -53,6 +53,9 @@ func (e *Expander) ExpandInstruction(instr *ast.Instruction) []*ast.Instruction 
 		if in.Location.Line == 0 {
 			in.Location = instr.Location
 		}
+		if in != instr {
+			in.Pseudo = instr.Opcode
+		}
 	}
 	return expanded
 }

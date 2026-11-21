@@ -535,3 +535,39 @@ func TestOperandCommas(t *testing.T) {
 	}
 	expectAssembles(t, goasm, ".byte 1, 2 ,3\n.byte 4", []byte{1, 2, 3, 4})
 }
+
+// li with a name or an expression takes one instruction when its value
+// allows it, like li with a number
+func TestLiSymbolShort(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	nop := []byte{0x13, 0x00, 0x00, 0x00}
+	addi8 := []byte{0x13, 0x05, 0x80, 0x00} // addi a0, zero, 8
+	cat := func(parts ...[]byte) []byte { return bytes.Join(parts, nil) }
+	tests := []struct {
+		name, src string
+		want      []byte
+	}{
+		{"constant", ".equ F, 8\nli a0, F", addi8},
+		{"constant defined below", "li a0, F\n.equ F, 8", addi8},
+		{"expression", "li a0, 4+4", addi8},
+		{"negative", ".equ F, -1\nli a0, F", []byte{0x13, 0x05, 0xf0, 0xff}},
+		{"low 12 bits zero", ".equ F, 0x12345000\nli a0, F", []byte{0x37, 0x55, 0x34, 0x12}},
+		{"needs two", ".equ F, 0x12345678\nli a0, F", []byte{0x37, 0x55, 0x34, 0x12, 0x13, 0x05, 0x85, 0x67}},
+		// x is at 12 with a two-instruction li, at 8 with one: it fits both ways
+		{"label below", "nop\nli a0, x\nx: nop", cat(nop, addi8, nop)},
+		// $ is the li address + 4, as documented: the two instructions stay
+		{"dollar", "li a0, $", []byte{0x37, 0x05, 0x00, 0x00, 0x13, 0x05, 0x45, 0x00}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expectAssembles(t, goasm, tt.src, tt.want)
+		})
+	}
+	// an undefined name is still reported at the li
+	expectError(t, goasm, "nop\nli a0, nope", "undefined symbol 'nope'", "3:8")
+	// a value that does not fit 32 bits is an error, not cut
+	expectError(t, goasm, "nop\nli a0, F\n.equ F, 0x100000000", "li value 4294967296 (0x100000000) does not fit 32 bits", "3:1")
+	expectError(t, goasm, "li a0, 0x100000000", "does not fit 32 bits", "2:1")
+}
