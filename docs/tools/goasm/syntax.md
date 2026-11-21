@@ -90,6 +90,7 @@ In an instruction operand and in `.byte`, `.half` and `.word`, these stop with a
 | `shift amount N out of range (0..63)` | `<<` or `>>` by less than 0 or more than 63. |
 | `undefined symbol 'X'` | A name that is not a label or an `.equ`, also one that is only listed in `.global`. |
 | `string "x" cannot be used in an expression` | A string where a number is expected. |
+| `missing ')'` | A `(` (or `%lo(`...) with no `)`. |
 
 A value that does not fit its field stops with an error; it is never cut:
 

@@ -64,8 +64,8 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 			return nil, err
 		}
 
-		if p.check(token.RPAREN) {
-			p.advance()
+		if !p.expect(token.RPAREN) {
+			return nil, fmt.Errorf("%s: error: missing ')' after %s(", loc, tok.Value)
 		}
 
 		switch tok.Type {
@@ -112,8 +112,8 @@ func (p *Parser) parsePrimary() (ast.Expression, error) {
 		if err != nil {
 			return nil, err
 		}
-		if p.check(token.RPAREN) {
-			p.advance()
+		if !p.expect(token.RPAREN) {
+			return nil, fmt.Errorf("%s: error: missing ')'", loc)
 		}
 		return expr, nil
 

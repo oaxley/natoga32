@@ -117,6 +117,20 @@ func TestPreprocessorExpressionErrors(t *testing.T) {
 	}
 }
 
+// A missing ')' in an operand or a data value is an error, not ignored
+func TestOperandMissingParen(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	for _, src := range []string{".byte (1+2", "addi a0, zero, (3", "addi a0, zero, %lo(5", "lw a0, ((4)(sp)"} {
+		t.Run(src, func(t *testing.T) {
+			expectError(t, goasm, src, "missing ')'", "2")
+		})
+	}
+	expectAssembles(t, goasm, ".byte ((1+2)*2)", []byte{6})
+	expectAssembles(t, goasm, "lw a0, (4)(sp)", []byte{0x03, 0x25, 0x41, 0x00})
+}
+
 // ! ~ && || were dropped by the lexer: in an instruction, ~ works and the others are errors
 func TestLogicalOperatorsInInstructions(t *testing.T) {
 	goasm := buildGoasm(t)
