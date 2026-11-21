@@ -2,7 +2,7 @@
 //
 // This source file is subject to the MIT License
 // that is bundled with this package in the file LICENSE.txt.
-package main
+package packer
 
 import (
 	"os"

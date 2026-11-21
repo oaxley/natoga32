@@ -2,7 +2,7 @@
 //
 // This source file is subject to the MIT License
 // that is bundled with this package in the file LICENSE.txt.
-package main
+package packer
 
 import (
 	"bytes"
@@ -47,7 +47,7 @@ func TestRunIncOnly(t *testing.T) {
 	manifest := runDir(t, nil) // no game.rscv, no asset files
 	inc := filepath.Join(filepath.Dir(manifest), "assets.inc")
 	var stderr bytes.Buffer
-	if code := run([]string{"-inc", inc, manifest}, &stderr); code != 0 {
+	if code := Run([]string{"-inc", inc, manifest}, &stderr); code != 0 {
 		t.Fatalf("exit %d: %s", code, stderr.String())
 	}
 	got, err := os.ReadFile(inc)
@@ -69,7 +69,7 @@ func TestRunPack(t *testing.T) {
 	out := filepath.Join(dir, "game.n32")
 	inc := filepath.Join(dir, "assets.inc")
 	var stderr bytes.Buffer
-	if code := run([]string{"-o", out, "-inc", inc, manifest}, &stderr); code != 0 {
+	if code := Run([]string{"-o", out, "-inc", inc, manifest}, &stderr); code != 0 {
 		t.Fatalf("exit %d: %s", code, stderr.String())
 	}
 	file, err := os.ReadFile(out)
@@ -102,7 +102,7 @@ func TestRunUsage(t *testing.T) {
 		{"-bad", manifest},
 	} {
 		var stderr bytes.Buffer
-		if code := run(args, &stderr); code != 2 {
+		if code := Run(args, &stderr); code != 2 {
 			t.Errorf("%q: exit %d, want 2", args, code)
 		}
 		if !strings.Contains(stderr.String(), "usage: n32pack [-o game.n32] [-inc assets.inc] game.json") {
@@ -121,7 +121,7 @@ func TestRunErrorNoOutput(t *testing.T) {
 	out := filepath.Join(dir, "game.n32")
 	inc := filepath.Join(dir, "assets.inc")
 	var stderr bytes.Buffer
-	if code := run([]string{"-o", out, "-inc", inc, manifest}, &stderr); code != 1 {
+	if code := Run([]string{"-o", out, "-inc", inc, manifest}, &stderr); code != 1 {
 		t.Fatalf("exit %d, want 1", code)
 	}
 	if !strings.HasPrefix(stderr.String(), "n32pack: ") {
@@ -137,7 +137,7 @@ func TestRunErrorNoOutput(t *testing.T) {
 func TestRunManifestError(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "missing.json")
 	var stderr bytes.Buffer
-	if code := run([]string{"-inc", "x.inc", path}, &stderr); code != 1 {
+	if code := Run([]string{"-inc", "x.inc", path}, &stderr); code != 1 {
 		t.Fatalf("exit %d, want 1", code)
 	}
 	if !strings.HasPrefix(stderr.String(), "n32pack: ") || !strings.Contains(stderr.String(), path) {
@@ -157,7 +157,7 @@ func TestRunPackErrorNamesManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	var stderr bytes.Buffer
-	if code := run([]string{"-o", filepath.Join(dir, "game.n32"), path}, &stderr); code != 1 {
+	if code := Run([]string{"-o", filepath.Join(dir, "game.n32"), path}, &stderr); code != 1 {
 		t.Fatalf("exit %d, want 1", code)
 	}
 	if want := "n32pack: " + path + ": "; !strings.HasPrefix(stderr.String(), want) {
@@ -194,7 +194,7 @@ func TestRunErrorNamesFileOnce(t *testing.T) {
 				t.Fatal(err)
 			}
 			var stderr bytes.Buffer
-			if code := run([]string{"-o", filepath.Join(dir, "game.n32"), path}, &stderr); code != 1 {
+			if code := Run([]string{"-o", filepath.Join(dir, "game.n32"), path}, &stderr); code != 1 {
 				t.Fatalf("exit %d, want 1", code)
 			}
 			named := filepath.Join(dir, tc.named)
