@@ -26,7 +26,7 @@ R2 has two source registers and `rd` = 0.
 The CPU ignores the fields that an instruction does not use.
 The two other values of `funct3` (`011` and `110`) do nothing: the PC moves to the next instruction.
 
-Every thread instruction moves the PC to the next instruction.
+Every thread instruction moves the PC to the next instruction, unless it traps (the PC then goes to `mtvec`).
 A thread that gives the CPU away resumes there.
 
 ## Instructions
@@ -90,14 +90,14 @@ The stack canary is not checked.
 
 A waitkey is a 32-bit value.
 The CPU looks at bit 31 only: it tells a hardware event from a software key.
-The ranges below are the convention of the console.
+The ranges below are the comment in `core/console/include/vc/events.h`. Nothing in the code enforces them.
 
 | Waitkey | Kind | Wakes when |
 |---------|------|------------|
 | `0x0000_0000` | No event | `sleep.t` with a waitkey of 0 sleeps on its timer only |
-| `0x0000_0001` to `0x01FF_FFFF` | Memory address (32 MiB) | A thread runs `wake.t` with the same value |
-| `0x0200_0000` to `0x7FFF_FFFF` | Software event | A thread runs `wake.t` with the same value, or the host triggers it |
-| `0x8000_0000` to `0xFFFF_FFFF` | Hardware event | The host triggers it with `vc_triggerEvent` |
+| `0x0000_0000` to `0x01FF_FFFF` | Valid RAM addresses (32 MiB) | A thread runs `wake.t` with the same value |
+| `0x1000_0000` to `0x1FFF_FFFF` | Software events, user-defined | A thread runs `wake.t` with the same value, or the host triggers it |
+| `0x8000_0000` to `0x8FFF_FFFF` | Hardware events (bit 31 set) | The host triggers it with `vc_triggerEvent` |
 
 A software key has no meaning for the CPU.
 Use an address to wait on a variable or a lock, or any number that the program chooses.
@@ -160,7 +160,7 @@ worker:
     end.t
 ```
 
-The order is: thread 0 starts the worker, the worker sleeps, thread 0 wakes it, the worker sets `s3` and ends.
+The order is: thread 0 starts the worker, the worker sleeps, thread 0 wakes it, the worker sets its own `s3` and ends.
 
 ## See also
 

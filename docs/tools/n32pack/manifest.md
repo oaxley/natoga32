@@ -137,8 +137,8 @@ Some messages, as n32pack prints them (`n32pack: <file>: <message>`):
 | Bad version | `version must look like 1.00` |
 | Bad minimum ROM | `min_rom must look like 0.1` |
 | No region | `regions: at least one region` |
-| Unknown region or language | `regions: unknown region "x"` |
-| Bad date | `date must be RFC 3339`, `date is before 2026-01-01` |
+| Unknown region or language | `regions: unknown region "x"`, `languages: unknown language "x"` |
+| Bad date | `date must be RFC 3339`, `date is before 2026-01-01`, `date is too far in the future` |
 | Bad graphics mode | `graphics_mode must be 0 to 3` |
 | No `rscv` | `rscv is required` |
 | Bad asset name | `asset name "x" must match [A-Z][A-Z0-9_]*` |

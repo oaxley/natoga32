@@ -17,7 +17,7 @@ The project has four parts:
 
 ## What works today
 
-- A 32-bit RISC-V CPU (RV32I and M, a part of Zbb) with 8 cooperative threads, CSR registers and traps.
+- A 32-bit RISC-V CPU (RV32I and M, parts of Zbb, Zbs, Zbkb and Zicond) with 8 cooperative threads, CSR registers and traps.
 - A 32 MiB memory map with a private zone for the thread state.
 - A cartridge device: the console checks a `.n32` file at reset, reads its chunk index and exposes it through a control block and a bank-switched window.
 - A boot ROM that draws a logo with a fade-in and an "insert a cartridge" message in Framebuffer A (640x384, RGB565), and a trap screen.

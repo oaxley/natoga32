@@ -39,7 +39,7 @@ The registers are 32 bits wide. Read them with `lw`.
 
 The error code is in bits 8-15 of `CART_STATUS`.
 For example, a bad header CRC gives `0x0000_0301`.
-The device reports the first error it finds, in the order of the table.
+The errors 1, 2, 3, 13 and 4 are checked in this order. Then the chunks are checked one by one, and the first bad chunk gives the code.
 
 | Code | Name | Meaning |
 |------|------|---------|
@@ -49,9 +49,9 @@ The device reports the first error it finds, in the order of the table.
 | 3 | Header CRC | The CRC of the header does not match |
 | 13 | Bad flags | A reserved flag bit is set, or the mode is not valid |
 | 4 | Bad size | The size in the header is not the file size, or it is over 256 MiB |
-| 5 | Bad `IHDR` | `IHDR` is missing or not first, its length is not 64, or a field is not valid |
+| 5 | Bad `IHDR` | `IHDR` is missing or not first, appears again later, its length is not 64, or a field is not valid |
 | 6 | `IHDR` CRC | The CRC of `IHDR` does not match |
-| 7 | Bad `INDX` | `INDX` is missing or not second, or its length is not a multiple of 16 |
+| 7 | Bad `INDX` | `INDX` is missing or not second, appears again later, or its length is not a multiple of 16 |
 | 8 | `INDX` CRC | The CRC of `INDX` does not match |
 | 9 | `INDX` too big | `INDX` has more than 15,872 entries |
 | 10 | Bad `IEND` | `IEND` is missing, not last, not empty, or a chunk runs past the end of the file |
@@ -109,13 +109,8 @@ A load must be entirely inside the window: a load that crosses the edge of the w
 
 ### Access faults
 
-| Access | Fault |
-|--------|-------|
-| Store that touches the control zone or the window | Store access fault (7) |
-| Instruction fetch that touches one of them | Instruction access fault (1) |
-| Load that starts outside a zone and ends inside it, or the reverse | Load access fault (5) |
-
-The rules are described in [Traps](../cpu/traps.md#causes).
+A store, or an instruction fetch, that touches the control zone or the window raises an access fault. A load that crosses the edge of a zone raises a load access fault.
+The table is in [Traps](../cpu/traps.md#access-faults), and the rules for a program in [Memory map](../memory-map.md).
 
 ## Example: reading an asset
 
@@ -169,7 +164,7 @@ no_cart:
     j    no_cart
 ```
 
-Run as a test ROM (assembled with `-f rom` after `.rom` and `.org 0x100`) with `hello.n32` inserted, the registers end with:
+Run as a test ROM (assembled with `-f rom`, with `.text` replaced by `.rom` and `.org 0x100`) with `hello.n32` inserted, the registers end with:
 
 | Register | Value | Meaning |
 |----------|-------|---------|

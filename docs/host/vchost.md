@@ -143,7 +143,7 @@ The error messages go to the standard error.
 
 ## Tests
 
-`ctest` runs `vchost` headless: a missing ROM, a negative `--frames`, a missing cartridge, a ROM that traps, and 5 frames with the boot ROM, with and without `--superscalar`.
+`ctest` runs `vchost` headless: a missing ROM, a negative `--frames`, a missing cartridge, a ROM that traps, an invalid cartridge (the boot ROM still starts), the default ROM found through `PATH`, and 5 frames with the boot ROM, with and without `--superscalar`.
 The frame pacer has its own unit tests in `tests/host/test_frame_pacer.cpp`.
 See [Building](../overview/building.md#tests).
 

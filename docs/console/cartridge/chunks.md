@@ -80,7 +80,6 @@ Each one starts with the same 8-byte header, followed by the payload:
 
 The slot, the format and the count are numbers that `n32pack` copies from the manifest.
 Their meaning, the payload format and the destination of an asset are reserved: nothing in the console uses them.
-Payload format: reserved.
 
 Example, the asset chunk `TILS` of the sample cartridge: the header is `00 00 04 00 01 00 00 00` (slot 0, format 4, count 1), then the bytes of the asset file.
 

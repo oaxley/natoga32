@@ -54,7 +54,7 @@ The value of the CSR `n` is the word at `0x0020_1000 + n * 4`, and the zone cove
 | `0xC82` | `instreth` | Read-only | Instructions completed by the current thread, high 32 bits |
 
 Any other number from 0 to `0xBFF` is a free storage word: it reads what was written, and nothing uses it.
-Any other number from `0xC00` to `0xFFF` is read-only and reads 0.
+Any other number from `0xC00` to `0xFFF` is read-only and reads its word of the CSR zone, which is 0 unless a store wrote it.
 
 No interrupt is raised today.
 `mie`, `mip` and the interrupt bits of `mstatus` do not change what the CPU does.

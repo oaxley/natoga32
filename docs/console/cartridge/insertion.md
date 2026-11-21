@@ -25,14 +25,14 @@ Until the reset:
 Without a new call, a reset keeps the cartridge that is already inserted and checks it again.
 `vc_shutdown` drops the cartridge, inserted or pending.
 
-The load calls fail only when the file cannot be read, is empty, or when the data pointer is null or the size is 0.
+The load calls fail only when the console is not initialized, the file cannot be read or is empty, or the data pointer is null or the size is 0.
 A file that is not a cartridge is accepted by them.
 The check at reset reports it.
 
 ## What the device checks
 
 At each reset the memory is cleared, then the device checks the file and fills the control zone.
-The order of the checks is the order of the error codes in [Console view](console-view.md#error-codes):
+The header checks come first, in the order of the table (1, 2, 3, 13, 4). Then the chunks are checked one by one, and the first bad chunk gives the code. A truncated `IHDR` or `INDX` gives 10 before 6 or 8. See [Console view](console-view.md#error-codes):
 
 | Checked | Error |
 |---------|-------|
@@ -51,7 +51,7 @@ The order of the checks is the order of the error codes in [Console view](consol
 | `INDX` has one correct entry for each chunk (type, id, flags, offset, length) | 12 |
 
 The first error stops the check.
-The comparison with `INDX` is made last, when the walk reaches `IEND`.
+The comparison with `INDX` (12) is made last, when the walk reaches `IEND`.
 
 ## What the device does not check
 
@@ -67,11 +67,12 @@ A program can also check a chunk CRC itself, by reading the chunk through the wi
 
 ## No cartridge, or an invalid one
 
-| Case | `CART_STATUS` | Control zone | Window |
-|------|---------------|--------------|--------|
-| No cartridge | `0x0000_0000` | All 0 | Reads 0 |
-| Invalid cartridge | `0x0000_0001 \| (error << 8)` | `CART_SIZE` only, the rest is 0 | Reads 0 |
-| Valid cartridge | `0x0000_0003` | Registers and mirrors filled | Shows the file |
+The values of `CART_STATUS` for the three cases are in [Console view](console-view.md#registers).
+The control zone and the window of each case:
+
+- No cartridge: the control zone is all 0, and the window reads 0.
+- Invalid cartridge: only `CART_SIZE` is filled, and the window reads 0.
+- Valid cartridge: the registers and the mirrors are filled, and the window shows the file.
 
 An invalid cartridge is not an error of the console: the state stays Ready, and the CPU starts as usual.
 Only the status register tells the program.
@@ -79,7 +80,7 @@ Only the status register tells the program.
 The boot ROM does not read the cartridge yet.
 It always shows its "insert a cartridge" message, even with a valid cartridge inserted.
 
-## Host and debugger access
+## Host access
 
 The host does not use the window and does not change `cartbank`.
 It reads the file by absolute offset with `vc_cartridgeRead8(console, offset)`.

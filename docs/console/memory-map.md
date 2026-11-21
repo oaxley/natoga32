@@ -51,13 +51,13 @@ All the values are little-endian.
 | Zone | Start | End | Size | Access rules |
 |------|-------|-----|------|--------------|
 | ROM / boot loader | `0x0000_0000` | `0x001F_FFFF` | 2 MiB | Read-only by convention. See [ROM](#rom). |
-| Interrupts vector | `0x0020_0000` | `0x0020_007F` | 128 B | 32 words. Plain memory, not used by the CPU yet. |
+| Interrupts vector | `0x0020_0000` | `0x0020_007F` | 128 B | 32 words. Plain memory, not used by the CPU. |
 | Unused | `0x0020_0080` | `0x0020_0FFF` | 3,968 B | Plain memory. |
 | CSR registers | `0x0020_1000` | `0x0020_4FFF` | 16 KiB | 4096 words, the value of CSR `n` is at `0x0020_1000 + 4 * n`. Programs use the CSR instructions. |
 | Private thread zone | `0x0020_5000` | `0x0020_5FFF` | 4 KiB | Emulator only. Any load or store raises an access fault. See [Private thread zone](#private-thread-zone). |
 | Thread TLS | `0x0020_6000` | `0x0020_67FF` | 2 KiB | Plain memory. 256 B per thread. |
 | Unused | `0x0020_6800` | `0x0021_FFFF` | 102 KiB | Plain memory. |
-| Cartridge control | `0x0022_0000` | `0x0025_FFFF` | 256 KiB | Read-only. See [Cartridge zones](#cartridge-zones). |
+| Cartridge control | `0x0022_0000` | `0x0025_FFFF` | 256 KiB | Read-only, not executable. See [Cartridge zones](#cartridge-zones). |
 | S-RAM | `0x0026_0000` | `0x002D_FFFF` | 512 KiB | Reserved, not implemented. |
 | Audio RAM | `0x002E_0000` | `0x0035_FFFF` | 512 KiB | Reserved, not implemented. |
 | Cartridge window | `0x0036_0000` | `0x0037_FFFF` | 128 KiB | Read-only, not executable. See [Cartridge zones](#cartridge-zones). |
@@ -107,7 +107,7 @@ The console does not read or check it.
 ## Private thread zone
 
 The zone `0x0020_5000` to `0x0020_5FFF` holds the state of the 8 threads.
-Only the emulator (and a debugger) uses it.
+Only the emulator uses it.
 
 | Part | Start | End | Size | Content |
 |------|-------|-----|------|---------|
@@ -131,7 +131,7 @@ Both are read-only for programs.
 
 A store to these zones raises a store access fault.
 A load that crosses the edge of one of them raises a load access fault.
-An instruction fetch inside them raises an instruction access fault.
+An instruction fetch that touches them raises an instruction access fault.
 
 The registers and the window are described in [Cartridge: console view](cartridge/console-view.md).
 

@@ -38,7 +38,7 @@ The vblank event wakes the threads that sleep on it.
 - Time inside the console is counted in cycles, never in seconds. `sleep.t` durations are in cycles too.
 - When all the threads sleep, the CPU is idle. The cycles still pass, and the console skips the idle stretch in one jump instead of looping one cycle at a time.
 - The vblank event is raised from the cycle count, not from the clock of the host.
-- Devices must advance by the cycles the CPU consumed, never by the time of the host.
+- The only device, the cartridge, has no time of its own. The vblank is the only time-driven event.
 
 The host decides how to show the frames: with vsync, or with a timer at 60 fps.
 This never changes what the console computes, only when the host asks for the next frame.

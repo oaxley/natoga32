@@ -41,7 +41,7 @@ Both are read-only for programs.
 The window moves in 4 KiB steps, so a block of up to 124 KiB is visible in one go, wherever it starts in the file.
 The step-by-step example is in [Console view](console-view.md#example-reading-an-asset).
 
-The host and the debugger do not use the window.
+The host does not use the window.
 They read the file by absolute offset with [`vc_cartridgeRead8`](../libvc-api.md#rom-and-cartridge-loading).
 
 ## Not built

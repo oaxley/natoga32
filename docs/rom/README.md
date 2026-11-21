@@ -119,7 +119,7 @@ It needs `goasm` and Python 3 with Pillow. Without them, CMake prints a warning 
 
 | Step | Command | Output |
 |------|---------|--------|
-| 1 | `rom/tools/make_assets.py rom/assets/playerone.png <build>/rom` | `logo.raw`, `font.raw` |
+| 1 | `python3 rom/tools/make_assets.py rom/assets/playerone.png <build>/rom` | `logo.raw`, `font.raw` |
 | 2 | copy of `rom/boot.s` to `<build>/rom/boot.s` | the source next to the assets |
 | 3 | `goasm <build>/rom/boot.s -f rom -o <build>/core/host/rombios.sys` | `rombios.sys` |
 

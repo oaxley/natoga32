@@ -44,7 +44,7 @@ So the file is generated first, then the code is assembled, then the cartridge i
 These are the commands that `tests/CMakeLists.txt` runs for the sample cartridge:
 
 ```bash
-cd tests/cartridge     # hello.s, hello.json and level1.tiles are here
+cd build/tests/cartridge     # the build copies hello.s, hello.json and level1.tiles here
 
 n32pack -inc assets.inc hello.json                       # 1. the asset ids
 goasm hello.s -f rscv -o hello.rscv --sym hello.sym      # 2. the RSCV and dSYM chunks
@@ -58,7 +58,7 @@ n32pack -o hello.n32 hello.json                          # 3. the cartridge
 To check the result, load it in the emulator with `vc_cartcheck`, a test program of the build:
 
 ```bash
-tests/vc_cartcheck hello.n32      # cartridge valid, 3 chunks indexed
+../vc_cartcheck hello.n32      # cartridge valid, 3 chunks indexed
 ```
 
 ## What n32pack writes

@@ -6,6 +6,7 @@ The whole API is in one header, [`core/console/include/vc/vc.h`](../../core/cons
 It is plain C and works from C++ too.
 Every function takes the console handle (`VC_Console_t*`) as its first argument.
 A `NULL` handle never crashes: the function does nothing and returns `false`, 0, `NULL` or an "empty" value.
+The exceptions: `vc_getCpuState` returns `VC_CPU_HALTED`, `vc_getState` returns `VC_STATE_UNINITIALIZED`, `vc_getCurrentThreadId` returns -1, and `vc_getLastError` returns `"Invalid console instance"`.
 
 The host `vchost` uses only this API. See [vchost](../host/vchost.md).
 
@@ -22,7 +23,7 @@ A console goes through these calls: create, initialize, load the ROM, reset, run
 | `void vc_destroy(console)` | Shuts the console down and frees the handle. |
 
 The ROM, the cartridge and the framebuffer need an initialized console.
-Do not call the memory and thread inspection functions on a console that is not initialized, or after `vc_shutdown`: they have no check.
+Do not call the memory and thread inspection functions, `vc_getCpuState` and `vc_getCurrentThreadId` on a console that is not initialized, or after `vc_shutdown`: they have no check.
 After `vc_reset` the console is Ready, not Running: call `vc_resume` to start it.
 
 ## ROM and cartridge loading
@@ -37,7 +38,7 @@ After `vc_reset` the console is Ready, not Running: call `vc_resume` to start it
 | `uint8_t vc_cartridgeRead8(console, offset)` | One byte of the inserted cartridge file. 0 beyond the end, or with no cartridge. |
 | `size_t vc_getCartridgeSize(console)` | Size of the inserted cartridge file in bytes. 0 with no cartridge. |
 
-A ROM load takes effect at once, so load the ROM before `vc_reset`.
+The ROM is copied at once and survives `vc_reset`. Load it before the console runs.
 
 Loading or ejecting a cartridge takes effect at the next `vc_reset`.
 Until then `vc_cartridgeRead8` and `vc_getCartridgeSize` still show the cartridge that was inserted at the last reset.
