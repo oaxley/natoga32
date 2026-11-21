@@ -6,9 +6,6 @@ import (
 
 // li rd, imm - Load immediate
 func (e *Expander) expandLi(i *ast.Instruction) []*ast.Instruction {
-	if len(i.Operands) < 2 {
-		return []*ast.Instruction{i}
-	}
 
 	rd := i.Operands[0]
 	imm := i.Operands[1]
@@ -55,9 +52,6 @@ func (e *Expander) expandLi(i *ast.Instruction) []*ast.Instruction {
 
 // la rd, symbol - Load address
 func (e *Expander) expandLa(i *ast.Instruction) []*ast.Instruction {
-	if len(i.Operands) < 2 {
-		return []*ast.Instruction{i}
-	}
 
 	rd := i.Operands[0]
 	symbol := i.Operands[1]

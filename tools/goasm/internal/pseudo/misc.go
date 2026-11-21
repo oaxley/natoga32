@@ -6,9 +6,6 @@ import (
 
 // mv rd, rs - Move register
 func (e *Expander) expandMv(i *ast.Instruction) []*ast.Instruction {
-	if len(i.Operands) < 2 {
-		return []*ast.Instruction{i}
-	}
 	return []*ast.Instruction{
 		instr("addi", i.Operands[0], i.Operands[1], zero()),
 	}
@@ -23,9 +20,6 @@ func (e *Expander) expandNop() []*ast.Instruction {
 
 // not rd, rs - Bitwise NOT
 func (e *Expander) expandNot(i *ast.Instruction) []*ast.Instruction {
-	if len(i.Operands) < 2 {
-		return []*ast.Instruction{i}
-	}
 	return []*ast.Instruction{
 		instr("xori", i.Operands[0], i.Operands[1], num(-1)),
 	}
@@ -33,9 +27,6 @@ func (e *Expander) expandNot(i *ast.Instruction) []*ast.Instruction {
 
 // neg rd, rs - Negate
 func (e *Expander) expandNeg(i *ast.Instruction) []*ast.Instruction {
-	if len(i.Operands) < 2 {
-		return []*ast.Instruction{i}
-	}
 	return []*ast.Instruction{
 		instr("sub", i.Operands[0], x(0), i.Operands[1]),
 	}

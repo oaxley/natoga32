@@ -42,7 +42,9 @@ func (e *Expander) ExpandProgram(program *ast.Program) *ast.Program {
 
 // ExpandInstruction expands a single instruction if it's a pseudo-instruction
 func (e *Expander) ExpandInstruction(instr *ast.Instruction) []*ast.Instruction {
-	if !arch.IsPseudoInstruction(instr.Opcode) {
+	// a wrong operand count is left as is: the pipeline reports it with
+	// CheckOperands, and the expanders can index their operands
+	if !arch.IsPseudoInstruction(instr.Opcode) || CheckOperands(instr) != nil {
 		return []*ast.Instruction{instr}
 	}
 	expanded := e.expandPseudo(instr)

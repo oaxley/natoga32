@@ -13,9 +13,6 @@ func (e *Expander) expandRet() []*ast.Instruction {
 
 // call symbol - Call function
 func (e *Expander) expandCall(i *ast.Instruction) []*ast.Instruction {
-	if len(i.Operands) < 1 {
-		return []*ast.Instruction{i}
-	}
 
 	symbol := i.Operands[0]
 
@@ -27,9 +24,6 @@ func (e *Expander) expandCall(i *ast.Instruction) []*ast.Instruction {
 
 // j offset - Unconditional jump
 func (e *Expander) expandJ(i *ast.Instruction) []*ast.Instruction {
-	if len(i.Operands) < 1 {
-		return []*ast.Instruction{i}
-	}
 	return []*ast.Instruction{
 		instr("jal", x(0), i.Operands[0]),
 	}
@@ -37,9 +31,6 @@ func (e *Expander) expandJ(i *ast.Instruction) []*ast.Instruction {
 
 // jr rs - Jump register (using ra)
 func (e *Expander) expandJr(i *ast.Instruction) []*ast.Instruction {
-	if len(i.Operands) < 1 {
-		return []*ast.Instruction{i}
-	}
 	return []*ast.Instruction{
 		instr("jalr", x(0), i.Operands[0], zero()),
 	}

@@ -2,8 +2,10 @@ package pseudo
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/natoga32/goasm/internal/arch"
 	"github.com/natoga32/goasm/internal/ast"
 )
 
@@ -363,5 +365,26 @@ func TestExpandCsrOperandOrder(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// a pseudo-instruction with too few operands is returned unchanged (the
+// pipeline reports it with CheckOperands), never a panic
+func TestExpandTooFewOperands(t *testing.T) {
+	e := New()
+	for op, names := range arch.PseudoOperands {
+		for n := 0; n < len(names); n++ {
+			if n == len(names)-1 && strings.HasPrefix(names[n], "[") {
+				continue // the last operand is optional
+			}
+			i := &ast.Instruction{Opcode: op}
+			for k := 0; k < n; k++ {
+				i.Operands = append(i.Operands, &ast.Identifier{Name: "a0"})
+			}
+			result := e.ExpandInstruction(i)
+			if len(result) != 1 || result[0] != i {
+				t.Errorf("%s with %d operands: expected the instruction unchanged, got %d instructions", op, n, len(result))
+			}
+		}
 	}
 }
