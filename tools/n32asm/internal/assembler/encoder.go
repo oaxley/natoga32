@@ -346,7 +346,7 @@ func isCSR(mnemonic string) bool {
 // encodeCSR encodes the CSR instructions in the standard RISC-V order:
 // "csrrX rd, csr, rs1" and "csrrXi rd, csr, uimm". The CSR number goes in
 // the I-type immediate field, rs1 or the 5-bit uimm in the rs1 field.
-// The old n32asm order (rd, rs1/uimm, csr) is refused with an error.
+// The old operand order (rd, rs1/uimm, csr) is refused with an error.
 func encodeCSR(op arch.InstrOpcode, instr *ast.Instruction, symbols *symbol.Table, pc int64) ([]byte, error) {
 	immediate := strings.HasSuffix(instr.Opcode, "i")
 	srcName := "rs1"

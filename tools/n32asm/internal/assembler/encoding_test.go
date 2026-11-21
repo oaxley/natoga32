@@ -109,7 +109,7 @@ func TestCsrRegisterEncoding(t *testing.T) {
 	}
 }
 
-// The old n32asm order "op rd, rs1/uimm, csr" is rejected, never encoded
+// The old operand order "op rd, rs1/uimm, csr" is rejected, never encoded
 func TestCsrOldOrderRejected(t *testing.T) {
 	n32asm := buildN32asm(t)
 	defer os.Remove(n32asm)

@@ -115,7 +115,7 @@ Operand forms:
 | `csrrwi` `csrrsi` `csrrci` | `csrrwi rd, csr, uimm` | `uimm` is a number from 0 to 31. |
 
 - The order is the standard RISC-V one: `rd`, then the CSR, then `rs1` or `uimm`.
-- The old n32asm order (`csrrw rd, rs1, csr`) is refused: a register in the CSR place stops with `the CSR operand 'a0' is a register; the order is csrrw rd, csr, rs1`. `csrrwi a0, 3, 0x340` stops with `immediate 832 out of range (0..31) (old order rd, uimm, csr? ...)`.
+- The old operand order (`csrrw rd, rs1, csr`) is refused: a register in the CSR place stops with `the CSR operand 'a0' is a register; the order is csrrw rd, csr, rs1`. `csrrwi a0, 3, 0x340` stops with `immediate 832 out of range (0..31) (old order rd, uimm, csr? ...)`.
 - `uimm` must be a number or a constant, not a register name: `csrrsi a0, 0x300, x5` stops with `uimm must be a number (0..31), not register x5`.
 - `csr` is a number from 0 to `0xFFF`. CSR names such as `mstatus` are not known: use a number or an `.equ` constant. The numbers are in [CSR](../../console/cpu/csr.md).
 - An immediate out of range stops with `csrrwi immediate 40 out of range (0..31)`.

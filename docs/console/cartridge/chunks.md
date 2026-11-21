@@ -107,7 +107,7 @@ Each entry:
 | `+0x06` | 2 | Length of the name, 1 to 65535 |
 | `+0x08` | n | Name in UTF-8, then zero bytes up to a multiple of 4 |
 
-- `n32asm` sets the global bit only when the `.global` line comes after the label. A `.global` line before the label is lost: the bit stays 0 (a `n32asm` bug).
+- `n32asm` sets the global bit only when the `.global` line comes after the label. A `.global` line before the label is lost: the bit stays 0 (an `n32asm` bug).
 - `n32asm` writes the labels of `.text`, `.data`, `.rodata` and `.bss`, sorted by address, then by name.
 - `n32pack` refuses an empty name, a kind outside 1 to 4, a duplicate name, and extra bytes after the last entry.
 
