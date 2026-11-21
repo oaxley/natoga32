@@ -112,6 +112,15 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 				return err
 			}
 		}
+		if len(instr.Operands) >= 2 {
+			immExpr := instr.Operands[len(instr.Operands)-1]
+			if ob, ok := immExpr.(*ast.OffsetBase); ok {
+				immExpr = ob.Offset
+			}
+			if err := checkIImmediate(instr, immExpr, imm); err != nil {
+				return err
+			}
+		}
 		encoded = arch.EncodeTypeI(op, rd, rs1, imm)
 
 	case arch.TypeI2:
@@ -176,6 +185,15 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 				return err
 			}
 		}
+		if len(instr.Operands) >= 2 {
+			immExpr := instr.Operands[1]
+			if ob, ok := immExpr.(*ast.OffsetBase); ok {
+				immExpr = ob.Offset
+			}
+			if err := checkIImmediate(instr, immExpr, imm); err != nil {
+				return err
+			}
+		}
 		encoded = arch.EncodeTypeS(op, rs1, rs2, imm)
 
 	case arch.TypeB:
@@ -196,6 +214,9 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			if err != nil {
 				return err
 			}
+			if err := checkOffset(instr, target-pc, 4096); err != nil {
+				return err
+			}
 			imm = int32(target - pc)
 		}
 		encoded = arch.EncodeTypeB(op, rs1, rs2, imm)
@@ -211,6 +232,11 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		if len(instr.Operands) >= 2 {
 			imm, err = evalImmediateWithError(instr.Operands[1], symbols, pc)
 			if err != nil {
+				return err
+			}
+		}
+		if len(instr.Operands) >= 2 {
+			if err := checkUImmediate(instr, instr.Operands[1], imm); err != nil {
 				return err
 			}
 		}
@@ -235,6 +261,9 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		}
 		target, err := evalExpressionWithError(targetExpr, symbols, pc)
 		if err != nil {
+			return err
+		}
+		if err := checkOffset(instr, target-pc, 1<<20); err != nil {
 			return err
 		}
 		encoded = arch.EncodeTypeJ(op, rd, int32(target-pc))
@@ -339,4 +368,56 @@ func encodeCSRImmediate(op arch.InstrOpcode, instr *ast.Instruction, symbols *sy
 	}
 
 	return arch.EncodeTypeI(op, rd, uint32(uimm), csr), nil
+}
+
+// isFieldBits reports whether expr is a relocation modifier: its value is
+// already the bits of the field (%lo is 0..4095, %hi up to 0xFFFFF), so it is
+// not range-checked
+func isFieldBits(expr ast.Expression) bool {
+	switch expr.(type) {
+	case *ast.LoRel, *ast.HiRel, *ast.PCRelLo, *ast.PCRelHi:
+		return true
+	}
+	return false
+}
+
+// checkIImmediate checks the 12-bit signed immediate of an I-type or S-type
+// instruction; for csrrw/csrrs/csrrc the field is the CSR number
+func checkIImmediate(instr *ast.Instruction, expr ast.Expression, imm int32) error {
+	if isFieldBits(expr) {
+		return nil
+	}
+	switch instr.Opcode {
+	case "csrrw", "csrrs", "csrrc":
+		if imm < 0 || imm > 0xFFF {
+			return fmt.Errorf("%s: error: CSR number %#x out of range (0..0xfff)", instr.Location, imm)
+		}
+		return nil
+	}
+	if imm < -2048 || imm > 2047 {
+		return fmt.Errorf("%s: error: %s immediate %d out of range (-2048..2047)", instr.Location, instr.Opcode, imm)
+	}
+	return nil
+}
+
+// checkUImmediate checks the 20-bit immediate of lui/auipc: signed or unsigned
+func checkUImmediate(instr *ast.Instruction, expr ast.Expression, imm int32) error {
+	if isFieldBits(expr) {
+		return nil
+	}
+	if imm < -(1<<19) || imm > (1<<20)-1 {
+		return fmt.Errorf("%s: error: %s immediate %d out of range (%d..%d)", instr.Location, instr.Opcode, imm, -(1 << 19), (1<<20)-1)
+	}
+	return nil
+}
+
+// checkOffset checks a branch or jal offset: even, and in -limit..limit-2
+func checkOffset(instr *ast.Instruction, offset int64, limit int64) error {
+	if offset < -limit || offset > limit-2 {
+		return fmt.Errorf("%s: error: %s offset %d out of range (%d..%d)", instr.Location, instr.Opcode, offset, -limit, limit-2)
+	}
+	if offset%2 != 0 {
+		return fmt.Errorf("%s: error: %s offset %d is odd", instr.Location, instr.Opcode, offset)
+	}
+	return nil
 }

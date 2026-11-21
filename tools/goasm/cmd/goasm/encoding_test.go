@@ -306,6 +306,88 @@ func TestDataDirectiveOperators(t *testing.T) {
 	}
 }
 
+// An immediate or offset that does not fit its field is an error, never cut
+func TestImmediateRangeErrors(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{"addi a0, a0, 2048", "addi immediate 2048 out of range (-2048..2047)"},
+		{"addi a0, a0, -2049", "addi immediate -2049 out of range (-2048..2047)"},
+		{"andi a0, a0, 0xFFF", "andi immediate 4095 out of range (-2048..2047)"},
+		{"lw a0, 5000(sp)", "lw immediate 5000 out of range (-2048..2047)"},
+		{"lw a0, sp, -3000", "lw immediate -3000 out of range (-2048..2047)"},
+		{"sw a0, 2048(sp)", "sw immediate 2048 out of range (-2048..2047)"},
+		{"jalr ra, 4096(a0)", "jalr immediate 4096 out of range (-2048..2047)"},
+		{"lui a0, 0x100000", "lui immediate 1048576 out of range (-524288..1048575)"},
+		{"auipc a0, -524289", "auipc immediate -524289 out of range (-524288..1048575)"},
+		{"csrrw a0, a1, 0x1000", "CSR number 0x1000 out of range (0..0xfff)"},
+		{"csrrs a0, a1, -1", "CSR number -0x1 out of range (0..0xfff)"},
+		{"beq a0, a1, $ + 4096", "beq offset 4096 out of range (-4096..4094)"},
+		{"bne a0, a1, $ - 4098", "bne offset -4098 out of range (-4096..4094)"},
+		{"beq a0, a1, $ + 3", "beq offset 3 is odd"},
+		{"jal ra, $ + 0x100000", "jal offset 1048576 out of range (-1048576..1048574)"},
+		{"j $ - 0x100002", "jal offset -1048578 out of range (-1048576..1048574)"},
+		{"jal $ + 1", "jal offset 1 is odd"},
+		{"beqz a0, $ + 5000", "beq offset 5000 out of range (-4096..4094)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
+			}
+			if !strings.Contains(out, "in.s:2:") {
+				t.Errorf("expected the location in.s:2 in output, got:\n%s", out)
+			}
+		})
+	}
+}
+
+// The ends of each range, and relocation modifiers, still assemble
+func TestImmediateRangeLimits(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want []byte
+	}{
+		{"addi a0, a0, 2047", []byte{0x13, 0x05, 0xF5, 0x7F}},
+		{"addi a0, a0, -2048", []byte{0x13, 0x05, 0x05, 0x80}},
+		{"sw a0, -2048(sp)", []byte{0x23, 0x20, 0xA1, 0x80}},
+		{"lui a0, 0xFFFFF", []byte{0x37, 0xF5, 0xFF, 0xFF}},
+		{"lui a0, -1", []byte{0x37, 0xF5, 0xFF, 0xFF}},
+		{"csrrw a0, a1, 0xFFF", []byte{0x73, 0x95, 0xF5, 0xFF}},
+		{"beq a0, a1, $ + 4094", []byte{0xE3, 0x0F, 0xB5, 0x7E}},
+		{"beq a0, a1, $ - 4096", []byte{0x63, 0x00, 0xB5, 0x80}},
+		{"jal x0, $ + 0xFFFFE", []byte{0x6F, 0xF0, 0xFF, 0x7F}},
+		{"jal x0, $ - 0x100000", []byte{0x6F, 0x00, 0x00, 0x80}},
+		// %lo gives 0..4095 and %hi up to 0xFFFFF on purpose
+		{".equ X, 0x12345FFF\nlui a0, %hi(X)\naddi a0, a0, %lo(X)", []byte{0x37, 0x65, 0x34, 0x12, 0x13, 0x05, 0xF5, 0xFF}},
+		{"li a0, 0xFFFFFFFF", []byte{0x13, 0x05, 0xF0, 0xFF}}, // li a0, -1
+		{"li a0, 0x80000000", []byte{0x37, 0x05, 0x00, 0x80, 0x13, 0x05, 0x05, 0x00}},
+		{"li a0, 0x7FFFFFFF", []byte{0x37, 0x05, 0x00, 0x80, 0x13, 0x05, 0xF5, 0xFF}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("% x, want % x", data, tt.want)
+			}
+		})
+	}
+}
+
 // An assembly error prints the error only; a bad command line still prints the usage
 func TestErrorDoesNotPrintUsage(t *testing.T) {
 	goasm := buildGoasm(t)

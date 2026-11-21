@@ -42,6 +42,18 @@ func (e *Expander) ExpandInstruction(instr *ast.Instruction) []*ast.Instruction 
 	if !arch.IsPseudoInstruction(instr.Opcode) {
 		return []*ast.Instruction{instr}
 	}
+	expanded := e.expandPseudo(instr)
+	// the generated instructions report errors at the line of the pseudo-instruction
+	for _, in := range expanded {
+		if in.Location.Line == 0 {
+			in.Location = instr.Location
+		}
+	}
+	return expanded
+}
+
+// expandPseudo returns the real instructions of a pseudo-instruction
+func (e *Expander) expandPseudo(instr *ast.Instruction) []*ast.Instruction {
 
 	switch instr.Opcode {
 	case "li":

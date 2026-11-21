@@ -185,6 +185,7 @@ goasm expands these in phase 4, before the labels are resolved.
 Notes:
 
 - `li` with a number outside -2048 to 2047, or with an expression, uses `lui` with `%hi` and `addi` with `%lo`. `li a0, 100000` gives `lui a0, 0x18` and `addi a0, a0, 1696` (100000 is `0x186A0`; `%lo` is `0x6A0`).
+- `li` reads 0x80000000..0xFFFFFFFF as a 32-bit pattern: `li a0, 0xFFFFFFFF` is `li a0, -1` (one `addi`).
 - `li rd, label` loads the absolute address of the label (`lui` + `addi`). `la` is the PC-relative form.
 - `la` and `call` are relative to the PC.
 - `syscall` always needs one operand. The console defines no syscall numbers.

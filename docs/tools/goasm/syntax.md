@@ -90,9 +90,19 @@ In an instruction operand and in `.byte`, `.half` and `.word`, these stop with a
 | `undefined symbol 'X'` | A name that is not a label or an `.equ`, also one that is only listed in `.global`. |
 | `string "x" cannot be used in an expression` | A string where a number is expected. |
 
-Limits of the current code:
+A value that does not fit its field stops with an error; it is never cut:
 
-- The result of an immediate is not range-checked. `addi x1, x2, 5000` assembles to the low 12 bits.
+| Field | Range | Error |
+|-------|-------|-------|
+| `addi`, logic, loads, stores, `jalr` | -2048..2047 | `addi immediate 5000 out of range (-2048..2047)` |
+| `lui`, `auipc` | -524288..1048575 (signed or unsigned 20 bits) | `lui immediate N out of range (...)` |
+| CSR number of `csrrw csrrs csrrc` | 0..0xFFF | `CSR number 0x1000 out of range (0..0xfff)` |
+| Branch offset (`beq`..., `beqz`...) | -4096..4094, even | `beq offset 5000 out of range (-4096..4094)`, `beq offset 3 is odd` |
+| `jal` / `j` offset | -1048576..1048574, even | `jal offset N out of range (-1048576..1048574)` |
+
+A [relocation modifier](#relocation-modifiers) (`%lo`, `%hi`, `%pcrel_lo`, `%pcrel_hi`) is already the bits of its field and is not checked: `addi a0, a0, %lo(X)` is fine when `%lo(X)` is 4095.
+An error in an instruction made by a pseudo-instruction (`beqz`, `j`, `li`...) is reported at the line of the pseudo-instruction, with the name of the real instruction (`beq`, `jal`, `lui`).
+
 - The shift amount of `slli srli srai rori bseti bclri binvi bexti` must be 0..31; other values are an error.
 
 ## Relocation modifiers

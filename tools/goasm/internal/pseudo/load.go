@@ -20,6 +20,11 @@ func (e *Expander) expandLi(i *ast.Instruction) []*ast.Instruction {
 
 	// If immediate is a number, check if it fits in 12 bits
 	if num, ok := imm.(*ast.Number); ok {
+		// 0x80000000..0xFFFFFFFF is a 32-bit pattern: li a0, 0xFFFFFFFF is li a0, -1
+		if num.Value > 0x7FFFFFFF && num.Value <= 0xFFFFFFFF {
+			num = &ast.Number{Value: int64(int32(uint32(num.Value))), Location: num.Location}
+			imm = num
+		}
 		if num.Value >= -2048 && num.Value <= 2047 {
 			// Small immediate: addi rd, x0, imm
 			return []*ast.Instruction{
