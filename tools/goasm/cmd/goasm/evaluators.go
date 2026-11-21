@@ -33,99 +33,25 @@ func getExprLocation(expr ast.Expression) ast.SourceLocation {
 		return e.Location
 	case *ast.PCRelLo:
 		return e.Location
+	case *ast.OffsetBase:
+		return e.Location
 	}
 	return ast.SourceLocation{}
 }
 
-// evalImmediateWithError evaluates an expression as an immediate value with error reporting
+// evalImmediateWithError evaluates an expression as a 32-bit immediate value.
+// It is evalExpressionWithError truncated to 32 bits; %pcrel_lo is refused
+// here because only evalIImmediate knows the paired auipc.
 func evalImmediateWithError(expr ast.Expression, symbols *symbol.Table, pc int64) (int32, error) {
-	switch e := expr.(type) {
-	case *ast.Number:
-		return int32(e.Value), nil
-
-	case *ast.CharLiteral:
-		return int32(e.Char), nil
-
-	case *ast.Identifier:
-		if sym := symbols.Lookup(e.Name); sym != nil {
-			return int32(sym.Value), nil
-		}
-		return 0, fmt.Errorf("%s: error: undefined symbol '%s'", e.Location, e.Name)
-
-	case *ast.HiRel:
-		val, err := evalExpressionWithError(e.Expr, symbols, pc)
-		if err != nil {
-			return 0, err
-		}
-		return int32((val + 0x800) >> 12), nil
-
-	case *ast.LoRel:
-		val, err := evalExpressionWithError(e.Expr, symbols, pc)
-		if err != nil {
-			return 0, err
-		}
-		return int32(val & 0xFFF), nil
-
-	case *ast.PCRelHi:
-		val, err := evalExpressionWithError(e.Expr, symbols, pc)
-		if err != nil {
-			return 0, err
-		}
-		offset := val - pc
-		return int32((offset + 0x800) >> 12), nil
-
-	case *ast.PCRelLo:
-		// resolved by evalIImmediate, which knows the paired auipc
-		return 0, fmt.Errorf("%s: error: %%pcrel_lo must be the whole immediate of an I-type or S-type instruction", e.Location)
-
-	case *ast.UnaryOp:
-		operand, err := evalImmediateWithError(e.Operand, symbols, pc)
-		if err != nil {
-			return 0, err
-		}
-		if e.Op == "-" {
-			return -operand, nil
-		}
-		return operand, nil
-
-	case *ast.BinaryOp:
-		left, err := evalImmediateWithError(e.Left, symbols, pc)
-		if err != nil {
-			return 0, err
-		}
-		right, err := evalImmediateWithError(e.Right, symbols, pc)
-		if err != nil {
-			return 0, err
-		}
-		switch e.Op {
-		case "+":
-			return left + right, nil
-		case "-":
-			return left - right, nil
-		case "*":
-			return left * right, nil
-		case "/":
-			if right != 0 {
-				return left / right, nil
-			}
-			return 0, fmt.Errorf("%s: error: division by zero", e.Location)
-		case "&":
-			return left & right, nil
-		case "|":
-			return left | right, nil
-		case "^":
-			return left ^ right, nil
-		case "<<":
-			return left << uint(right), nil
-		case ">>":
-			return left >> uint(right), nil
-		}
+	if lo, ok := expr.(*ast.PCRelLo); ok {
+		return 0, fmt.Errorf("%s: error: %%pcrel_lo must be the whole immediate of an I-type or S-type instruction", lo.Location)
 	}
-
-	return 0, nil
+	val, err := evalExpressionWithError(expr, symbols, pc)
+	return int32(val), err
 }
 
-// evalExpressionWithError evaluates an expression to get its value with error reporting
+// evalExpressionWithError evaluates an expression in 64 bits. pc is the value of $.
+// Every operator of the parser is handled; anything else is an error, never 0.
 func evalExpressionWithError(expr ast.Expression, symbols *symbol.Table, pc int64) (int64, error) {
 	switch e := expr.(type) {
 	case *ast.Number:
@@ -143,15 +69,42 @@ func evalExpressionWithError(expr ast.Expression, symbols *symbol.Table, pc int6
 	case *ast.CurrentPC:
 		return pc, nil
 
+	case *ast.HiRel:
+		val, err := evalExpressionWithError(e.Expr, symbols, pc)
+		if err != nil {
+			return 0, err
+		}
+		return (val + 0x800) >> 12, nil
+
+	case *ast.LoRel:
+		val, err := evalExpressionWithError(e.Expr, symbols, pc)
+		if err != nil {
+			return 0, err
+		}
+		return val & 0xFFF, nil
+
+	case *ast.PCRelHi:
+		val, err := evalExpressionWithError(e.Expr, symbols, pc)
+		if err != nil {
+			return 0, err
+		}
+		return (val - pc + 0x800) >> 12, nil
+
+	case *ast.PCRelLo:
+		return 0, fmt.Errorf("%s: error: %%pcrel_lo must be the whole immediate of an I-type or S-type instruction", e.Location)
+
 	case *ast.UnaryOp:
 		operand, err := evalExpressionWithError(e.Operand, symbols, pc)
 		if err != nil {
 			return 0, err
 		}
-		if e.Op == "-" {
+		switch e.Op {
+		case "-":
 			return -operand, nil
+		case "+":
+			return operand, nil
 		}
-		return operand, nil
+		return 0, fmt.Errorf("%s: error: unknown unary operator '%s'", e.Location, e.Op)
 
 	case *ast.BinaryOp:
 		left, err := evalExpressionWithError(e.Left, symbols, pc)
@@ -162,22 +115,58 @@ func evalExpressionWithError(expr ast.Expression, symbols *symbol.Table, pc int6
 		if err != nil {
 			return 0, err
 		}
-		switch e.Op {
-		case "+":
-			return left + right, nil
-		case "-":
-			return left - right, nil
-		case "*":
-			return left * right, nil
-		case "/":
-			if right != 0 {
-				return left / right, nil
-			}
-			return 0, fmt.Errorf("%s: error: division by zero", e.Location)
-		}
+		return evalBinaryOp(e, left, right)
 	}
 
-	return 0, nil
+	return 0, fmt.Errorf("%s: error: %s cannot be used in an expression", getExprLocation(expr), exprKind(expr))
+}
+
+// evalBinaryOp applies a binary operator to two 64-bit values
+func evalBinaryOp(e *ast.BinaryOp, left, right int64) (int64, error) {
+	switch e.Op {
+	case "+":
+		return left + right, nil
+	case "-":
+		return left - right, nil
+	case "*":
+		return left * right, nil
+	case "/":
+		if right == 0 {
+			return 0, fmt.Errorf("%s: error: division by zero", e.Location)
+		}
+		return left / right, nil
+	case "%":
+		if right == 0 {
+			return 0, fmt.Errorf("%s: error: modulo by zero", e.Location)
+		}
+		return left % right, nil
+	case "&":
+		return left & right, nil
+	case "|":
+		return left | right, nil
+	case "^":
+		return left ^ right, nil
+	case "<<", ">>":
+		if right < 0 || right > 63 {
+			return 0, fmt.Errorf("%s: error: shift amount %d out of range (0..63)", e.Location, right)
+		}
+		if e.Op == "<<" {
+			return left << uint(right), nil
+		}
+		return left >> uint(right), nil // arithmetic shift: -8 >> 1 is -4
+	}
+	return 0, fmt.Errorf("%s: error: unknown operator '%s'", e.Location, e.Op)
+}
+
+// exprKind names an expression that is not a value, for error messages
+func exprKind(expr ast.Expression) string {
+	switch e := expr.(type) {
+	case *ast.StringLiteral:
+		return fmt.Sprintf("string %q", e.Text)
+	case *ast.OffsetBase:
+		return "offset(register)"
+	}
+	return fmt.Sprintf("%T", expr)
 }
 
 // evalImmediate evaluates an expression as an immediate value (legacy, no error reporting)

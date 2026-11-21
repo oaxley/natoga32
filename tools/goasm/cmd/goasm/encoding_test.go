@@ -234,6 +234,107 @@ func TestRecursiveMacro(t *testing.T) {
 	})
 }
 
+// Every operator works in branch/jal targets and in immediates, and so does $.
+// Each source is padded so that the instruction under test is at 0x10.
+func TestExpressionOperands(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	pad := "nop\nnop\nnop\nnop\n"
+	tests := []struct {
+		src  string
+		want uint32
+	}{
+		// branch targets: beq a0, a1, 0x18 is +8 = 0x00B50463
+		{"beq a0, a1, 3 << 3", 0x00B50463},
+		{"beq a0, a1, 0x10 | 8", 0x00B50463},
+		{"beq a0, a1, 0x1F & 0x18", 0x00B50463},
+		{"beq a0, a1, 0x10 ^ 8", 0x00B50463},
+		{"beq a0, a1, 0xC0 >> 3", 0x00B50463},
+		{"beq a0, a1, 0x118 % 0x100", 0x00B50463},
+		{"beq a0, a1, $ + 8", 0x00B50463},
+		// jal targets: jal ra, 0x18 is +8 = 0x008000EF
+		{"jal ra, 3 << 3", 0x008000EF},
+		{"jal 0x10 | 8", 0x008000EF},
+		// $ in immediates is the address of the instruction (0x10)
+		{"addi a0, a0, $", 0x01050513},
+		{"addi a0, a0, $ + 4", 0x01450513},
+		{"lui a0, $", 0x00010537},
+		{"lw a0, $(sp)", 0x01012503},
+		{"sw a0, $(sp)", 0x00A12823},
+		// % in immediates
+		{"addi a0, a0, 23 % 8", 0x00750513},
+		// precedence and grouping
+		{"addi a0, a0, 1 + 2 * 3", 0x00750513},
+		{"addi a0, a0, (1 + 2) << 2", 0x00C50513},
+		{"addi a0, a0, -(2 | 1)", 0xFFD50513},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+pad+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if len(data) != 20 {
+				t.Fatalf("expected 20 bytes, got %d", len(data))
+			}
+			got := uint32(data[16]) | uint32(data[17])<<8 | uint32(data[18])<<16 | uint32(data[19])<<24
+			if got != tt.want {
+				t.Errorf("0x%08X, want 0x%08X", got, tt.want)
+			}
+		})
+	}
+}
+
+// Data directives share the evaluator: every operator works there too
+func TestDataDirectiveOperators(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	src := ".rom\n.word 1 << 3, 0xF0 | 0xF, 0xFF & 0x3C, 6 ^ 3, -8 >> 1, 7 % 4\n.byte 0x80 >> 4, $\n"
+	data, out, err := assembleSource(t, goasm, src, "rom")
+	if err != nil {
+		t.Fatalf("assembling failed: %v\n%s", err, out)
+	}
+	want := []byte{
+		0x08, 0, 0, 0, 0xFF, 0, 0, 0, 0x3C, 0, 0, 0,
+		0x05, 0, 0, 0, 0xFC, 0xFF, 0xFF, 0xFF, 0x03, 0, 0, 0,
+		0x08, 0x19, // $ is the address of the second .byte value (0x19)
+	}
+	if !bytes.Equal(data, want) {
+		t.Errorf("% x, want % x", data, want)
+	}
+}
+
+// An expression that cannot be computed is an error, never a silent 0
+func TestExpressionErrors(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{"addi a0, a0, 5 % 0", "modulo by zero"},
+		{"beq a0, a1, 8 % 0", "modulo by zero"},
+		{"addi a0, a0, 1 << -1", "shift amount"},
+		{"beq a0, a1, 1 >> 64", "shift amount"},
+		{"addi a0, a0, \"x\"", "cannot be used in an expression"},
+		{"beq a0, a1, \"x\"", "cannot be used in an expression"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
+			}
+		})
+	}
+}
+
 // jal label is jal ra, label (RISC-V standard one-operand form)
 func TestJalEncoding(t *testing.T) {
 	goasm := buildGoasm(t)

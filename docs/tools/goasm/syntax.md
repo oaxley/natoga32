@@ -65,7 +65,7 @@ To put a newline in a string, end the string and add `.byte 10`.
 ## Expressions
 
 Instruction operands and data directives accept expressions with numbers, characters, labels and `.equ` names.
-`$` is the address of the current statement. It works in `.byte`/`.half`/`.word` and in branch and `jal` targets (`j $+8`). In the immediate of `addi`, `lui`, loads and stores (`addi a1, a1, $`) it gives 0. With `li`, `$` is the address of the second instruction of the expansion (the `li` address + 4).
+`$` is the address of the current statement. It works everywhere an expression is accepted: in `.byte`/`.half`/`.word`, in branch and `jal` targets (`j $+8`), and in immediates (`addi a1, a1, $`, `lw a0, $(sp)`). With `li`, `$` is the address of the second instruction of the expansion (the `li` address + 4).
 
 | Operator | Precedence |
 |----------|------------|
@@ -77,13 +77,22 @@ Instruction operands and data directives accept expressions with numbers, charac
 | `\|` | 1 (lowest) |
 
 Unary `+` and `-` and parentheses also work.
-A division by zero stops with `division by zero`.
+Every operator works in instruction operands (immediates, branch and `jal` targets) and in `.byte`, `.half` and `.word`.
+Values are computed in 64 bits, then cut to the size of the field. `>>` keeps the sign: `-8 >> 1` is `-4`.
+
+In an instruction operand, these stop with an error:
+
+| Error | Cause |
+|-------|-------|
+| `division by zero` | `/` by 0. |
+| `modulo by zero` | `%` by 0. |
+| `shift amount N out of range (0..63)` | `<<` or `>>` by less than 0 or more than 63. |
+| `undefined symbol 'X'` | A name that is not a label or an `.equ`. |
+| `string "x" cannot be used in an expression` | A string where a number is expected. |
 
 Limits of the current code:
 
-- In `.byte`, `.half` and `.word`, only `+ - * /`, unary `-` and `$` work. `<<`, `>>`, `&`, `|`, `^` and `%` give 0 without an error.
-- In the immediate of an instruction (`addi`, `lui`, loads, stores, `li`), `%` gives 0. The other operators work.
-- A branch or `jal` target is evaluated like a data directive: only `+ - * /` work. `beq a0, a1, t|0` jumps to address 0.
+- In `.byte`, `.half` and `.word`, these errors are not reported: the value is 0.
 - The result of an immediate is not range-checked. `addi x1, x2, 5000` assembles to the low 12 bits.
 - The shift amount of `slli srli srai rori bseti bclri binvi bexti` must be 0..31; other values are an error.
 

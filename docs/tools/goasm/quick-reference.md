@@ -116,7 +116,7 @@ again:
 
 | Problem | Workaround |
 |---------|------------|
-| `<<` `>>` `&` `\|` `^` `%` give 0 in `.word` | Compute the value with `.define`. |
+| An error in a `.word` expression (`5 % 0`, an undefined name) gives 0, with no message | Check the names and values by hand. |
 | `.string` keeps `\n` as two bytes | Use `.byte 10`. |
 | `_` in numbers is not read | Write `0x206800`. |
 | `.if !X` is read as `.if X`, with no error | Write `.if X == 0`. |
