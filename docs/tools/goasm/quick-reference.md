@@ -68,7 +68,8 @@ See [the overview](README.md).
 | Jumps | `jal jalr` |
 | Upper | `lui auipc` |
 | M | `mul mulh mulhsu mulhu div divu rem remu` |
-| Zbb | `clz ctz cpop sext.b sext.h zext.h min minu max maxu rol ror rori rev8` |
+| Zba | `sh1add sh2add sh3add` |
+| Zbb | `clz ctz cpop sext.b sext.h zext.h orc.b min minu max maxu rol ror rori rev8 andn orn xnor` |
 | Zbs | `bset bclr binv bext bseti bclri binvi bexti` |
 | Zbkb | `pack packh` |
 | Zicond | `czero.eqz czero.nez` |

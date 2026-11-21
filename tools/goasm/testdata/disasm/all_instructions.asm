@@ -126,6 +126,21 @@ zbb_extension:
 
     ; Byte reverse (rd, rs1) - unary Zbb
     rev8   a2, a3         ; Reverse bytes in word
+    orc.b  a4, a5         ; OR-combine bytes
+
+    ; Logic with negate (rd, rs1, rs2)
+    andn   t0, t1, t2     ; rs1 & ~rs2
+    orn    t3, t4, t5     ; rs1 | ~rs2
+    xnor   a0, a1, a2     ; ~(rs1 ^ rs2)
+
+; =============================================================================
+; Zba Extension - Address Generation
+; =============================================================================
+
+zba_extension:
+    sh1add a0, a1, a2     ; (rs1 << 1) + rs2
+    sh2add a3, a4, a5     ; (rs1 << 2) + rs2
+    sh3add s0, s1, s2     ; (rs1 << 3) + rs2
 
 ; =============================================================================
 ; Zbs Extension - Single-bit Instructions

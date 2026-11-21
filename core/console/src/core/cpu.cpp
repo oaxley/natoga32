@@ -646,6 +646,19 @@ void CPU::execute_instruction()
                         case 0b010'0100:    // BEXTI
                             registers[rd] = (urs1 >> shamt) & 1u;
                             break;
+                        case 0b001'0100:    // ORC.B (rs2 field 0b00111)
+                        {
+                            if (shamt == 0b00111) {
+                                u32 result = 0;
+                                for (u32 byte = 0; byte < 32; byte += 8) {
+                                    if ((urs1 >> byte) & 0xFF) {
+                                        result |= 0xFFu << byte;
+                                    }
+                                }
+                                registers[rd] = result;
+                            }
+                            break;
+                        }
                         case 0b011'0000:    // RORI
                             registers[rd] = std::rotr(urs1, shamt);
                             break;
@@ -732,6 +745,9 @@ void CPU::execute_instruction()
                         case 0b000'0000:    // SLT
                             registers[rd] = (irs1 < irs2) ? 1 : 0;
                             break;
+                        case 0b001'0000:    // SH1ADD
+                            registers[rd] = (urs1 << 1) + urs2;
+                            break;
                         case 0b000'0001:    // MULHSU
                         {
                             i64 a = static_cast<i64>(irs1);
@@ -767,6 +783,12 @@ void CPU::execute_instruction()
                     {
                         case 0b000'0000:    // XOR
                             registers[rd] = urs1 ^ urs2;
+                            break;
+                        case 0b001'0000:    // SH2ADD
+                            registers[rd] = (urs1 << 2) + urs2;
+                            break;
+                        case 0b010'0000:    // XNOR
+                            registers[rd] = ~(urs1 ^ urs2);
                             break;
                         case 0b000'0001:     // DIV
                         {
@@ -840,6 +862,12 @@ void CPU::execute_instruction()
                         case 0b000'0000:    // OR
                             registers[rd] = urs1 | urs2;
                             break;
+                        case 0b001'0000:    // SH3ADD
+                            registers[rd] = (urs1 << 3) + urs2;
+                            break;
+                        case 0b010'0000:    // ORN
+                            registers[rd] = urs1 | ~urs2;
+                            break;
                         case 0b000'0001:    // REM
                         {
                             i32 dividend = irs1;
@@ -866,6 +894,9 @@ void CPU::execute_instruction()
                     {
                         case 0b000'0000:    // AND
                             registers[rd] = urs1 & urs2;
+                            break;
+                        case 0b010'0000:    // ANDN
+                            registers[rd] = urs1 & ~urs2;
                             break;
                         case 0b000'0001:    // REMU
                         {

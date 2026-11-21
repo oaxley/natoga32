@@ -33,7 +33,8 @@ Everything else is not an instruction of the console.
 | RV32I with registers | `add`, `sub`, `sll`, `slt`, `sltu`, `xor`, `srl`, `sra`, `or`, `and` |
 | RV32I memory ordering | `fence`, `fence.i` (Zifencei). Both do nothing, see below |
 | M | `mul`, `mulh`, `mulhsu`, `mulhu`, `div`, `divu`, `rem`, `remu` |
-| Zbb | `clz`, `ctz`, `cpop`, `sext.b`, `sext.h`, `zext.h`, `min`, `minu`, `max`, `maxu`, `rol`, `ror`, `rori`, `rev8` |
+| Zba | `sh1add`, `sh2add`, `sh3add` |
+| Zbb | `andn`, `orn`, `xnor`, `clz`, `ctz`, `cpop`, `orc.b`, `sext.b`, `sext.h`, `zext.h`, `min`, `minu`, `max`, `maxu`, `rol`, `ror`, `rori`, `rev8` (all of Zbb) |
 | Zbs | `bset`, `bclr`, `binv`, `bext`, `bseti`, `bclri`, `binvi`, `bexti` |
 | Zbkb | `pack`, `packh` (`rev8` is shared with Zbb) |
 | Zicond | `czero.eqz`, `czero.nez` |
@@ -41,7 +42,7 @@ Everything else is not an instruction of the console.
 | System | `ecall`, `mret`. See [Traps](traps.md) |
 | Custom (opcode `0x0B`) | `new.t`, `yield.t`, `id.t`, `sleep.t`, `wake.t`, `end.t`. See [Instructions](instructions.md) |
 
-The other instructions of Zbb, Zbs and Zbkb (`andn`, `orn`, `xnor`, `orc.b`, `brev8`, `zip`, `unzip`, ...) are not decoded.
+The other instructions of Zbkb (`brev8`, `zip`, `unzip`, ...) are not decoded.
 
 `fence` (opcode `0x0F`, `funct3` 0) and `fence.i` (`funct3` 1) only move the PC to the next instruction.
 The CPU has one core and no cache, runs every access in order, and fetches every instruction from memory, so there is nothing to order or to flush.

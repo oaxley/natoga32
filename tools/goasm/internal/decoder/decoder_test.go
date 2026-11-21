@@ -42,6 +42,12 @@ func TestDecodeRType(t *testing.T) {
 		{"mul x7, x8, x9", "mul", 7, 8, 9},
 		{"div x10, x11, x12", "div", 10, 11, 12},
 		{"rem x13, x14, x15", "rem", 13, 14, 15},
+		{"sh1add x1, x2, x3", "sh1add", 1, 2, 3},
+		{"sh2add x4, x5, x6", "sh2add", 4, 5, 6},
+		{"sh3add x7, x8, x9", "sh3add", 7, 8, 9},
+		{"andn x10, x11, x12", "andn", 10, 11, 12},
+		{"orn x13, x14, x15", "orn", 13, 14, 15},
+		{"xnor x16, x17, x18", "xnor", 16, 17, 18},
 	}
 
 	for _, tt := range tests {
@@ -586,6 +592,30 @@ func TestRoundTripAllInstructions(t *testing.T) {
 
 			if instr.Mnemonic != tt.mnemonic {
 				t.Errorf("mnemonic: got %q, want %q", instr.Mnemonic, tt.mnemonic)
+			}
+		})
+	}
+}
+
+// orc.b and rev8 are unary words that share funct3 101 with the shift immediates
+func TestDecodeUnaryFunct3_101(t *testing.T) {
+	tests := []struct {
+		word     uint32
+		mnemonic string
+	}{
+		{0x2875D513, "orc.b"}, // orc.b a0, a1
+		{0x6985D513, "rev8"},  // rev8 a0, a1
+		{0x6075D513, "rori"},  // rori a0, a1, 7
+		{0x4875D513, "bexti"}, // bexti a0, a1, 7
+	}
+	for _, tt := range tests {
+		t.Run(tt.mnemonic, func(t *testing.T) {
+			instr := Decode(tt.word)
+			if instr.Mnemonic != tt.mnemonic {
+				t.Errorf("%#08x: got %q, want %q", tt.word, instr.Mnemonic, tt.mnemonic)
+			}
+			if instr.Rd != 10 || instr.Rs1 != 11 {
+				t.Errorf("%#08x: rd=%d rs1=%d, want 10 11", tt.word, instr.Rd, instr.Rs1)
 			}
 		})
 	}

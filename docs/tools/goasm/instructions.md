@@ -73,7 +73,8 @@ The CPU has a known bug in `mulhsu` (see [CPU](../../console/cpu/README.md)).
 
 | Extension | Instructions |
 |-----------|--------------|
-| Zbb | `clz ctz cpop sext.b sext.h zext.h min minu max maxu rol ror rori rev8` |
+| Zba | `sh1add sh2add sh3add` |
+| Zbb | `clz ctz cpop sext.b sext.h zext.h orc.b min minu max maxu rol ror rori rev8 andn orn xnor` |
 | Zbs | `bset bclr binv bext bseti bclri binvi bexti` |
 | Zbkb | `pack packh` |
 | Zicond | `czero.eqz czero.nez` |
@@ -82,6 +83,8 @@ Operand forms:
 
 - `clz rd, rs1`, same for `ctz cpop sext.b sext.h zext.h rev8`. Any other number of operands stops with `expects 2 operands (rd, rs1)`.
 - `min rd, rs1, rs2`, same for the other three-register instructions.
+- `sh1add rd, rs1, rs2` is `rd = (rs1 << 1) + rs2` (`sh2add` shifts by 2, `sh3add` by 3): the address of element `rs1` of a `half`, `word` or 8-byte array at `rs2`.
+- `andn`, `orn` and `xnor` invert `rs2` (or the result for `xnor`). `orc.b rd, rs1` sets each byte that is not 0 to `0xFF`.
 - `zext.h` shares its encoding with `pack`. `pack rd, rs1, x0` is `zext.h rd, rs1`.
   The disassembler shows the word with `rs2 = x0` as `zext.h rd, rs1`, and any other `rs2` as `pack`.
 - `rori rd, rs1, shamt`, same for `bseti bclri binvi bexti`. `shamt` is a number from 0 to 31, like for `slli srli srai`.

@@ -719,6 +719,36 @@ func TestShiftImmediateInvalid(t *testing.T) {
 	}
 }
 
+// Zba and the rest of Zbb: words checked against the RISC-V bitmanip spec
+func TestZbaZbbEncoding(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want []byte
+	}{
+		{"sh1add a0, a1, a2", []byte{0x33, 0xa5, 0xc5, 0x20}}, // 0x20C5A533
+		{"sh2add a0, a1, a2", []byte{0x33, 0xc5, 0xc5, 0x20}}, // 0x20C5C533
+		{"sh3add a0, a1, a2", []byte{0x33, 0xe5, 0xc5, 0x20}}, // 0x20C5E533
+		{"andn a0, a1, a2", []byte{0x33, 0xf5, 0xc5, 0x40}},   // 0x40C5F533
+		{"orn a0, a1, a2", []byte{0x33, 0xe5, 0xc5, 0x40}},    // 0x40C5E533
+		{"xnor a0, a1, a2", []byte{0x33, 0xc5, 0xc5, 0x40}},   // 0x40C5C533
+		{"orc.b a0, a1", []byte{0x13, 0xd5, 0x75, 0x28}},      // 0x2875D513
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("%s = % x, want % x", tt.src, data, tt.want)
+			}
+		})
+	}
+}
+
 // zext.h rd, rs1 is pack rd, rs1, x0; pack keeps its three operands
 func TestZextHAndPackEncoding(t *testing.T) {
 	goasm := buildGoasm(t)
@@ -751,7 +781,7 @@ func TestUnaryOperandCount(t *testing.T) {
 	goasm := buildGoasm(t)
 	defer os.Remove(goasm)
 
-	for _, src := range []string{"zext.h a0, a1, a2", "clz a0, a1, a2", "rev8 a0", "sext.b a0, a1, a2"} {
+	for _, src := range []string{"zext.h a0, a1, a2", "clz a0, a1, a2", "rev8 a0", "sext.b a0, a1, a2", "orc.b a0, a1, a2"} {
 		t.Run(src, func(t *testing.T) {
 			_, out, err := assembleSource(t, goasm, ".rom\n"+src+"\n", "rom")
 			if err == nil {

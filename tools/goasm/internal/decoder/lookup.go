@@ -49,6 +49,7 @@ var zbbUnaryInstructions = map[string]bool{
 	"sext.b": true, // rs2=0b00100
 	"sext.h": true, // rs2=0b00101
 	"rev8":   true, // rs2=0b11000
+	"orc.b":  true, // rs2=0b00111
 }
 
 // shiftImmediateInstructions are instructions where rs2 field is actually
