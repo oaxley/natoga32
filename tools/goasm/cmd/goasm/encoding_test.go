@@ -306,6 +306,70 @@ func TestDataDirectiveOperators(t *testing.T) {
 	}
 }
 
+// A register operand that is not a register name is an error, never x0
+func TestUnknownRegisterIsAnError(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{"add a0, a1, a99", "'a99' is not a register"},    // R, rs2
+		{"add q0, a1, a2", "'q0' is not a register"},      // R, rd
+		{"sub a0, x32, a2", "'x32' is not a register"},    // R, rs1
+		{"clz a0, foo", "'foo' is not a register"},        // RU
+		{"sleep.t a0, bar", "'bar' is not a register"},    // R2
+		{"addi a0, b1, 1", "'b1' is not a register"},      // I
+		{"addi 5, a0, 1", "expected a register"},          // I, number as rd
+		{"lw a0, 0(spp)", "'spp' is not a register"},      // I, offset(base)
+		{"lw a0, spp, 0", "'spp' is not a register"},      // I, legacy form
+		{"slli a0, t9, 1", "'t9' is not a register"},      // I2
+		{"sw a0, 4(sb)", "'sb' is not a register"},        // S, base
+		{"sw r0, 4(sp)", "'r0' is not a register"},        // S, rs2
+		{"beq a0, a8, 0", "'a8' is not a register"},       // B
+		{"lui s12, 1", "'s12' is not a register"},         // U
+		{"jal rr, 0", "'rr' is not a register"},           // J
+		{"jalr t7, 0(ra)", "'t7' is not a register"},      // jalr
+		{"csrrwi tt, 5, 0x300", "'tt' is not a register"}, // CSR immediate rd
+		{"csrrw a0, a9, 0x300", "'a9' is not a register"}, // CSR register form
+		{"mv a0, a1x", "'a1x' is not a register"},         // pseudo
+		{"label: add a0, label, a1", "'label' is not a register"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
+			}
+			if !strings.Contains(out, "in.s:2:") {
+				t.Errorf("expected the location in.s:2 in output, got:\n%s", out)
+			}
+		})
+	}
+}
+
+// Register names are case-insensitive, and x0..x31 and ABI names all work
+func TestRegisterNames(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	for _, src := range []string{"add x31, zero, fp", "add T6, X0, s0", "add t6, x0, x8"} {
+		t.Run(src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if want := []byte{0xb3, 0x0f, 0x80, 0x00}; !bytes.Equal(data, want) { // add x31, x0, x8
+				t.Errorf("% x, want % x", data, want)
+			}
+		})
+	}
+}
+
 // .space, .align, .org and .equ take full expressions
 func TestLayoutDirectiveExpressions(t *testing.T) {
 	goasm := buildGoasm(t)

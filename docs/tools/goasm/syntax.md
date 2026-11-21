@@ -127,8 +127,8 @@ Each register has a number name and an ABI name.
 | `x18`-`x27` | `s2`-`s11` |
 | `x28`-`x31` | `t3`-`t6` |
 
-An unknown register name is **not** an error: goasm uses `x0`.
-Check the spelling of your operands.
+A name that is not a register, where a register is expected, stops with `'a99' is not a register` and its line and column (`x32`, `s12` and labels too).
+A number in place of a register stops with `expected a register`.
 
 Memory operands are written `offset(base)`.
 `(base)` means `0(base)`.

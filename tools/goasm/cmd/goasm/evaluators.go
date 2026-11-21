@@ -170,12 +170,20 @@ func exprKind(expr ast.Expression) string {
 	return fmt.Sprintf("%T", expr)
 }
 
-// evalRegister evaluates an expression as a register number
-func evalRegister(expr ast.Expression) uint32 {
-	if ident, ok := expr.(*ast.Identifier); ok {
-		if reg, ok := arch.LookupRegister(ident.Name); ok {
-			return reg
-		}
+// evalRegister evaluates a register operand of instr: x0..x31 or an ABI name
+// (case-insensitive). Anything else is an error, never a silent x0.
+func evalRegister(instr *ast.Instruction, expr ast.Expression) (uint32, error) {
+	ident, ok := expr.(*ast.Identifier)
+	if !ok {
+		return 0, fmt.Errorf("%s: error: %s: expected a register", instr.Location, instr.Opcode)
 	}
-	return 0
+	if reg, ok := arch.LookupRegister(ident.Name); ok {
+		return reg, nil
+	}
+	// operands made by a pseudo-instruction expansion have no location
+	loc := ident.Location
+	if loc.Line == 0 {
+		loc = instr.Location
+	}
+	return 0, fmt.Errorf("%s: error: '%s' is not a register", loc, ident.Name)
 }

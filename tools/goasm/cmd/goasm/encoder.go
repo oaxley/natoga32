@@ -33,23 +33,33 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 	case arch.TypeR:
 		rd, rs1, rs2 := uint32(0), uint32(0), uint32(0)
 		if len(instr.Operands) >= 1 {
-			rd = evalRegister(instr.Operands[0])
+			if rd, err = evalRegister(instr, instr.Operands[0]); err != nil {
+				return err
+			}
 		}
 		if len(instr.Operands) >= 2 {
-			rs1 = evalRegister(instr.Operands[1])
+			if rs1, err = evalRegister(instr, instr.Operands[1]); err != nil {
+				return err
+			}
 		}
 		if len(instr.Operands) >= 3 {
-			rs2 = evalRegister(instr.Operands[2])
+			if rs2, err = evalRegister(instr, instr.Operands[2]); err != nil {
+				return err
+			}
 		}
 		encoded = arch.EncodeTypeR(op, rd, rs1, rs2)
 
 	case arch.TypeR2:
 		rs1, rs2 := uint32(0), uint32(0)
 		if len(instr.Operands) >= 1 {
-			rs1 = evalRegister(instr.Operands[0])
+			if rs1, err = evalRegister(instr, instr.Operands[0]); err != nil {
+				return err
+			}
 		}
 		if len(instr.Operands) >= 2 {
-			rs2 = evalRegister(instr.Operands[1])
+			if rs2, err = evalRegister(instr, instr.Operands[1]); err != nil {
+				return err
+			}
 		}
 		encoded = arch.EncodeTypeR2(op, rs1, rs2)
 
@@ -60,21 +70,31 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			return fmt.Errorf("%s: error: %s expects 2 operands (rd, rs1), got %d",
 				instr.Location, instr.Opcode, len(instr.Operands))
 		}
-		rd := evalRegister(instr.Operands[0])
-		rs1 := evalRegister(instr.Operands[1])
+		rd, err := evalRegister(instr, instr.Operands[0])
+		if err != nil {
+			return err
+		}
+		rs1, err := evalRegister(instr, instr.Operands[1])
+		if err != nil {
+			return err
+		}
 		encoded = arch.EncodeTypeRU(op, rd, rs1)
 
 	case arch.TypeI:
 		rd, rs1 := uint32(0), uint32(0)
 		imm := int32(0)
 		if len(instr.Operands) >= 1 {
-			rd = evalRegister(instr.Operands[0])
+			if rd, err = evalRegister(instr, instr.Operands[0]); err != nil {
+				return err
+			}
 		}
 
 		// Check for standard RISC-V syntax: lw rd, offset(rs1)
 		if len(instr.Operands) == 2 {
 			if offsetBase, ok := instr.Operands[1].(*ast.OffsetBase); ok {
-				rs1 = evalRegister(offsetBase.Base)
+				if rs1, err = evalRegister(instr, offsetBase.Base); err != nil {
+					return err
+				}
 				imm, err = evalIImmediate(offsetBase.Offset, symbols, pc, ctx)
 				if err != nil {
 					return err
@@ -84,7 +104,9 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			}
 		} else if len(instr.Operands) >= 3 {
 			// Legacy syntax: lw rd, rs1, offset
-			rs1 = evalRegister(instr.Operands[1])
+			if rs1, err = evalRegister(instr, instr.Operands[1]); err != nil {
+				return err
+			}
 			imm, err = evalIImmediate(instr.Operands[2], symbols, pc, ctx)
 			if err != nil {
 				return err
@@ -96,10 +118,14 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		rd, rs1 := uint32(0), uint32(0)
 		shamt := uint32(0)
 		if len(instr.Operands) >= 1 {
-			rd = evalRegister(instr.Operands[0])
+			if rd, err = evalRegister(instr, instr.Operands[0]); err != nil {
+				return err
+			}
 		}
 		if len(instr.Operands) >= 2 {
-			rs1 = evalRegister(instr.Operands[1])
+			if rs1, err = evalRegister(instr, instr.Operands[1]); err != nil {
+				return err
+			}
 		}
 		if len(instr.Operands) >= 3 {
 			// the shift amount is a number, never a register
@@ -122,13 +148,17 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		rs1, rs2 := uint32(0), uint32(0)
 		imm := int32(0)
 		if len(instr.Operands) >= 1 {
-			rs2 = evalRegister(instr.Operands[0])
+			if rs2, err = evalRegister(instr, instr.Operands[0]); err != nil {
+				return err
+			}
 		}
 
 		// Check for standard RISC-V syntax: sw rs2, offset(rs1)
 		if len(instr.Operands) == 2 {
 			if offsetBase, ok := instr.Operands[1].(*ast.OffsetBase); ok {
-				rs1 = evalRegister(offsetBase.Base)
+				if rs1, err = evalRegister(instr, offsetBase.Base); err != nil {
+					return err
+				}
 				imm, err = evalIImmediate(offsetBase.Offset, symbols, pc, ctx)
 				if err != nil {
 					return err
@@ -142,7 +172,9 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			if err != nil {
 				return err
 			}
-			rs1 = evalRegister(instr.Operands[2])
+			if rs1, err = evalRegister(instr, instr.Operands[2]); err != nil {
+				return err
+			}
 		}
 		encoded = arch.EncodeTypeS(op, rs1, rs2, imm)
 
@@ -150,10 +182,14 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		rs1, rs2 := uint32(0), uint32(0)
 		imm := int32(0)
 		if len(instr.Operands) >= 1 {
-			rs1 = evalRegister(instr.Operands[0])
+			if rs1, err = evalRegister(instr, instr.Operands[0]); err != nil {
+				return err
+			}
 		}
 		if len(instr.Operands) >= 2 {
-			rs2 = evalRegister(instr.Operands[1])
+			if rs2, err = evalRegister(instr, instr.Operands[1]); err != nil {
+				return err
+			}
 		}
 		if len(instr.Operands) >= 3 {
 			target, err := evalExpressionWithError(instr.Operands[2], symbols, pc)
@@ -168,7 +204,9 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 		rd := uint32(0)
 		imm := int32(0)
 		if len(instr.Operands) >= 1 {
-			rd = evalRegister(instr.Operands[0])
+			if rd, err = evalRegister(instr, instr.Operands[0]); err != nil {
+				return err
+			}
 		}
 		if len(instr.Operands) >= 2 {
 			imm, err = evalImmediateWithError(instr.Operands[1], symbols, pc)
@@ -187,7 +225,9 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 			rd = 1 // ra
 			targetExpr = instr.Operands[0]
 		case 2:
-			rd = evalRegister(instr.Operands[0])
+			if rd, err = evalRegister(instr, instr.Operands[0]); err != nil {
+				return err
+			}
 			targetExpr = instr.Operands[1]
 		default:
 			return fmt.Errorf("%s: error: %s expects 1 or 2 operands ([rd,] target), got %d",
@@ -270,11 +310,15 @@ func encodeCSRImmediate(op arch.InstrOpcode, instr *ast.Instruction, symbols *sy
 	if len(instr.Operands) != 3 {
 		return nil, fmt.Errorf("%s: error: %s expects 3 operands (rd, uimm, csr)", instr.Location, instr.Opcode)
 	}
-	rd := evalRegister(instr.Operands[0])
+	rd, err := evalRegister(instr, instr.Operands[0])
+	if err != nil {
+		return nil, err
+	}
 
 	var uimm int32
 	if ident, ok := instr.Operands[1].(*ast.Identifier); ok && arch.IsRegister(ident.Name) {
-		uimm = int32(evalRegister(ident))
+		reg, _ := arch.LookupRegister(ident.Name)
+		uimm = int32(reg)
 	} else {
 		val, err := evalImmediateWithError(instr.Operands[1], symbols, pc)
 		if err != nil {
