@@ -511,3 +511,27 @@ func TestPreprocessParserErrorLocation(t *testing.T) {
 		t.Errorf("expected the recursive include at self.s:2, got (err=%v):\n%s", err, out)
 	}
 }
+
+// operands are separated by exactly one comma: a missing, extra or trailing
+// comma stops with its location
+func TestOperandCommas(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct{ src, want, loc string }{
+		{".word 1,", "expected a value after ','", "2:8"},
+		{".byte 1,,2", "expected a value after ','", "2:8"},
+		{".byte ,1", "expected a value before ','", "2:7"},
+		{"add a0, a1, a2,", "expected a value after ','", "2:15"},
+		{"nop,", "expected a value before ','", "2:4"},
+		{".byte 1 2", "expected ',' before number '2'", "2:9"},
+		{"add a0 a1, a2", "expected ',' before 'a1'", "2:8"},
+		{".ascii \"a\",", "expected a value after ','", "2:11"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			expectError(t, goasm, tt.src, tt.want, tt.loc)
+		})
+	}
+	expectAssembles(t, goasm, ".byte 1, 2 ,3\n.byte 4", []byte{1, 2, 3, 4})
+}

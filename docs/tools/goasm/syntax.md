@@ -40,6 +40,11 @@ This includes `?`, `` ` ``, `{`, `}`, `[`, `]` (except in `$[VAR]`), `\` not fol
 A line that starts with something else than a label, an instruction or a directive stops with `in.s:2:1: error: unexpected ')' at the start of a line`.
 An expression cut short stops with `in.s:2:9: error: expected a value at the end of the line` (`.byte 1+`).
 
+Operands, and the values of a data directive, are separated by exactly one comma.
+A trailing comma (`.word 1,`), two commas (`.byte 1,,2`) or a leading comma stop with `in.s:2:8: error: expected a value after ','` (or `before ','`).
+A missing comma stops with `in.s:2:9: error: expected ',' before number '2'` (`.byte 1 2`).
+Before, extra commas were dropped and a missing one was not seen: `.word 1,` gave one word and `add a0 a1 a2` assembled.
+
 A label is a name followed by `:`.
 A label can share a line with an instruction or a directive.
 A name can contain ASCII letters, digits, `_` and `.`.
