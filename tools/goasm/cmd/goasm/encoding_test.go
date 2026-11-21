@@ -306,6 +306,31 @@ func TestDataDirectiveOperators(t *testing.T) {
 	}
 }
 
+// An assembly error prints the error only; a bad command line still prints the usage
+func TestErrorDoesNotPrintUsage(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	_, out, err := assembleSource(t, goasm, ".rom\nadd a0, a1, a99\n", "rom")
+	if err == nil {
+		t.Fatalf("expected an error, assembled fine")
+	}
+	if !strings.Contains(out, "'a99' is not a register") {
+		t.Errorf("expected the error in output, got:\n%s", out)
+	}
+	if strings.Contains(out, "Usage:") {
+		t.Errorf("the usage text is printed after an assembly error:\n%s", out)
+	}
+
+	out2, err := exec.Command(goasm, "--no-such-flag").CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected an error for an unknown flag")
+	}
+	if !strings.Contains(string(out2), "Usage:") {
+		t.Errorf("expected the usage text for a bad command line, got:\n%s", out2)
+	}
+}
+
 // A register operand that is not a register name is an error, never x0
 func TestUnknownRegisterIsAnError(t *testing.T) {
 	goasm := buildGoasm(t)

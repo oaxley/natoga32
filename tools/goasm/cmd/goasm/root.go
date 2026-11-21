@@ -40,6 +40,8 @@ It assembles RISC-V assembly files into binary format for ROM or
 cartridge loading. Use -disasm flag to disassemble binary files.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// the command line is valid from here: an error is about the input, not the usage
+		cmd.SilenceUsage = true
 		inputFile := args[0]
 
 		// Check for disassembly mode
