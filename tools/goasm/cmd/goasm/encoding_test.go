@@ -42,9 +42,10 @@ func TestCsrImmediateEncoding(t *testing.T) {
 		{"csrwi", "csrwi 0x305, 5", []byte{0x73, 0xd0, 0x52, 0x30}},
 		{"csrsi", "csrsi 0x300, 8", []byte{0x73, 0x60, 0x04, 0x30}},
 		{"csrci", "csrci 0x344, 31", []byte{0x73, 0xf0, 0x4f, 0x34}},
-		{"csrrwi numeric uimm", "csrrwi a0, 3, 0x340", []byte{0x73, 0xd5, 0x01, 0x34}},
-		{"csrrsi register-style uimm", "csrrsi a1, x5, 0x304", []byte{0xf3, 0xe5, 0x42, 0x30}},
-		{"csrrci symbolic uimm", ".equ BIT, 2\ncsrrci a2, BIT, 0x305", []byte{0x73, 0x76, 0x51, 0x30}},
+		{"csrrwi numeric uimm", "csrrwi a0, 0x340, 3", []byte{0x73, 0xd5, 0x01, 0x34}},
+		{"csrrsi uimm 5", "csrrsi a1, 0x304, 5", []byte{0xf3, 0xe5, 0x42, 0x30}},
+		{"csrrci symbolic uimm", ".equ BIT, 2\ncsrrci a2, 0x305, BIT", []byte{0x73, 0x76, 0x51, 0x30}},
+		{"csrrci symbolic csr", ".equ MTVEC, 0x305\ncsrrci a2, MTVEC, 2", []byte{0x73, 0x76, 0x51, 0x30}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -59,11 +60,78 @@ func TestCsrImmediateEncoding(t *testing.T) {
 	}
 }
 
+// CSR instructions use the standard order "op rd, csr, rs1" (register form)
+func TestCsrRegisterEncoding(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want []byte
+	}{
+		{"csrrw t0, 0x300, a0", []byte{0xf3, 0x12, 0x05, 0x30}}, // 0x300512F3
+		{"csrrs t1, 0x304, a1", []byte{0x73, 0xa3, 0x45, 0x30}}, // 0x3045A373
+		{"csrrc t2, 0x305, a2", []byte{0xf3, 0x33, 0x56, 0x30}}, // 0x305633F3
+		{"csrr t1, 0x342", []byte{0x73, 0x23, 0x20, 0x34}},      // csrrs t1, mcause, zero
+		{"csrw 0x305, t0", []byte{0x73, 0x90, 0x52, 0x30}},      // csrrw zero, mtvec, t0
+		{"csrs 0x300, a1", []byte{0x73, 0xa0, 0x05, 0x30}},      // csrrs zero, mstatus, a1
+		{"csrc 0x300, a1", []byte{0x73, 0xb0, 0x05, 0x30}},      // csrrc zero, mstatus, a1
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("%s = % x, want % x", tt.src, data, tt.want)
+			}
+		})
+	}
+}
+
+// The old goasm order "op rd, rs1/uimm, csr" is rejected, never encoded
+func TestCsrOldOrderRejected(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{"csrrw t0, a0, 0x300", "csrrw: the CSR operand 'a0' is a register; the order is csrrw rd, csr, rs1"},
+		{"csrrs t1, zero, 0x341", "csrrs: the CSR operand 'zero' is a register; the order is csrrs rd, csr, rs1"},
+		{"csrrc t2, a2, 0x305", "the order is csrrc rd, csr, rs1"},
+		{"csrrw t0, 0x300, 0x305", "expected a register"},
+		{"csrrwi a0, x5, 0x300", "csrrwi: the CSR operand 'x5' is a register; the order is csrrwi rd, csr, uimm"},
+		{"csrrsi a0, 0x300, x5", "csrrsi: uimm must be a number (0..31), not register x5"},
+		{"csrrwi a0, 3, 0x340", "csrrwi immediate 832 out of range (0..31) (old order rd, uimm, csr? the order is csrrwi rd, csr, uimm)"},
+		{"csrrci a0, 5, 40", "csrrci immediate 40 out of range (0..31)"},
+		{"csrrw a0, 0x300", "csrrw expects 3 operands (rd, csr, rs1)"},
+		{"csrrwi a0, 0x300", "csrrwi expects 3 operands (rd, csr, uimm)"},
+		{"csrw t0, 0x305", "the CSR operand 't0' is a register"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
+			}
+			if !strings.Contains(out, "in.s:2:") {
+				t.Errorf("expected the location in.s:2 in output, got:\n%s", out)
+			}
+		})
+	}
+}
+
 func TestCsrImmediateOutOfRange(t *testing.T) {
 	goasm := buildGoasm(t)
 	defer os.Remove(goasm)
 
-	for _, src := range []string{"csrwi 0x305, 32", "csrrsi a0, -1, 0x300"} {
+	for _, src := range []string{"csrwi 0x305, 32", "csrrsi a0, 0x300, -1"} {
 		_, out, err := assembleSource(t, goasm, ".text\n"+src+"\n", "bin")
 		if err == nil {
 			t.Errorf("%q: expected an error, assembled fine", src)
@@ -324,8 +392,8 @@ func TestImmediateRangeErrors(t *testing.T) {
 		{"jalr ra, 4096(a0)", "jalr immediate 4096 out of range (-2048..2047)"},
 		{"lui a0, 0x100000", "lui immediate 1048576 out of range (-524288..1048575)"},
 		{"auipc a0, -524289", "auipc immediate -524289 out of range (-524288..1048575)"},
-		{"csrrw a0, a1, 0x1000", "CSR number 0x1000 out of range (0..0xfff)"},
-		{"csrrs a0, a1, -1", "CSR number -0x1 out of range (0..0xfff)"},
+		{"csrrw a0, 0x1000, a1", "CSR number 0x1000 out of range (0..0xfff)"},
+		{"csrrs a0, -1, a1", "CSR number -0x1 out of range (0..0xfff)"},
 		{"beq a0, a1, $ + 4096", "beq offset 4096 out of range (-4096..4094)"},
 		{"bne a0, a1, $ - 4098", "bne offset -4098 out of range (-4096..4094)"},
 		{"beq a0, a1, $ + 3", "beq offset 3 is odd"},
@@ -364,7 +432,7 @@ func TestImmediateRangeLimits(t *testing.T) {
 		{"sw a0, -2048(sp)", []byte{0x23, 0x20, 0xA1, 0x80}},
 		{"lui a0, 0xFFFFF", []byte{0x37, 0xF5, 0xFF, 0xFF}},
 		{"lui a0, -1", []byte{0x37, 0xF5, 0xFF, 0xFF}},
-		{"csrrw a0, a1, 0xFFF", []byte{0x73, 0x95, 0xF5, 0xFF}},
+		{"csrrw a0, 0xFFF, a1", []byte{0x73, 0x95, 0xF5, 0xFF}},
 		{"beq a0, a1, $ + 4094", []byte{0xE3, 0x0F, 0xB5, 0x7E}},
 		{"beq a0, a1, $ - 4096", []byte{0x63, 0x00, 0xB5, 0x80}},
 		{"jal x0, $ + 0xFFFFE", []byte{0x6F, 0xF0, 0xFF, 0x7F}},
@@ -438,8 +506,8 @@ func TestUnknownRegisterIsAnError(t *testing.T) {
 		{"lui s12, 1", "'s12' is not a register"},         // U
 		{"jal rr, 0", "'rr' is not a register"},           // J
 		{"jalr t7, 0(ra)", "'t7' is not a register"},      // jalr
-		{"csrrwi tt, 5, 0x300", "'tt' is not a register"}, // CSR immediate rd
-		{"csrrw a0, a9, 0x300", "'a9' is not a register"}, // CSR register form
+		{"csrrwi tt, 0x300, 5", "'tt' is not a register"}, // CSR immediate rd
+		{"csrrw a0, 0x300, a9", "'a9' is not a register"}, // CSR register form
 		{"mv a0, a1x", "'a1x' is not a register"},         // pseudo
 		{"label: add a0, label, a1", "'label' is not a register"},
 	}

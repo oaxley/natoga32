@@ -312,8 +312,9 @@ func TestNonPseudoInstruction(t *testing.T) {
 	}
 }
 
-// goasm encodes CSR instructions as "op rd, rs1/uimm, csr", so the
-// expansions must put the source register or immediate before the CSR number.
+// CSR instructions use the standard RISC-V order "op rd, csr, rs1/uimm", so
+// the expansions put the CSR number second and the source register or
+// immediate last.
 func TestExpandCsrOperandOrder(t *testing.T) {
 	e := New()
 	id := func(n string) ast.Expression { return &ast.Identifier{Name: n} }
@@ -326,14 +327,14 @@ func TestExpandCsrOperandOrder(t *testing.T) {
 		want     string
 		wantOps  []ast.Expression
 	}{
-		{"csrr", []ast.Expression{id("t1"), csr}, "csrrs", []ast.Expression{id("t1"), id("x0"), csr}},
-		{"csrw", []ast.Expression{csr, id("t0")}, "csrrw", []ast.Expression{id("x0"), id("t0"), csr}},
-		{"csrs", []ast.Expression{csr, id("t0")}, "csrrs", []ast.Expression{id("x0"), id("t0"), csr}},
-		{"csrc", []ast.Expression{csr, id("t0")}, "csrrc", []ast.Expression{id("x0"), id("t0"), csr}},
-		// immediate forms: "op rd, uimm, csr"
-		{"csrwi", []ast.Expression{csr, uimm}, "csrrwi", []ast.Expression{id("x0"), uimm, csr}},
-		{"csrsi", []ast.Expression{csr, uimm}, "csrrsi", []ast.Expression{id("x0"), uimm, csr}},
-		{"csrci", []ast.Expression{csr, uimm}, "csrrci", []ast.Expression{id("x0"), uimm, csr}},
+		{"csrr", []ast.Expression{id("t1"), csr}, "csrrs", []ast.Expression{id("t1"), csr, id("x0")}},
+		{"csrw", []ast.Expression{csr, id("t0")}, "csrrw", []ast.Expression{id("x0"), csr, id("t0")}},
+		{"csrs", []ast.Expression{csr, id("t0")}, "csrrs", []ast.Expression{id("x0"), csr, id("t0")}},
+		{"csrc", []ast.Expression{csr, id("t0")}, "csrrc", []ast.Expression{id("x0"), csr, id("t0")}},
+		// immediate forms: "op rd, csr, uimm"
+		{"csrwi", []ast.Expression{csr, uimm}, "csrrwi", []ast.Expression{id("x0"), csr, uimm}},
+		{"csrsi", []ast.Expression{csr, uimm}, "csrrsi", []ast.Expression{id("x0"), csr, uimm}},
+		{"csrci", []ast.Expression{csr, uimm}, "csrrci", []ast.Expression{id("x0"), csr, uimm}},
 	}
 
 	for _, tt := range tests {

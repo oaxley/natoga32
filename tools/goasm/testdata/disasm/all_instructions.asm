@@ -183,21 +183,21 @@ zbkb_extension:
 ; CSR Instructions
 ; =============================================================================
 
-; Syntax: csrrw rd, rs1, csr (assembler format)
+; Syntax: csrrw rd, csr, rs1 (standard RISC-V order)
 csr_instrs:
-    csrrw  t0, a0, 0x300      ; Read/write mstatus
-    csrrs  t1, a1, 0x304      ; Read/set mie
-    csrrc  t2, a2, 0x305      ; Read/clear mtvec
-    csrrw  t3, zero, 0x340    ; Write mscratch (read discarded)
-    csrrs  t4, zero, 0x341    ; Read mepc (no bits set)
-    csrrc  t5, zero, 0x342    ; Read mcause (no bits cleared)
+    csrrw  t0, 0x300, a0      ; Read/write mstatus
+    csrrs  t1, 0x304, a1      ; Read/set mie
+    csrrc  t2, 0x305, a2      ; Read/clear mtvec
+    csrrw  t3, 0x340, zero    ; Write mscratch (read discarded)
+    csrrs  t4, 0x341, zero    ; Read mepc (no bits set)
+    csrrc  t5, 0x342, zero    ; Read mcause (no bits cleared)
 
-; CSR immediate variants - uimm is encoded as register number
+; CSR immediate variants: csrrwi rd, csr, uimm (uimm 0..31)
 csr_imm_instrs:
-    csrrwi a0, x0, 0x300      ; uimm=0
-    csrrsi a1, x5, 0x304      ; uimm=5
-    csrrci a2, x15, 0x305     ; uimm=15
-    csrrwi a3, x31, 0x340     ; uimm=31 (max)
+    csrrwi a0, 0x300, 0       ; uimm=0
+    csrrsi a1, 0x304, 5       ; uimm=5
+    csrrci a2, 0x305, 15      ; uimm=15
+    csrrwi a3, 0x340, 31      ; uimm=31 (max)
 
 ; =============================================================================
 ; System Instructions (no operands)

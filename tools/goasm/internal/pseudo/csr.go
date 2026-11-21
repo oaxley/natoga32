@@ -4,9 +4,7 @@ import (
 	"github.com/natoga32/goasm/internal/ast"
 )
 
-// CSR pseudo-instructions
-//
-// goasm's CSR operand order is "op rd, rs1/uimm, csr".
+// CSR pseudo-instructions, expanded to the standard order "op rd, csr, rs1/uimm"
 
 // csrr rd, csr - Read CSR
 func (e *Expander) expandCsrr(i *ast.Instruction) []*ast.Instruction {
@@ -14,7 +12,7 @@ func (e *Expander) expandCsrr(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrs", i.Operands[0], x(0), i.Operands[1]),
+		instr("csrrs", i.Operands[0], i.Operands[1], x(0)),
 	}
 }
 
@@ -24,7 +22,7 @@ func (e *Expander) expandCsrw(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrw", x(0), i.Operands[1], i.Operands[0]),
+		instr("csrrw", x(0), i.Operands[0], i.Operands[1]),
 	}
 }
 
@@ -34,7 +32,7 @@ func (e *Expander) expandCsrs(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrs", x(0), i.Operands[1], i.Operands[0]),
+		instr("csrrs", x(0), i.Operands[0], i.Operands[1]),
 	}
 }
 
@@ -44,7 +42,7 @@ func (e *Expander) expandCsrc(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrc", x(0), i.Operands[1], i.Operands[0]),
+		instr("csrrc", x(0), i.Operands[0], i.Operands[1]),
 	}
 }
 
@@ -54,7 +52,7 @@ func (e *Expander) expandCsrwi(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrwi", x(0), i.Operands[1], i.Operands[0]),
+		instr("csrrwi", x(0), i.Operands[0], i.Operands[1]),
 	}
 }
 
@@ -64,7 +62,7 @@ func (e *Expander) expandCsrsi(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrsi", x(0), i.Operands[1], i.Operands[0]),
+		instr("csrrsi", x(0), i.Operands[0], i.Operands[1]),
 	}
 }
 
@@ -74,6 +72,6 @@ func (e *Expander) expandCsrci(i *ast.Instruction) []*ast.Instruction {
 		return []*ast.Instruction{i}
 	}
 	return []*ast.Instruction{
-		instr("csrrci", x(0), i.Operands[1], i.Operands[0]),
+		instr("csrrci", x(0), i.Operands[0], i.Operands[1]),
 	}
 }

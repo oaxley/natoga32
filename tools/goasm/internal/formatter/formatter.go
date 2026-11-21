@@ -201,21 +201,18 @@ func (f *Formatter) formatTypeJ(addr uint32, instr *decoder.DecodedInstruction) 
 	return fmt.Sprintf("%s %s, 0x%X", instr.Mnemonic, rd, target)
 }
 
-// formatCSR formats CSR instructions
-// Uses assembler format for round-trip: rd, rs1/uimm, csr
+// formatCSR formats CSR instructions in the standard order: rd, csr, rs1/uimm
 func (f *Formatter) formatCSR(instr *decoder.DecodedInstruction) string {
 	rd := f.regName(instr.Rd)
 	csr := uint32(instr.Immediate) & 0xFFF
 
-	// CSR immediate variants use rs1 field as uimm
-	// Note: assembler treats this as a register, so use register syntax
+	// the immediate variants hold a 5-bit uimm in the rs1 field
 	if strings.HasSuffix(instr.Mnemonic, "i") {
-		// Use x-notation for uimm since assembler parses it as register
-		return fmt.Sprintf("%s %s, x%d, 0x%X", instr.Mnemonic, rd, instr.Rs1, csr)
+		return fmt.Sprintf("%s %s, 0x%X, %d", instr.Mnemonic, rd, csr, instr.Rs1)
 	}
 
 	rs1 := f.regName(instr.Rs1)
-	return fmt.Sprintf("%s %s, %s, 0x%X", instr.Mnemonic, rd, rs1, csr)
+	return fmt.Sprintf("%s %s, 0x%X, %s", instr.Mnemonic, rd, csr, rs1)
 }
 
 // regName returns the register name based on formatter options

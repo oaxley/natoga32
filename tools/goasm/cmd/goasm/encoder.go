@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/natoga32/goasm/internal/arch"
 	"github.com/natoga32/goasm/internal/ast"
@@ -20,8 +21,8 @@ func encodeInstruction(instr *ast.Instruction, symbols *symbol.Table, sections *
 	var encoded []byte
 	var err error
 
-	if isCSRImmediate(instr.Opcode) {
-		encoded, err = encodeCSRImmediate(op, instr, symbols, pc)
+	if isCSR(instr.Opcode) {
+		encoded, err = encodeCSR(op, instr, symbols, pc)
 		if err != nil {
 			return err
 		}
@@ -322,44 +323,42 @@ func evalFenceSet(instr *ast.Instruction, operand ast.Expression) (uint32, error
 	return set, nil
 }
 
-// isCSRImmediate reports whether mnemonic is a CSR immediate instruction
-func isCSRImmediate(mnemonic string) bool {
+// isCSR reports whether mnemonic is one of the six CSR instructions
+func isCSR(mnemonic string) bool {
 	switch mnemonic {
-	case "csrrwi", "csrrsi", "csrrci":
+	case "csrrw", "csrrs", "csrrc", "csrrwi", "csrrsi", "csrrci":
 		return true
 	}
 	return false
 }
 
-// encodeCSRImmediate encodes "csrrXi rd, uimm, csr": the 5-bit uimm goes in
-// the rs1 field and the CSR number in the I-type immediate field.
-// The uimm can be an expression or, as emitted by the disassembler, a
-// register name whose number is the uimm (e.g. x5 for 5).
-func encodeCSRImmediate(op arch.InstrOpcode, instr *ast.Instruction, symbols *symbol.Table, pc int64) ([]byte, error) {
+// encodeCSR encodes the CSR instructions in the standard RISC-V order:
+// "csrrX rd, csr, rs1" and "csrrXi rd, csr, uimm". The CSR number goes in
+// the I-type immediate field, rs1 or the 5-bit uimm in the rs1 field.
+// The old goasm order (rd, rs1/uimm, csr) is refused with an error.
+func encodeCSR(op arch.InstrOpcode, instr *ast.Instruction, symbols *symbol.Table, pc int64) ([]byte, error) {
+	immediate := strings.HasSuffix(instr.Opcode, "i")
+	srcName := "rs1"
+	if immediate {
+		srcName = "uimm"
+	}
+	order := fmt.Sprintf("the order is %s rd, csr, %s", instr.Opcode, srcName)
+
 	if len(instr.Operands) != 3 {
-		return nil, fmt.Errorf("%s: error: %s expects 3 operands (rd, uimm, csr)", instr.Location, instr.Opcode)
+		return nil, fmt.Errorf("%s: error: %s expects 3 operands (rd, csr, %s), got %d",
+			instr.Location, instr.Opcode, srcName, len(instr.Operands))
 	}
 	rd, err := evalRegister(instr, instr.Operands[0])
 	if err != nil {
 		return nil, err
 	}
 
-	var uimm int32
+	// a register in the CSR place is the old order
 	if ident, ok := instr.Operands[1].(*ast.Identifier); ok && arch.IsRegister(ident.Name) {
-		reg, _ := arch.LookupRegister(ident.Name)
-		uimm = int32(reg)
-	} else {
-		val, err := evalImmediateWithError(instr.Operands[1], symbols, pc)
-		if err != nil {
-			return nil, err
-		}
-		uimm = val
+		return nil, fmt.Errorf("%s: error: %s: the CSR operand '%s' is a register; %s",
+			instr.Location, instr.Opcode, ident.Name, order)
 	}
-	if uimm < 0 || uimm > 31 {
-		return nil, fmt.Errorf("%s: error: %s immediate %d out of range (0..31)", instr.Location, instr.Opcode, uimm)
-	}
-
-	csr, err := evalImmediateWithError(instr.Operands[2], symbols, pc)
+	csr, err := evalImmediateWithError(instr.Operands[1], symbols, pc)
 	if err != nil {
 		return nil, err
 	}
@@ -367,7 +366,33 @@ func encodeCSRImmediate(op arch.InstrOpcode, instr *ast.Instruction, symbols *sy
 		return nil, fmt.Errorf("%s: error: CSR number %#x out of range (0..0xfff)", instr.Location, csr)
 	}
 
-	return arch.EncodeTypeI(op, rd, uint32(uimm), csr), nil
+	var src uint32
+	if immediate {
+		if ident, ok := instr.Operands[2].(*ast.Identifier); ok && arch.IsRegister(ident.Name) {
+			return nil, fmt.Errorf("%s: error: %s: uimm must be a number (0..31), not register %s",
+				instr.Location, instr.Opcode, ident.Name)
+		}
+		uimm, err := evalImmediateWithError(instr.Operands[2], symbols, pc)
+		if err != nil {
+			return nil, err
+		}
+		if uimm < 0 || uimm > 31 {
+			hint := ""
+			if csr <= 31 {
+				// a small "CSR" and a big "uimm": likely rd, uimm, csr
+				hint = fmt.Sprintf(" (old order rd, uimm, csr? %s)", order)
+			}
+			return nil, fmt.Errorf("%s: error: %s immediate %d out of range (0..31)%s",
+				instr.Location, instr.Opcode, uimm, hint)
+		}
+		src = uint32(uimm)
+	} else {
+		if src, err = evalRegister(instr, instr.Operands[2]); err != nil {
+			return nil, err
+		}
+	}
+
+	return arch.EncodeTypeI(op, rd, src, csr), nil
 }
 
 // isFieldBits reports whether expr is a relocation modifier: its value is
@@ -381,17 +406,9 @@ func isFieldBits(expr ast.Expression) bool {
 	return false
 }
 
-// checkIImmediate checks the 12-bit signed immediate of an I-type or S-type
-// instruction; for csrrw/csrrs/csrrc the field is the CSR number
+// checkIImmediate checks the 12-bit signed immediate of an I-type or S-type instruction
 func checkIImmediate(instr *ast.Instruction, expr ast.Expression, imm int32) error {
 	if isFieldBits(expr) {
-		return nil
-	}
-	switch instr.Opcode {
-	case "csrrw", "csrrs", "csrrc":
-		if imm < 0 || imm > 0xFFF {
-			return fmt.Errorf("%s: error: CSR number %#x out of range (0..0xfff)", instr.Location, imm)
-		}
 		return nil
 	}
 	if imm < -2048 || imm > 2047 {

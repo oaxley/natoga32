@@ -99,26 +99,28 @@ Operand forms:
 | `ebreak` | `ebreak` | Assembles to `0x0010_0073`. **The CPU does not run it**: the word does nothing. |
 | `mret` | `mret` | Return from a trap handler (`0x3020_0073`). |
 | `wfi` | `wfi` | Assembles to `0x1050_0073`. **The CPU does not run it**: the word does nothing. |
-| `csrrw` `csrrs` `csrrc` | `csrrw rd, rs1, csr` | Operand order is `rd, rs1, csr`. |
-| `csrrwi` `csrrsi` `csrrci` | `csrrwi rd, uimm, csr` | `uimm` is 0 to 31. |
+| `csrrw` `csrrs` `csrrc` | `csrrw rd, csr, rs1` | Standard RISC-V order. |
+| `csrrwi` `csrrsi` `csrrci` | `csrrwi rd, csr, uimm` | `uimm` is a number from 0 to 31. |
 
-- The standard RISC-V order is `rd, csr, rs1`. goasm puts the CSR **last**. The pseudo-instructions below hide this.
+- The order is the standard RISC-V one: `rd`, then the CSR, then `rs1` or `uimm`.
+- The old goasm order (`csrrw rd, rs1, csr`) is refused: a register in the CSR place stops with `the CSR operand 'a0' is a register; the order is csrrw rd, csr, rs1`. `csrrwi a0, 3, 0x340` stops with `immediate 832 out of range (0..31) (old order rd, uimm, csr? ...)`.
+- `uimm` must be a number or a constant, not a register name: `csrrsi a0, 0x300, x5` stops with `uimm must be a number (0..31), not register x5`.
 - `csr` is a number from 0 to `0xFFF`. CSR names such as `mstatus` are not known: use a number or an `.equ` constant. The numbers are in [CSR](../../console/cpu/csr.md).
 - An immediate out of range stops with `csrrwi immediate 40 out of range (0..31)`.
 - `ecall`, `ebreak`, `mret` and `wfi` take no operand. `mret a0` stops with `mret takes no operands`.
 
-The disassembler shows the `uimm` of `csrrwi` as a register name (`x5`).
+The disassembler prints the same order: `csrrw t0, 0x300, a0`, `csrrsi a1, 0x304, 5`.
 
 ```asm
 .equ MSTATUS, 0x300
 .text
-    csrr   a0, MSTATUS      ; csrrs a0, x0, MSTATUS
-    csrw   MSTATUS, a0      ; csrrw x0, a0, MSTATUS
+    csrr   a0, MSTATUS      ; csrrs a0, MSTATUS, x0
+    csrw   MSTATUS, a0      ; csrrw x0, MSTATUS, a0
     csrs   MSTATUS, a1
     csrc   MSTATUS, a1
-    csrrw  a1, a0, 0x305
+    csrrw  a1, 0x305, a0
     csrwi  MSTATUS, 8
-    csrrwi a2, 5, 0x340
+    csrrwi a2, 0x340, 5
     mret
     ecall
 ```
@@ -175,13 +177,13 @@ goasm expands these in phase 4, before the labels are resolved.
 | `ble rs, rt, l` | `bge rt, rs, l` |
 | `bgtu rs, rt, l` | `bltu rt, rs, l` |
 | `bleu rs, rt, l` | `bgeu rt, rs, l` |
-| `csrr rd, csr` | `csrrs rd, x0, csr` |
-| `csrw csr, rs` | `csrrw x0, rs, csr` |
-| `csrs csr, rs` | `csrrs x0, rs, csr` |
-| `csrc csr, rs` | `csrrc x0, rs, csr` |
-| `csrwi csr, imm` | `csrrwi x0, imm, csr` |
-| `csrsi csr, imm` | `csrrsi x0, imm, csr` |
-| `csrci csr, imm` | `csrrci x0, imm, csr` |
+| `csrr rd, csr` | `csrrs rd, csr, x0` |
+| `csrw csr, rs` | `csrrw x0, csr, rs` |
+| `csrs csr, rs` | `csrrs x0, csr, rs` |
+| `csrc csr, rs` | `csrrc x0, csr, rs` |
+| `csrwi csr, imm` | `csrrwi x0, csr, imm` |
+| `csrsi csr, imm` | `csrrsi x0, csr, imm` |
+| `csrci csr, imm` | `csrrci x0, csr, imm` |
 | `syscall N` | `addi x17, x0, N` + `ecall` (`N` a number) |
 | `syscall rs` | `add x17, x0, rs` + `ecall` |
 
