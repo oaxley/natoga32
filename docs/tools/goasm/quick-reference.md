@@ -35,7 +35,7 @@ See [the overview](README.md).
 | `.string` `.asciz` / `.ascii` | Text with / without a 0 byte. Escapes `\n \t \r \0 \\ \' \" \xHH`. |
 | `.space N` / `.align N` / `.org ADDR` | Zeros; to a multiple of `2^N`; up to an absolute address. |
 | `.equ NAME, VALUE` | Constant (any expression of names defined above). |
-| `.global NAME` | After the label. |
+| `.global NAME` | Before or after the label. |
 | `.incbin "f"` / `.include "f"` | Bytes / source, relative to the input file. |
 | `.define NAME V` | Constant (`.define NAME, V` also works). C precedence, `( ) ! ~ && \|\|`. |
 | `.if` `.ifdef` `.ifndef` `.else` `.endif` | Conditions. |

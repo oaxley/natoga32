@@ -577,3 +577,36 @@ func TestSymNeedsRscv(t *testing.T) {
 		}
 	}
 }
+
+// .global marks the label global in the dSYM chunk, before or after the label
+func TestSymGlobalEitherOrder(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	dir := t.TempDir()
+	input := filepath.Join(dir, "x.s")
+	output := filepath.Join(dir, "x.rscv")
+	symOut := filepath.Join(dir, "x.sym")
+	src := ".global before\n.text\nbefore: nop\nafter: nop\nlocal: nop\n.global after\n"
+	if err := os.WriteFile(input, []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(goasm, input, "-f", "rscv", "-o", output, "--sym", symOut)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("assembling with --sym failed: %v\n%s", err, out)
+	}
+	data, err := os.ReadFile(symOut)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]byte{"before": dsymFlagGlobal, "after": dsymFlagGlobal, "local": 0}
+	entries := parseDsym(t, data)
+	if len(entries) != len(want) {
+		t.Fatalf("got %d entries, want %d: %+v", len(entries), len(want), entries)
+	}
+	for _, e := range entries {
+		if flags, ok := want[e.name]; !ok || e.flags != flags {
+			t.Errorf("entry %s flags = %#x, want %#x", e.name, e.flags, flags)
+		}
+	}
+}

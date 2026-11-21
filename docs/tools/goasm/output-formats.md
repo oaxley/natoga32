@@ -99,7 +99,7 @@ The byte layout is in [Cartridge chunks](../../console/cartridge/chunks.md#dsym)
 
 - Only the labels of `.text`, `.data`, `.rodata` and `.bss` are written. `.equ` constants and labels of `.rom` are not.
 - Labels are sorted by address, then by name.
-- The global bit is set by `.global NAME` only when it comes **after** the label.
+- The global bit is set by `.global NAME`, before or after the label.
 - A name over 65535 bytes stops with `dSYM names are at most 65535 bytes`, and neither file is written.
 
 For this program:

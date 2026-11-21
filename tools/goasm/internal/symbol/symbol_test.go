@@ -180,3 +180,27 @@ func TestSize(t *testing.T) {
 		t.Errorf("expected size 3, got %d", table.Size())
 	}
 }
+
+// .global before the definition: the flag survives the definition
+func TestGlobalBeforeDefinition(t *testing.T) {
+	table := New()
+	if err := table.SetGlobal("early"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := table.DefineLabel("early", 0x100, ".text", 3); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	sym := table.Lookup("early")
+	if !sym.Global || !sym.Defined || sym.Value != 0x100 || sym.Line != 3 {
+		t.Errorf("symbol = %+v, want a defined global at 0x100, line 3", sym)
+	}
+
+	// a forward reference is replaced by the definition too
+	table.Reference("later")
+	if err := table.DefineLabel("later", 0x200, ".text", 4); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sym := table.Lookup("later"); !sym.Defined || sym.Global {
+		t.Errorf("symbol = %+v, want a defined, non-global label", sym)
+	}
+}

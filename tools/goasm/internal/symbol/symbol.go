@@ -57,8 +57,10 @@ func New() *Table {
 
 // Define defines a symbol with the given name and value.
 // Returns an error if the symbol is already defined.
+// A .global seen before the definition is kept.
 func (t *Table) Define(name string, typ SymbolType, value int64, section string, line int) error {
-	if existing, ok := t.symbols[name]; ok && existing.Defined {
+	existing, ok := t.symbols[name]
+	if ok && existing.Defined {
 		return fmt.Errorf("symbol '%s' already defined at line %d", name, existing.Line)
 	}
 
@@ -68,7 +70,7 @@ func (t *Table) Define(name string, typ SymbolType, value int64, section string,
 		Value:   value,
 		Section: section,
 		Defined: true,
-		Global:  false,
+		Global:  ok && existing.Global,
 		Line:    line,
 	}
 	return nil

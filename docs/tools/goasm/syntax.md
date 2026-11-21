@@ -196,7 +196,7 @@ Notes:
 - An `.equ` name works everywhere an expression is accepted. Defining it twice stops with `symbol 'X' already defined`.
 - A wrong operand count stops with `.space expects 1 operand` (or `.align`, `.org`), or `.equ expects 2 operands (name, value)`. `.space -1` stops with `size -1 is negative`, `.align 32` with `out of range (0..31)`.
 - `.org` takes an absolute address, not an offset: `.org 0x100` in `.rom`, `.org 0x01A00010` in `.text`. An address before the current one stops with `.org address 0xX is before current address 0xY`.
-- `.global` must come **after** the label it marks. Before the label, it has no effect.
+- `.global` can come before or after the label it marks.
 - `.incbin` reads the file relative to the directory of the input file. The bytes count in the section size. A missing file stops with `cannot stat incbin file`.
 - A name that is not a directive stops with `error: unknown directive '.wrod'`, with file, line and column.
 
