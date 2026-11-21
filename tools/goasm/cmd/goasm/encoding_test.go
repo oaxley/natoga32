@@ -440,8 +440,81 @@ func TestImmediateRangeLimits(t *testing.T) {
 		// %lo gives 0..4095 and %hi up to 0xFFFFF on purpose
 		{".equ X, 0x12345FFF\nlui a0, %hi(X)\naddi a0, a0, %lo(X)", []byte{0x37, 0x65, 0x34, 0x12, 0x13, 0x05, 0xF5, 0xFF}},
 		{"li a0, 0xFFFFFFFF", []byte{0x13, 0x05, 0xF0, 0xFF}}, // li a0, -1
-		{"li a0, 0x80000000", []byte{0x37, 0x05, 0x00, 0x80, 0x13, 0x05, 0x05, 0x00}},
+		{"li a0, 0x80000000", []byte{0x37, 0x05, 0x00, 0x80}},
 		{"li a0, 0x7FFFFFFF", []byte{0x37, 0x05, 0x00, 0x80, 0x13, 0x05, 0xF5, 0xFF}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			data, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err != nil {
+				t.Fatalf("assembling failed: %v\n%s", err, out)
+			}
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("% x, want % x", data, tt.want)
+			}
+		})
+	}
+}
+
+// A pseudo-instruction with a wrong operand count says so, and never drops operands
+func TestPseudoOperandCount(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{"beqz a0", "beqz expects 2 operands (rs, label), got 1"},
+		{"bgt a0, a1", "bgt expects 3 operands (rs, rt, label), got 2"},
+		{"li a0", "li expects 2 operands (rd, imm), got 1"},
+		{"li a0, 1, 2", "li expects 2 operands (rd, imm), got 3"},
+		{"la a0", "la expects 2 operands (rd, symbol), got 1"},
+		{"mv a0, a1, a2", "mv expects 2 operands (rd, rs), got 3"},
+		{"not a0", "not expects 2 operands (rd, rs), got 1"},
+		{"seqz a0", "seqz expects 2 operands (rd, rs), got 1"},
+		{"nop a0", "nop expects no operands, got 1"},
+		{"ret ra", "ret expects no operands, got 1"},
+		{"call", "call expects 1 operand (symbol), got 0"},
+		{"j", "j expects 1 operand (label), got 0"},
+		{"jr a0, a1", "jr expects 1 operand (rs), got 2"},
+		{"csrr a0", "csrr expects 2 operands (rd, csr), got 1"},
+		{"csrr a0, 0x300, a1", "csrr expects 2 operands (rd, csr), got 3"},
+		{"csrw 0x300", "csrw expects 2 operands (csr, rs), got 1"},
+		{"csrwi 0x300, 1, 2", "csrwi expects 2 operands (csr, uimm), got 3"},
+		{"syscall", "syscall expects 1 operand (N or rs), got 0"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			_, out, err := assembleSource(t, goasm, ".rom\n"+tt.src+"\n", "rom")
+			if err == nil {
+				t.Fatalf("expected an error, assembled fine")
+			}
+			if !strings.Contains(out, tt.want) {
+				t.Errorf("expected %q in output, got:\n%s", tt.want, out)
+			}
+			if !strings.Contains(out, "in.s:2:") {
+				t.Errorf("expected the location in.s:2 in output, got:\n%s", out)
+			}
+		})
+	}
+}
+
+// li of a value whose low 12 bits are 0 is a single lui
+func TestLiWithoutUselessAddi(t *testing.T) {
+	goasm := buildGoasm(t)
+	defer os.Remove(goasm)
+
+	tests := []struct {
+		src  string
+		want []byte
+	}{
+		{"li a0, 0x80000000", []byte{0x37, 0x05, 0x00, 0x80}},                         // lui a0, 0x80000
+		{"li a0, 0x12345000", []byte{0x37, 0x55, 0x34, 0x12}},                         // lui a0, 0x12345
+		{"li a0, 4096", []byte{0x37, 0x15, 0x00, 0x00}},                               // lui a0, 1
+		{"li a0, 0x12345678", []byte{0x37, 0x55, 0x34, 0x12, 0x13, 0x05, 0x85, 0x67}}, // lui + addi
+		{"li a0, 5", []byte{0x13, 0x05, 0x50, 0x00}},                                  // addi
+		{"li a0, 0", []byte{0x13, 0x05, 0x00, 0x00}},                                  // addi a0, x0, 0
 	}
 	for _, tt := range tests {
 		t.Run(tt.src, func(t *testing.T) {

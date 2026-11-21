@@ -5,6 +5,9 @@
 package pseudo
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/natoga32/goasm/internal/arch"
 	"github.com/natoga32/goasm/internal/ast"
 )
@@ -151,4 +154,24 @@ func instr(opcode string, operands ...ast.Expression) *ast.Instruction {
 		Opcode:   opcode,
 		Operands: operands,
 	}
+}
+
+// CheckOperands reports a pseudo-instruction whose operand count is wrong.
+// Expansion keeps such an instruction as it is, so without this check it
+// would fail later as an "unknown instruction", or drop the extra operands.
+func CheckOperands(instr *ast.Instruction) error {
+	names, ok := arch.PseudoOperands[instr.Opcode]
+	if !ok || len(instr.Operands) == len(names) {
+		return nil
+	}
+	var want string
+	switch len(names) {
+	case 0:
+		want = "no operands"
+	case 1:
+		want = "1 operand (" + names[0] + ")"
+	default:
+		want = fmt.Sprintf("%d operands (%s)", len(names), strings.Join(names, ", "))
+	}
+	return fmt.Errorf("%s: error: %s expects %s, got %d", instr.Location, instr.Opcode, want, len(instr.Operands))
 }

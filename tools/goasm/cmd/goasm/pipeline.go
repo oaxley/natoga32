@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/natoga32/goasm/internal/ast"
 	"github.com/natoga32/goasm/internal/lexer"
 	"github.com/natoga32/goasm/internal/optimizer"
 	"github.com/natoga32/goasm/internal/parser"
@@ -78,6 +79,13 @@ func assemble(inputFile string) error {
 
 	// Phase 4: Pseudo-instruction expansion
 	fmt.Println("Phase 4: Pseudo-instruction expansion")
+	for _, stmt := range program.Statements {
+		if instr, ok := stmt.(*ast.Instruction); ok {
+			if err := pseudo.CheckOperands(instr); err != nil {
+				return err
+			}
+		}
+	}
 	expander := pseudo.New()
 	program = expander.ExpandProgram(program)
 

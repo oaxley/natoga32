@@ -36,6 +36,10 @@ func (e *Expander) expandLi(i *ast.Instruction) []*ast.Instruction {
 		upper := (num.Value + 0x800) >> 12
 		lower := num.Value - (upper << 12)
 
+		if lower == 0 {
+			// the low 12 bits are 0: lui alone is enough
+			return []*ast.Instruction{instr("lui", rd, &ast.Number{Value: upper})}
+		}
 		return []*ast.Instruction{
 			instr("lui", rd, &ast.Number{Value: upper}),
 			instr("addi", rd, rd, &ast.Number{Value: lower}),

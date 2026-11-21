@@ -155,7 +155,7 @@ goasm expands these in phase 4, before the labels are resolved.
 |--------|-----------|
 | `nop` | `addi x0, x0, 0` |
 | `mv rd, rs` | `addi rd, rs, 0` |
-| `li rd, imm` | `addi rd, x0, imm` for -2048 to 2047, else `lui` + `addi` |
+| `li rd, imm` | `addi rd, x0, imm` for -2048 to 2047, else `lui` + `addi` (`lui` alone when the low 12 bits are 0) |
 | `la rd, sym` | `auipc rd, %pcrel_hi(sym)` + `addi rd, rd, %pcrel_lo(sym)` |
 | `call sym` | `auipc x1, %pcrel_hi(sym)` + `jalr x1, x1, %pcrel_lo(sym)` |
 | `ret` | `jalr x0, x1, 0` |
@@ -194,6 +194,7 @@ Notes:
 - `li rd, label` loads the absolute address of the label (`lui` + `addi`). `la` is the PC-relative form.
 - `la` and `call` are relative to the PC.
 - `syscall` always needs one operand. The console defines no syscall numbers.
+- Each pseudo-instruction takes exactly the operands of the table. A wrong count stops with, for example, `beqz expects 2 operands (rs, label), got 1`; extra operands are never ignored.
 - `jal label` is `jal ra, label`: it jumps to `label` and puts the return address in `ra`. `jal` with no operand or more than two stops with `jal expects 1 or 2 operands ([rd,] target)`.
 
 ```asm
