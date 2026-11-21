@@ -1,0 +1,266 @@
+# n32asm instructions
+
+This page lists every instruction and pseudo-instruction that n32asm assembles, and the ones whose n32asm behaviour differs from the CPU.
+
+All names are lower case.
+The [CPU instruction list](../../console/cpu/README.md) is the list of what the console runs.
+The n32asm list is the same, plus two instructions (`wfi`, `ebreak`) that the CPU does not run.
+
+```asm
+.text
+    add  a0, a1, a2
+    addi a0, a1, -1
+    slli a0, a1, 3
+    mul  a3, a0, a1
+    clz  a4, a0
+    min  a5, a0, a1
+    bset a6, a0, a1
+    czero.eqz t0, a0, a1
+    lui  t2, 0x12345
+    sb   a0, 3(sp)
+    beq  a0, a1, done
+    jal  ra, done
+done:
+    ecall
+```
+
+## Base integer (RV32I)
+
+| Group | Instructions |
+|-------|--------------|
+| Register-register | `add sub sll slt sltu xor srl sra or and` |
+| Register-immediate | `addi slti sltiu xori ori andi slli srli srai` |
+| Loads | `lb lh lw lbu lhu` |
+| Stores | `sb sh sw` |
+| Branches | `beq bne blt bge bltu bgeu` |
+| Jumps | `jal jalr` |
+| Upper immediate | `lui auipc` |
+| Memory ordering | `fence fence.i` |
+| System | `ecall ebreak` |
+
+Operand forms are in [Syntax](syntax.md#operand-forms).
+`jalr` has four forms:
+
+| Form | Same as |
+|------|---------|
+| `jalr rs` | `jalr ra, rs, 0` (a call through a register) |
+| `jalr rd, rs` | `jalr rd, rs, 0` |
+| `jalr rd, rs, imm` | |
+| `jalr rd, imm(rs)` | `jalr rd, rs, imm` |
+
+`jalr` with no operand or more than three stops with `jalr expects 1 to 3 operands (rs | rd, rs | rd, rs, imm | rd, imm(rs)), got 0`.
+Before this, `jalr a0` meant `jalr a0, x0, 0` (a jump to address 0): it now means `jalr ra, a0, 0`, as in GNU as.
+
+`lui` and `auipc` take the 20-bit value that goes in the upper bits: `lui t2, 0x12345` loads `0x1234_5000`.
+
+### fence and fence.i
+
+| Form | Word | Note |
+|------|------|------|
+| `fence` | `0x0FF0_000F` | Same as `fence iorw, iorw`. |
+| `fence pred, succ` | `0x0PS0_000F` | `P` is the `pred` set, `S` the `succ` set. A set is made of the letters `i` (device input, 8), `o` (device output, 4), `r` (memory read, 2) and `w` (memory write, 1). `fence rw, w` is `0x0310_000F`. |
+| `fence.i` | `0x0000_100F` | No operand. |
+
+- A set has each letter at most once, in any order: `fence rw, w` is the same as `fence wr, w`. `0` is the empty set.
+- `fence` with one operand or more than two stops with `fence expects 0 or 2 operands (pred, succ)`. A bad set stops with `invalid fence set 'rx'`.
+- `fence.i a0` stops with `fence.i takes no operands`.
+- The disassembler prints the sets in `iorw` order, and `0` for an empty set: `fence 0, w`.
+- On the console both do nothing: the CPU moves to the next instruction. The CPU has one core, no cache, and runs every access in order, so there is nothing to order or flush. Write them where a RISC-V program needs them: the code keeps working if the console gets a DMA or a cache later.
+
+```asm
+.text
+    sw      a0, 0(a1)       ; write the data
+    fence   w, w            ; the data is written before the flag
+    sw      a2, 0(a3)       ; write the flag
+    fence.i                 ; code written to memory can now run
+```
+
+## M extension
+
+`mul mulh mulhsu mulhu div divu rem remu`.
+
+The CPU has a known bug in `mulhsu` (see [CPU](../../console/cpu/README.md)).
+
+## Bit-manipulation extensions
+
+| Extension | Instructions |
+|-----------|--------------|
+| Zba | `sh1add sh2add sh3add` |
+| Zbb | `clz ctz cpop sext.b sext.h zext.h orc.b min minu max maxu rol ror rori rev8 andn orn xnor` |
+| Zbs | `bset bclr binv bext bseti bclri binvi bexti` |
+| Zbkb | `pack packh` |
+| Zicond | `czero.eqz czero.nez` |
+
+Operand forms:
+
+- `clz rd, rs1`, same for `ctz cpop sext.b sext.h zext.h rev8`. Any other number of operands stops with `expects 2 operands (rd, rs1)`.
+- `min rd, rs1, rs2`, same for the other three-register instructions.
+- `sh1add rd, rs1, rs2` is `rd = (rs1 << 1) + rs2` (`sh2add` shifts by 2, `sh3add` by 3): the address of element `rs1` of a `half`, `word` or 8-byte array at `rs2`.
+- `andn`, `orn` and `xnor` invert `rs2` (or the result for `xnor`). `orc.b rd, rs1` sets each byte that is not 0 to `0xFF`.
+- `zext.h` shares its encoding with `pack`. `pack rd, rs1, x0` is `zext.h rd, rs1`.
+  The disassembler shows the word with `rs2 = x0` as `zext.h rd, rs1`, and any other `rs2` as `pack`.
+- `rori rd, rs1, shamt`, same for `bseti bclri binvi bexti`. `shamt` is a number from 0 to 31, like for `slli srli srai`.
+  A value outside 0..31 stops with `shift amount N out of range (0..31)`.
+  A register in its place stops with `shift amount must be a number (0..31), not register R`.
+
+## System and CSR
+
+| Instruction | Form | Note |
+|-------------|------|------|
+| `ecall` | `ecall` | Environment call. |
+| `ebreak` | `ebreak` | Assembles to `0x0010_0073`. **The CPU does not run it**: the word does nothing. |
+| `mret` | `mret` | Return from a trap handler (`0x3020_0073`). |
+| `wfi` | `wfi` | Assembles to `0x1050_0073`. **The CPU does not run it**: the word does nothing. |
+| `csrrw` `csrrs` `csrrc` | `csrrw rd, csr, rs1` | Standard RISC-V order. |
+| `csrrwi` `csrrsi` `csrrci` | `csrrwi rd, csr, uimm` | `uimm` is a number from 0 to 31. |
+
+- The order is the standard RISC-V one: `rd`, then the CSR, then `rs1` or `uimm`.
+- The old n32asm order (`csrrw rd, rs1, csr`) is refused: a register in the CSR place stops with `the CSR operand 'a0' is a register; the order is csrrw rd, csr, rs1`. `csrrwi a0, 3, 0x340` stops with `immediate 832 out of range (0..31) (old order rd, uimm, csr? ...)`.
+- `uimm` must be a number or a constant, not a register name: `csrrsi a0, 0x300, x5` stops with `uimm must be a number (0..31), not register x5`.
+- `csr` is a number from 0 to `0xFFF`. CSR names such as `mstatus` are not known: use a number or an `.equ` constant. The numbers are in [CSR](../../console/cpu/csr.md).
+- An immediate out of range stops with `csrrwi immediate 40 out of range (0..31)`.
+- `ecall`, `ebreak`, `mret` and `wfi` take no operand. `mret a0` stops with `mret takes no operands`.
+
+The disassembler prints the same order: `csrrw t0, 0x300, a0`, `csrrsi a1, 0x304, 5`.
+
+```asm
+.equ MSTATUS, 0x300
+.text
+    csrr   a0, MSTATUS      ; csrrs a0, MSTATUS, x0
+    csrw   MSTATUS, a0      ; csrrw x0, MSTATUS, a0
+    csrs   MSTATUS, a1
+    csrc   MSTATUS, a1
+    csrrw  a1, 0x305, a0
+    csrwi  MSTATUS, 8
+    csrrwi a2, 0x340, 5
+    mret
+    ecall
+```
+
+## Thread instructions
+
+`new.t yield.t id.t sleep.t wake.t end.t`
+
+They use the custom opcode `0x0B`.
+Syntax, encoding and behaviour are in [Thread instructions](../../console/cpu/instructions.md).
+Each one takes exactly the operands of its syntax: `wake.t a0, a1` stops with `wake.t expects 1 operand (rs1), got 2`, `yield.t a0` with `yield.t expects no operands, got 1`.
+The disassembler prints them the same way (`new.t a1, a0`, `yield.t`, `wake.t a0`).
+
+```asm
+.text
+main:
+    la      a0, worker
+    new.t   a1, a0
+    id.t    a2
+    yield.t
+    sleep.t a0, a1
+    wake.t  a1
+    end.t
+worker:
+    end.t
+```
+
+## Pseudo-instructions
+
+n32asm expands these in phase 4, before the labels are resolved.
+`--disasm --pseudo` folds some of them back.
+
+| Pseudo | Expansion |
+|--------|-----------|
+| `nop` | `addi x0, x0, 0` |
+| `mv rd, rs` | `addi rd, rs, 0` |
+| `li rd, imm` | `addi rd, x0, imm` for -2048 to 2047, else `lui` + `addi` (`lui` alone when the low 12 bits are 0) |
+| `la rd, sym` | `auipc rd, %pcrel_hi(sym)` + `addi rd, rd, %pcrel_lo(sym)` |
+| `call sym` | `auipc x1, %pcrel_hi(sym)` + `jalr x1, x1, %pcrel_lo(sym)` |
+| `ret` | `jalr x0, x1, 0` |
+| `j label` | `jal x0, label` |
+| `jr rs` | `jalr x0, rs, 0` |
+| `tail sym` | `auipc x6, %pcrel_hi(sym)` + `jalr x0, x6, %pcrel_lo(sym)` |
+| `not rd, rs` | `xori rd, rs, -1` |
+| `neg rd, rs` | `sub rd, x0, rs` |
+| `seqz rd, rs` | `sltiu rd, rs, 1` |
+| `snez rd, rs` | `sltu rd, x0, rs` |
+| `sltz rd, rs` | `slt rd, rs, x0` |
+| `sgtz rd, rs` | `slt rd, x0, rs` |
+| `beqz rs, l` | `beq rs, x0, l` |
+| `bnez rs, l` | `bne rs, x0, l` |
+| `blez rs, l` | `bge x0, rs, l` |
+| `bgez rs, l` | `bge rs, x0, l` |
+| `bltz rs, l` | `blt rs, x0, l` |
+| `bgtz rs, l` | `blt x0, rs, l` |
+| `bgt rs, rt, l` | `blt rt, rs, l` |
+| `ble rs, rt, l` | `bge rt, rs, l` |
+| `bgtu rs, rt, l` | `bltu rt, rs, l` |
+| `bleu rs, rt, l` | `bgeu rt, rs, l` |
+| `csrr rd, csr` | `csrrs rd, csr, x0` |
+| `csrw csr, rs` | `csrrw x0, csr, rs` |
+| `csrs csr, rs` | `csrrs x0, csr, rs` |
+| `csrc csr, rs` | `csrrc x0, csr, rs` |
+| `csrwi csr, imm` | `csrrwi x0, csr, imm` |
+| `csrsi csr, imm` | `csrrsi x0, csr, imm` |
+| `csrci csr, imm` | `csrrci x0, csr, imm` |
+| `rdcycle rd` | `csrrs rd, 0xC00, x0` |
+| `rdtime rd` | `csrrs rd, 0xC01, x0` |
+| `rdinstret rd` | `csrrs rd, 0xC02, x0` |
+| `rdcycleh rd` | `csrrs rd, 0xC80, x0` |
+| `rdtimeh rd` | `csrrs rd, 0xC81, x0` |
+| `rdinstreth rd` | `csrrs rd, 0xC82, x0` |
+| `unimp` | `csrrw x0, 0xC00, x0` (word `0xC000_1073`) |
+| `syscall` | `ecall` (`a7` is used as it is) |
+| `syscall N` | `addi x17, x0, N` + `ecall` (`N` a number) |
+| `syscall rs` | `add x17, x0, rs` + `ecall` |
+
+Notes:
+
+- `li` with a number outside -2048 to 2047 uses `lui` with `%hi` and `addi` with `%lo`. `li a0, 100000` gives `lui a0, 0x18` and `addi a0, a0, 1696` (100000 is `0x186A0`; `%lo` is `0x6A0`).
+- `li` with a name or an expression takes the same forms, once the value is known: `.equ F, 8` then `li a0, F` gives `addi a0, zero, 8`, also when `F` is defined below. n32asm first gives each such `li` one instruction, and makes it two when its value does not fit, which moves the labels below it. A `li` that uses `$` always takes two instructions.
+- `li` reads 0x80000000..0xFFFFFFFF as a 32-bit pattern: `li a0, 0xFFFFFFFF` is `li a0, -1` (one `addi`). A value outside -0x80000000 to 0xFFFFFFFF stops with `li value 4294967296 (0x100000000) does not fit 32 bits`.
+- `li rd, label` loads the absolute address of the label. In the ROM, at low addresses, that is often one `addi`. `la` is the PC-relative form.
+- `la`, `call` and `tail` are relative to the PC. `tail` jumps without saving a return address; it uses `t1` (`x6`), so `t1` is lost.
+- `rdcycle`, `rdtime` and `rdinstret` read the low 32 bits of the counters, the `h` forms the high 32 bits.
+- `unimp` writes `cycle`, a read-only CSR, so the CPU raises an illegal-instruction trap. Use it to mark code that must never run.
+- `--disasm --pseudo` prints `csrrs rd, csr, x0` as `rdcycle rd` (and the other counters), `csrr rd, csr` for other CSRs, and `0xC000_1073` as `unimp`. `tail` is two words and is printed as `auipc` + `jalr`, like `call`.
+- `syscall` with no operand is a plain `ecall`: set `a7` (`x17`) before it. More than one operand stops with `syscall expects 0 or 1 operand ([N or rs]), got 2`. The console defines no syscall numbers.
+- Each pseudo-instruction takes exactly the operands of the table. A wrong count stops with, for example, `beqz expects 2 operands (rs, label), got 1`; extra operands are never ignored.
+- `jal label` is `jal ra, label`: it jumps to `label` and puts the return address in `ra`. `jal` with no operand or more than two stops with `jal expects 1 or 2 operands ([rd,] target)`.
+
+```asm
+.text
+start:
+    li   a0, 100000
+    la   a1, data
+    mv   a2, a0
+    not  a3, a2
+    neg  a4, a2
+    seqz a5, a0
+    beqz a0, done
+    bgt  a0, a1, done
+    call func
+    j    done
+func:
+    ret
+done:
+    nop
+.data
+data:
+    .word 0
+```
+
+## n32asm and the CPU
+
+| Case | n32asm | CPU |
+|------|-------|-----|
+| `wfi` | Assembled (`0x1050_0073`). | Not decoded: the word does nothing. |
+| `ebreak` | Assembled (`0x0010_0073`). | Not decoded: the word does nothing. |
+| `fence`, `fence.i` | Assembled. | Decoded, and do nothing: the PC moves to the next instruction. |
+
+Every other instruction of the CPU list is accepted by n32asm.
+
+## See also
+
+- [Syntax](syntax.md)
+- [Quick reference](quick-reference.md)
+- [CPU instruction list](../../console/cpu/README.md)
+- [Thread instructions](../../console/cpu/instructions.md)
+- [CSR](../../console/cpu/csr.md)
+- [Traps](../../console/cpu/traps.md)

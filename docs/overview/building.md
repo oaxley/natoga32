@@ -8,7 +8,7 @@ This page lists what you need to build NATOGA32, the CMake options, the commands
 |------|---------|------------|
 | C++ compiler | C++20 | `libvc`, `vchost`, tests |
 | CMake | 3.25 or newer | the whole build |
-| Go | 1.21 or newer (`go.mod` of `goasm` and `n32pack`) | `goasm`, `n32pack` |
+| Go | 1.21 or newer (`go.mod` of `n32asm` and `n32pack`) | `n32asm`, `n32pack` |
 | Python 3 with Pillow (`PIL`) | no minimum in the CMake files | the boot ROM assets (`rom/tools/make_assets.py`) |
 | SDL3 | found by `find_package(SDL3)` | `vchost` |
 
@@ -17,7 +17,7 @@ This needs network access the first time.
 
 Some parts are skipped with a warning when a requirement is missing:
 
-- No Go: `goasm`, `n32pack`, the boot ROM and the sample cartridge are not built.
+- No Go: `n32asm`, `n32pack`, the boot ROM and the sample cartridge are not built.
 - No Python 3 with Pillow: the boot ROM (`rombios.sys`) is not built.
 - No SDL3: the configuration fails when `VC_BUILD_HOST` is `ON`. Use `-DVC_BUILD_HOST=OFF`.
 
@@ -56,14 +56,14 @@ All paths are relative to the build directory (`build/`).
 |--------|------|------------|
 | `vchost` | `core/host/vchost` | The host program |
 | `rombios.sys` | `core/host/rombios.sys` | The boot ROM, next to `vchost` because the host looks for it there |
-| `goasm` | `goasm` | The assembler |
+| `n32asm` | `n32asm` | The assembler |
 | `n32pack` | `n32pack` | The cartridge packer |
 | `vctests` | `tests/vctests` | The Catch2 test program |
 | `vc_cartcheck` | `tests/vc_cartcheck` | Loads a cartridge and prints its status |
 | `hello.n32` | `tests/cartridge/hello.n32` | A sample cartridge, packed and checked by the tests |
 | `libvc` | `core/console/libvc.a` | The console library (`libvc.so` with `VC_BUILD_SHARED`) |
 
-The Go tools are built by `go build` through custom targets (`vc_goasm`, `vc_n32pack`).
+The Go tools are built by `go build` through custom targets (`vc_n32asm`, `vc_n32pack`).
 They are rebuilt when a Go source changes.
 
 ## Run
@@ -80,7 +80,7 @@ See [vchost](../host/vchost.md) for the options.
 
 ```bash
 ctest --test-dir build                    # vctests, cartridge checks, vchost headless runs
-(cd tools/goasm && go test ./...)         # goasm tests
+(cd tools/n32asm && go test ./...)        # n32asm tests
 (cd tools/n32pack && go test ./...)       # n32pack tests
 python3 -m pytest rom/tools               # boot ROM asset script
 ```
@@ -93,7 +93,7 @@ You can also start `build/tests/vctests` directly and pass Catch2 filters.
 - [Architecture](architecture.md)
 - [Design principles](principles.md)
 - [vchost](../host/vchost.md)
-- [goasm](../tools/goasm/README.md)
+- [n32asm](../tools/n32asm/README.md)
 - [n32pack](../tools/n32pack/README.md)
 - [Boot ROM](../rom/README.md)
 - [Documentation index](../README.md)

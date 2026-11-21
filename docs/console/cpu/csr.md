@@ -6,7 +6,7 @@ This page lists the control and status registers (CSRs) of the CPU, how a progra
 
 A CSR has a number from 0 to 4095 (12 bits).
 A program reads and writes the CSRs with the six CSR instructions: `csrrw`, `csrrs`, `csrrc`, `csrrwi`, `csrrsi`, `csrrci`.
-goasm also knows the short forms `csrr`, `csrw`, `csrs`, `csrc`, `csrwi`, `csrsi` and `csrci`.
+n32asm also knows the short forms `csrr`, `csrw`, `csrs`, `csrc`, `csrwi`, `csrsi` and `csrci`.
 It does not know the CSR names: write the number, for example `csrr t0, 0xC00`, or define it with `.equ`.
 
 ## Shared CSR memory

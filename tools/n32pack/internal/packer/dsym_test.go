@@ -16,7 +16,7 @@ type dsymEntry struct {
 	name  string
 }
 
-// dsymData builds dSYM chunk data with the goasm layout: u32 count, then per entry u32 address,
+// dsymData builds dSYM chunk data with the n32asm layout: u32 count, then per entry u32 address,
 // u8 section kind, u8 flags, u16 name length, name, zero padding to 4
 func dsymData(count uint32, entries ...dsymEntry) []byte {
 	b := binary.LittleEndian.AppendUint32(nil, count)

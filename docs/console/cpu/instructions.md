@@ -11,7 +11,7 @@ The field `funct3` selects the instruction.
 |------|----------|----------|----------|----------|---------|--------|
 | Field | `funct7` (0) | `rs2` | `rs1` | `funct3` | `rd` | opcode (`0x0B`) |
 
-| Instruction | Syntax | goasm format | `funct3` | Fields used | Example |
+| Instruction | Syntax | n32asm format | `funct3` | Fields used | Example |
 |-------------|--------|--------------|----------|-------------|---------|
 | `new.t` | `new.t rd, rs1` | R | `000` | `rd`, `rs1` | `new.t a1, a0` = `0x0005_058B` |
 | `yield.t` | `yield.t` | I | `001` | none | `0x0000_100B` |
@@ -20,7 +20,7 @@ The field `funct3` selects the instruction.
 | `wake.t` | `wake.t rs1` | R2 | `101` | `rs1` | `wake.t a0` = `0x0005_500B` |
 | `end.t` | `end.t` | I | `111` | none | `0x0000_700B` |
 
-The formats are the names that [goasm](../../tools/goasm/instructions.md) uses.
+The formats are the names that [n32asm](../../tools/n32asm/instructions.md) uses.
 R2 has two source registers and `rd` = 0.
 `wake.t` can also be written `wake.t rs1, rs2`: `rs2` is ignored, and it can be `zero`.
 The CPU ignores the fields that an instruction does not use.
@@ -168,5 +168,5 @@ The order is: thread 0 starts the worker, the worker sleeps, thread 0 wakes it, 
 - [Threads](threads.md)
 - [Traps](traps.md)
 - [libvc C API](../libvc-api.md)
-- [goasm instructions](../../tools/goasm/instructions.md)
+- [n32asm instructions](../../tools/n32asm/instructions.md)
 - [Boot ROM](../../rom/README.md)

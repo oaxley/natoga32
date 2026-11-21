@@ -7,7 +7,7 @@ This page says what a NATOGA32 cartridge is, which rules its file follows, and h
 A cartridge is one `.n32` file.
 It holds the RISC-V code of a game, plus asset chunks and optional debug symbols.
 
-- `goasm` assembles the code into an `RSCV` chunk (and a `dSYM` chunk for the symbols).
+- `n32asm` assembles the code into an `RSCV` chunk (and a `dSYM` chunk for the symbols).
 - `n32pack` puts these chunks and the asset files together into the `.n32` file.
 - The host only inserts the file with [`vc_loadCartridgeFile`](../libvc-api.md#rom-and-cartridge-loading). It never parses it.
 - The console checks the file at reset and shows it to the program. See [Insertion](insertion.md).
@@ -65,4 +65,4 @@ Today a program reads the cartridge itself with the CPU.
 - [CSR registers](../cpu/csr.md)
 - [libvc C API](../libvc-api.md)
 - [n32pack](../../tools/n32pack/README.md)
-- [goasm output formats](../../tools/goasm/output-formats.md)
+- [n32asm output formats](../../tools/n32asm/output-formats.md)

@@ -47,8 +47,8 @@ The rules, checked by `n32pack`:
 - The sections must fill the chunk exactly.
 
 A kind can appear more than once, for example two `.data` sections at two addresses.
-There is no relocation: `goasm` writes the final addresses.
-`goasm` writes the non-empty sections in this order: `.text`, `.data`, `.rodata`, `.bss`.
+There is no relocation: `n32asm` writes the final addresses.
+`n32asm` writes the non-empty sections in this order: `.text`, `.data`, `.rodata`, `.bss`.
 
 The RISC-V entry point is in the [IHDR](file-format.md#ihdr), not in `RSCV`.
 
@@ -87,7 +87,7 @@ Example, the asset chunk `TILS` of the sample cartridge: the header is `00 00 04
 
 `dSYM` holds the labels of the program and their addresses.
 It is an ancillary chunk: the console never reads it, and a loader can skip it.
-`goasm --sym FILE` writes it, and `n32pack` takes it from the `dsym` field of the manifest.
+`n32asm --sym FILE` writes it, and `n32pack` takes it from the `dsym` field of the manifest.
 `n32pack` uses it to find the entry point when the manifest names a label.
 
 The data is a count followed by the entries:
@@ -107,8 +107,8 @@ Each entry:
 | `+0x06` | 2 | Length of the name, 1 to 65535 |
 | `+0x08` | n | Name in UTF-8, then zero bytes up to a multiple of 4 |
 
-- `goasm` sets the global bit only when the `.global` line comes after the label. A `.global` line before the label is lost: the bit stays 0 (a `goasm` bug).
-- `goasm` writes the labels of `.text`, `.data`, `.rodata` and `.bss`, sorted by address, then by name.
+- `n32asm` sets the global bit only when the `.global` line comes after the label. A `.global` line before the label is lost: the bit stays 0 (a `n32asm` bug).
+- `n32asm` writes the labels of `.text`, `.data`, `.rodata` and `.bss`, sorted by address, then by name.
 - `n32pack` refuses an empty name, a kind outside 1 to 4, a duplicate name, and extra bytes after the last entry.
 
 Example, the last entry of the sample cartridge: address `0x01A0_0008`, kind 1, flags 0, name length 4, name `loop`.
@@ -119,6 +119,6 @@ Example, the last entry of the sample cartridge: address `0x01A0_0008`, kind 1, 
 - [File format](file-format.md)
 - [Console view](console-view.md)
 - [Insertion](insertion.md)
-- [goasm output formats](../../tools/goasm/output-formats.md)
+- [n32asm output formats](../../tools/n32asm/output-formats.md)
 - [n32pack](../../tools/n32pack/README.md)
 - [Memory map](../memory-map.md)

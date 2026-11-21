@@ -3,7 +3,7 @@
 This page says what n32pack is, how to build it, what each option does, how it fits in the build of a cartridge, and what it checks.
 
 n32pack is the cartridge packer of NATOGA32, written in Go.
-It reads a JSON [manifest](manifest.md), the `RSCV` code chunk and the `dSYM` symbol chunk written by [goasm](../goasm/README.md), and the asset files.
+It reads a JSON [manifest](manifest.md), the `RSCV` code chunk and the `dSYM` symbol chunk written by [n32asm](../n32asm/README.md), and the asset files.
 It writes a `.n32` [cartridge](../../console/cartridge/README.md).
 It can also write `assets.inc`, a file with the asset ids that the game source includes.
 
@@ -47,12 +47,12 @@ These are the commands that `tests/CMakeLists.txt` runs for the sample cartridge
 cd build/tests/cartridge     # the build copies hello.s, hello.json and level1.tiles here
 
 n32pack -inc assets.inc hello.json                       # 1. the asset ids
-goasm hello.s -f rscv -o hello.rscv --sym hello.sym      # 2. the RSCV and dSYM chunks
+n32asm hello.s -f rscv -o hello.rscv --sym hello.sym      # 2. the RSCV and dSYM chunks
 n32pack -o hello.n32 hello.json                          # 3. the cartridge
 ```
 
-1. `hello.s` has the line `.include "assets.inc"`. The include path is relative to the source file, see the [preprocessor](../goasm/preprocessor.md).
-2. `-f rscv` is the default format of goasm. `--sym` writes the labels, so the manifest can name a label as the entry point. See [goasm output formats](../goasm/output-formats.md).
+1. `hello.s` has the line `.include "assets.inc"`. The include path is relative to the source file, see the [preprocessor](../n32asm/preprocessor.md).
+2. `-f rscv` is the default format of n32asm. `--sym` writes the labels, so the manifest can name a label as the entry point. See [n32asm output formats](../n32asm/output-formats.md).
 3. The manifest names `hello.rscv` and `hello.sym`. All its paths are relative to the directory of the manifest.
 
 To check the result, load it in the emulator with `vc_cartcheck`, a test program of the build:
@@ -103,7 +103,7 @@ The build also packs the sample cartridge and `ctest` loads it with `vc_cartchec
 ## See also
 
 - [Manifest](manifest.md)
-- [goasm](../goasm/README.md)
+- [n32asm](../n32asm/README.md)
 - [Cartridge](../../console/cartridge/README.md)
 - [Cartridge file format](../../console/cartridge/file-format.md)
 - [Cartridge chunks](../../console/cartridge/chunks.md)

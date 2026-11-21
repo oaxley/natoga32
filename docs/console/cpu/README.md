@@ -118,4 +118,4 @@ The result is the same as running every tick.
 - [Traps](traps.md)
 - [Memory map](../memory-map.md)
 - [libvc C API](../libvc-api.md)
-- [goasm instructions](../../tools/goasm/instructions.md)
+- [n32asm instructions](../../tools/n32asm/instructions.md)

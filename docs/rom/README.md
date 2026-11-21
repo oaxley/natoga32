@@ -5,7 +5,7 @@ This page describes what the boot ROM does today, how it is built, and what its 
 ## Overview
 
 The boot ROM is a small program written in assembly: [`rom/boot.s`](../../rom/boot.s).
-`goasm` assembles it into `rombios.sys`, and `vchost` loads that file at `0x0000_0000`.
+`n32asm` assembles it into `rombios.sys`, and `vchost` loads that file at `0x0000_0000`.
 The console starts thread 0 at `0x0000_0100`, the entry point of the ROM.
 
 The ROM draws everything itself in [Framebuffer A](../console/memory-map.md#framebuffer-a).
@@ -14,7 +14,7 @@ The console has no splash screen of its own.
 | Property | Value |
 |----------|-------|
 | Source | `rom/boot.s` |
-| Output | `rombios.sys`, assembled with `goasm -f rom` |
+| Output | `rombios.sys`, assembled with `n32asm -f rom` |
 | Entry point | `0x0000_0100` |
 | Threads used | Thread 0 only |
 | Memory written | Framebuffer A, and about 1.1 KiB at the start of the heap (`0x0080_0000`) |
@@ -115,13 +115,13 @@ For example, an illegal instruction shows `00000002`.
 ## Build
 
 The CMake target `rombios` builds the ROM.
-It needs `goasm` and Python 3 with Pillow. Without them, CMake prints a warning and the ROM is not built.
+It needs `n32asm` and Python 3 with Pillow. Without them, CMake prints a warning and the ROM is not built.
 
 | Step | Command | Output |
 |------|---------|--------|
 | 1 | `python3 rom/tools/make_assets.py rom/assets/playerone.png <build>/rom` | `logo.raw`, `font.raw` |
 | 2 | copy of `rom/boot.s` to `<build>/rom/boot.s` | the source next to the assets |
-| 3 | `goasm <build>/rom/boot.s -f rom -o <build>/core/host/rombios.sys` | `rombios.sys` |
+| 3 | `n32asm <build>/rom/boot.s -f rom -o <build>/core/host/rombios.sys` | `rombios.sys` |
 
 The source is copied next to the assets because the `.incbin "logo.raw"` and `.incbin "font.raw"` paths are relative to the source file.
 `rombios.sys` ends up next to `vchost`, which looks for it there by default.
@@ -130,7 +130,7 @@ See [Building](../overview/building.md#build-outputs) for the output paths, and 
 To build it by hand, from a directory that holds `boot.s`, `logo.raw` and `font.raw`:
 
 ```bash
-goasm boot.s -f rom -o rombios.sys
+n32asm boot.s -f rom -o rombios.sys
 ```
 
 The `-f rom` output writes the `.rom` section as a flat image from `0x0000_0000`.

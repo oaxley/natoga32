@@ -123,7 +123,7 @@ The sample cartridge has one asset, `LEVEL1_TILES`.
 ```
 
 This program checks the status, finds the asset in the `INDX` mirror, selects the bank and reads the first words of the asset chunk.
-It assembles with `goasm cart_read.s -f rscv -o cart_read.rscv`.
+It assembles with `n32asm cart_read.s -f rscv -o cart_read.rscv`.
 
 ```asm
 .include "assets.inc"

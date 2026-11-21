@@ -33,7 +33,7 @@ See the [memory map](memory-map.md).
 
 ## The cartridge
 
-A cartridge is a `.n32` file built with `goasm` and `n32pack`.
+A cartridge is a `.n32` file built with `n32asm` and `n32pack`.
 The console checks it at reset, then a program reads its chunk index and its data through the control zone and the window.
 See [Cartridge](cartridge/README.md).
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
-# Boot ROM: rom/boot.s assembled with goasm into rombios.sys, next to vchost.
-# Needs goasm (built by tools/) and Python 3 with Pillow (to convert the assets).
+# Boot ROM: rom/boot.s assembled with n32asm into rombios.sys, next to vchost.
+# Needs n32asm (built by tools/) and Python 3 with Pillow (to convert the assets).
 
 find_package(Python3 COMPONENTS Interpreter)
 
@@ -17,8 +17,8 @@ if(Python3_Interpreter_FOUND)
     endif()
 endif()
 
-if(NOT TARGET vc_goasm)
-    message(WARNING "goasm not available: the boot ROM (rombios) will not be built")
+if(NOT TARGET vc_n32asm)
+    message(WARNING "n32asm not available: the boot ROM (rombios) will not be built")
     return()
 endif()
 if(NOT VC_ROM_HAS_PILLOW)
@@ -56,9 +56,9 @@ add_custom_command(
 add_custom_command(
     OUTPUT ${VC_ROMBIOS_FILE}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/core/host
-    COMMAND ${VC_GOASM_EXECUTABLE} ${VC_ROM_SOURCE} -f rom -o ${VC_ROMBIOS_FILE}
+    COMMAND ${VC_N32ASM_EXECUTABLE} ${VC_ROM_SOURCE} -f rom -o ${VC_ROMBIOS_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS vc_goasm ${VC_GOASM_EXECUTABLE} ${VC_ROM_SOURCE} ${VC_ROM_LOGO} ${VC_ROM_FONT}
+    DEPENDS vc_n32asm ${VC_N32ASM_EXECUTABLE} ${VC_ROM_SOURCE} ${VC_ROM_LOGO} ${VC_ROM_FONT}
     COMMENT "Assembling the boot ROM"
     VERBATIM
 )

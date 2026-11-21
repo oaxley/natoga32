@@ -1,0 +1,164 @@
+// n32asm - NATOGA32 RISC-V Assembler
+//
+// This source file is subject to the MIT License
+// that is bundled with this package in the file LICENSE.txt.
+package assembler
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/natoga32/n32asm/internal/ast"
+	"github.com/natoga32/n32asm/internal/section"
+	"github.com/natoga32/n32asm/internal/symbol"
+)
+
+var (
+	outputFile   string
+	outputFormat string
+	symFile      string // --sym: dSYM chunk output file (rscv only)
+	debugLevel   int
+	baseDir      string // Base directory for resolving relative paths
+	optimizeFlag bool   // -O/--optimize: Enable peephole optimizations
+
+	// Disassembler flags
+	disasmMode     bool   // -disasm: Enable disassembly mode
+	disasmBaseAddr uint32 // -base: Base address for raw binary (default: MMAP_TEXT_SEGMENT)
+	disasmPseudo   bool   // -pseudo: Enable pseudo-instruction recognition (Step 4)
+	disasmShowHex  bool   // -hex: Show hex encoding (default: true)
+	disasmNoABI    bool   // -no-abi: Use x0-x31 instead of ABI names
+)
+
+var rootCmd = &cobra.Command{
+	Use:   "n32asm [input file]",
+	Short: "NATOGA32 RISC-V Assembler/Disassembler",
+	Long: `n32asm is a RISC-V assembler and disassembler for the NATOGA32 virtual console.
+
+It assembles RISC-V assembly files into binary format for ROM or
+cartridge loading. Use -disasm flag to disassemble binary files.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// the command line is valid from here: an error is about the input, not the usage
+		cmd.SilenceUsage = true
+		inputFile := args[0]
+
+		// Check for disassembly mode
+		if disasmMode {
+			return runDisasm(inputFile)
+		}
+
+		// Default: assembly mode
+		return assemble(inputFile)
+	},
+}
+
+func init() {
+	// Assembly flags
+	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "a.out", "Output file path")
+	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "rscv", "Output format: rscv, rom")
+	rootCmd.Flags().StringVar(&symFile, "sym", "", "Write the labels as a cartridge dSYM chunk (needs -f rscv)")
+	rootCmd.Flags().IntVarP(&debugLevel, "debug", "d", 0, "Debug level: 1-6 print a phase and stop, 7 prints the output written")
+	rootCmd.Flags().BoolVarP(&optimizeFlag, "optimize", "O", false, "Enable peephole optimizations")
+
+	// Disassembly flags
+	rootCmd.Flags().BoolVar(&disasmMode, "disasm", false, "Disassemble input file")
+	rootCmd.Flags().Uint32Var(&disasmBaseAddr, "base", MMAP_TEXT_SEGMENT, "Base address for disassembly (raw binary only)")
+	rootCmd.Flags().BoolVar(&disasmPseudo, "pseudo", false, "Show pseudo-instructions (nop, li, mv, ret, etc.)")
+	rootCmd.Flags().BoolVar(&disasmShowHex, "hex", true, "Show hex encoding in disassembly output")
+	rootCmd.Flags().BoolVar(&disasmNoABI, "no-abi", false, "Use x0-x31 register names instead of ABI names")
+}
+
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+}
+
+// semanticPass1 performs the first semantic analysis pass:
+// - Calculate addresses for labels
+// - Build symbol table
+// - Track section sizes
+//
+// It goes on after an error, so the layout is complete, and returns the
+// first error: with provisional values (names defined below), an error may
+// go away in the next pass (see layout in relax.go).
+func semanticPass1(program *ast.Program, symbols *symbol.Table, sections *section.Manager) error {
+	var first error
+	keep := func(err error) {
+		if first == nil {
+			first = err
+		}
+	}
+
+	for _, stmt := range program.Statements {
+		switch s := stmt.(type) {
+		case *ast.Label:
+			addr := sections.CurrentAddress()
+			if err := symbols.DefineLabel(s.Name, addr, sections.CurrentName(), s.Location.Line); err != nil {
+				keep(duplicateError(s.Location, s.Name, symbols))
+				continue
+			}
+			symbols.Lookup(s.Name).File = s.Location.Filename
+
+		case *ast.Instruction:
+			// Each instruction is 4 bytes
+			s.Address = int(sections.CurrentAddress())
+			sections.Current().Size += 4
+
+		case *ast.Directive:
+			if err := handleDirective(s, symbols, sections); err != nil {
+				keep(err)
+			}
+		}
+	}
+
+	return first
+}
+
+// semanticPass2 encodes instructions to binary, with the symbols of pass 1
+func semanticPass2(program *ast.Program, symbols *symbol.Table, sections *section.Manager) error {
+	ctx := newEncodeContext(program)
+	for _, stmt := range program.Statements {
+		switch s := stmt.(type) {
+		case *ast.Instruction:
+			pc := sections.CurrentAddress()
+			if err := encodeInstruction(s, symbols, sections, ctx); err != nil {
+				return err
+			}
+			ctx.prev, ctx.prevAddr = s, pc
+
+		case *ast.Directive:
+			if err := emitDirective(s, symbols, sections); err != nil {
+				return err
+			}
+			ctx.prev = nil // data or a section switch breaks an adjacent auipc pair
+		}
+	}
+	return nil
+}
+
+// printHexDump prints a hex dump of data
+func printHexDump(data []byte, baseAddr int64) {
+	for i := 0; i < len(data); i += 16 {
+		fmt.Printf("  %08X: ", baseAddr+int64(i))
+		for j := 0; j < 16 && i+j < len(data); j++ {
+			fmt.Printf("%02X ", data[i+j])
+		}
+		// Padding for short lines
+		for j := len(data) - i; j < 16; j++ {
+			fmt.Print("   ")
+		}
+		fmt.Print(" |")
+		for j := 0; j < 16 && i+j < len(data); j++ {
+			ch := data[i+j]
+			if ch >= 32 && ch < 127 {
+				fmt.Printf("%c", ch)
+			} else {
+				fmt.Print(".")
+			}
+		}
+		fmt.Println("|")
+	}
+}

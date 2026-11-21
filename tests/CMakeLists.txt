@@ -69,8 +69,8 @@ target_include_directories(vc_cartcheck
         ${CMAKE_CURRENT_SOURCE_DIR}/../core/console/include
 )
 
-# sample cartridge packed with goasm and n32pack, then checked by the emulator
-if(TARGET vc_goasm AND TARGET vc_n32pack)
+# sample cartridge packed with n32asm and n32pack, then checked by the emulator
+if(TARGET vc_n32asm AND TARGET vc_n32pack)
     set(VC_CART_SRC ${CMAKE_CURRENT_SOURCE_DIR}/cartridge)
     set(VC_CART_DIR ${CMAKE_CURRENT_BINARY_DIR}/cartridge)
 
@@ -89,9 +89,9 @@ if(TARGET vc_goasm AND TARGET vc_n32pack)
     )
     add_custom_command(
         OUTPUT ${VC_CART_DIR}/hello.rscv ${VC_CART_DIR}/hello.sym
-        COMMAND ${VC_GOASM_EXECUTABLE} hello.s -f rscv -o hello.rscv --sym hello.sym
+        COMMAND ${VC_N32ASM_EXECUTABLE} hello.s -f rscv -o hello.rscv --sym hello.sym
         WORKING_DIRECTORY ${VC_CART_DIR}
-        DEPENDS vc_goasm ${VC_GOASM_EXECUTABLE} ${VC_CART_DIR}/hello.s ${VC_CART_DIR}/assets.inc
+        DEPENDS vc_n32asm ${VC_N32ASM_EXECUTABLE} ${VC_CART_DIR}/hello.s ${VC_CART_DIR}/assets.inc
         COMMENT "Assembling the sample cartridge"
         VERBATIM
     )

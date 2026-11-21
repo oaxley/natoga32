@@ -18,8 +18,8 @@ Every path in it is relative to the directory of the manifest (an absolute path 
 | `languages` | array of strings | no | `[]` | `"english"` is the only value. The array may be empty. |
 | `date` | string | no | the time of the run | RFC 3339, for example `"2026-11-18T00:00:00Z"`. Not before `2026-01-01T00:00:00Z`. |
 | `graphics_mode` | integer | no | absent | 0 to 3. Absent means the game has no requirement. |
-| `rscv` | string | yes | | Path of the `RSCV` chunk file, written by `goasm -f rscv`. |
-| `dsym` | string | no | none | Path of the `dSYM` chunk file, written by `goasm --sym`. |
+| `rscv` | string | yes | | Path of the `RSCV` chunk file, written by `n32asm -f rscv`. |
+| `dsym` | string | no | none | Path of the `dSYM` chunk file, written by `n32asm --sym`. |
 | `entry` | string | no | the first `.text` section | The RISC-V entry point, see below. |
 | `assets` | array of objects | no | `[]` | The asset chunks, see [Assets](#assets). |
 
@@ -83,8 +83,8 @@ The number is the id of the asset in `INDX`: the first asset is 1, because `RSCV
 
 - The comment line has the file name of the manifest as given on the command line, without its directory.
 - With no asset, the file only has the comment line.
-- The file is plain goasm source: include it with `.include "assets.inc"`.
-  The `#` comment and the `.equ` with a decimal number are accepted by goasm, see [Syntax](../goasm/syntax.md#data-directives).
+- The file is plain n32asm source: include it with `.include "assets.inc"`.
+  The `#` comment and the `.equ` with a decimal number are accepted by n32asm, see [Syntax](../n32asm/syntax.md#data-directives).
 - The ids do not depend on the `dsym` field: `dSYM` comes after the assets.
 
 A game uses the id to find its asset in the index mirror of the console, see [Console view](../../console/cartridge/console-view.md).
@@ -158,4 +158,4 @@ Some messages, as n32pack prints them (`n32pack: <file>: <message>`):
 - [Cartridge file format](../../console/cartridge/file-format.md)
 - [Cartridge chunks](../../console/cartridge/chunks.md)
 - [Console view](../../console/cartridge/console-view.md)
-- [goasm output formats](../goasm/output-formats.md)
+- [n32asm output formats](../n32asm/output-formats.md)
