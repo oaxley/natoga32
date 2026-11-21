@@ -20,8 +20,8 @@ The project has four parts:
 - A 32-bit RISC-V CPU (RV32I and M, a part of Zbb) with 8 cooperative threads, CSR registers and traps.
 - A 32 MiB memory map with a private zone for the thread state.
 - A cartridge device: the console checks a `.n32` file at reset, reads its chunk index and exposes it through a control block and a bank-switched window.
-- A boot ROM that draws a logo with a fade-in and an "insert a cartridge" message in Framebuffer A (640x384, RGB565).
-- `vchost`: window or headless run at 25 MHz and 60 fps, boot ROM and cartridge from the command line.
+- A boot ROM that draws a logo with a fade-in and an "insert a cartridge" message in Framebuffer A (640x384, RGB565), and a trap screen.
+- `vchost`: window or headless run at 25 MHz and 60 fps, with the boot ROM and a cartridge given on the command line.
 - `goasm`: assembler and disassembler with a preprocessor, and the `rscv`, `bin` and `rom` outputs.
 - `n32pack`: builds a `.n32` cartridge from a JSON manifest, the chunks of `goasm` and asset files.
 
@@ -49,11 +49,11 @@ Everything else (video modes, GPU, inputs, audio, DMA, DSP, memory card) is not 
 
 | Page | Content |
 |------|---------|
-| [CPU](console/cpu/README.md) | The core, its extensions and the cycle model |
-| [Threads](console/cpu/threads.md) | The 8 cooperative threads, their states and their private state |
-| [Instructions](console/cpu/instructions.md) | The instructions the CPU executes, including the thread instructions |
+| [CPU](console/cpu/README.md) | The instruction set, the cycle model and the idle state |
+| [Threads](console/cpu/threads.md) | The 8 cooperative threads, their states, control blocks and stacks |
+| [Instructions](console/cpu/instructions.md) | The six thread instructions and the event codes of `sleep.t` and `wake.t` |
 | [CSR registers](console/cpu/csr.md) | The control and status registers |
-| [Traps](console/cpu/traps.md) | Exceptions, interrupts and how a trap is taken |
+| [Traps](console/cpu/traps.md) | How a trap is taken, its causes, `ecall` and `mret` |
 
 ### Cartridge
 
@@ -62,33 +62,33 @@ Everything else (video modes, GPU, inputs, audio, DMA, DSP, memory card) is not 
 | [Cartridge](console/cartridge/README.md) | What a cartridge is and how the parts fit |
 | [File format](console/cartridge/file-format.md) | The `.n32` layout: header, index, end marker |
 | [Chunks](console/cartridge/chunks.md) | Each chunk type and its fields |
-| [Console view](console/cartridge/console-view.md) | The control registers and the window the program sees |
+| [Console view](console/cartridge/console-view.md) | The control registers, the status codes, the 128 KiB window and bank switching |
 | [Insertion](console/cartridge/insertion.md) | Load, eject, reset and the status the console reports |
 
 ### Boot ROM
 
 | Page | Content |
 |------|---------|
-| [Boot ROM](rom/README.md) | The ROM header, the start-up code and what it shows |
+| [Boot ROM](rom/README.md) | The ROM header, the start-up code, the logo fade-in and the trap screen |
 | [ROM assets](rom/assets.md) | How the logo and the font are converted and included |
 
 ### Host
 
 | Page | Content |
 |------|---------|
-| [vchost](host/vchost.md) | The host program: options, window, headless mode, frame pacing |
+| [vchost](host/vchost.md) | The host program: command line, window, keys, headless mode, frame pacing, exit codes |
 
 ### Tools
 
 | Page | Content |
 |------|---------|
-| [goasm](tools/goasm/README.md) | The assembler: overview, build and usage |
+| [goasm](tools/goasm/README.md) | The assembler: build, command-line options and disassembler |
 | [goasm syntax](tools/goasm/syntax.md) | Sections, labels, registers, numbers and data directives |
 | [goasm preprocessor](tools/goasm/preprocessor.md) | Constants, includes, conditions, loops, macros |
 | [goasm instructions](tools/goasm/instructions.md) | Supported instructions and pseudo-instructions |
-| [goasm output formats](tools/goasm/output-formats.md) | The `rscv`, `bin` and `rom` outputs and the `dSYM` file |
-| [goasm quick reference](tools/goasm/quick-reference.md) | One-page summary |
-| [n32pack](tools/n32pack/README.md) | The cartridge packer: build, usage and checks |
+| [goasm output formats](tools/goasm/output-formats.md) | The `rscv`, `rom` and `bin` outputs, the symbol file and the optimizer |
+| [goasm quick reference](tools/goasm/quick-reference.md) | One-screen summary |
+| [n32pack](tools/n32pack/README.md) | The cartridge packer: build, options, place in the cartridge build, checks |
 | [n32pack manifest](tools/n32pack/manifest.md) | The JSON manifest and the `assets.inc` file |
 
 ## Conventions

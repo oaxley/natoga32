@@ -88,7 +88,7 @@ The chunk still has to be listed in `INDX`.
 | `dSYM` | ancillary | 0 or 1 | Debug symbols |
 
 The device also accepts the critical type `DSPC`.
-Nothing uses it: `n32pack` does not write it, and its IHDR field is "reserved".
+Reserved, not implemented: `n32pack` does not write it.
 
 The device does not count the chunks or require one of them, except `IHDR`, `INDX` and `IEND`.
 `n32pack` writes `RSCV`, the assets in the order of the manifest, then `dSYM` when given.
